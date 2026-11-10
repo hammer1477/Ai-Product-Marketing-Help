@@ -2,6 +2,10 @@ import type { ImageAnalysisProvider, ImageGenerationProvider, TextGenerationProv
 import { MockTextGenerationProvider } from "./mock/text";
 import { MockImageAnalysisProvider } from "./mock/vision";
 import { MockImageGenerationProvider } from "./mock/image";
+import { GeminiTextGenerationProvider } from "./gemini/text";
+import { GeminiImageAnalysisProvider } from "./gemini/vision";
+import { GeminiImageGenerationProvider } from "./gemini/image";
+import { PollinationsImageGenerationProvider } from "./pollinations/image";
 
 // Phase 1: provider selection is env-var driven and read once. The
 // ai_provider_configs DB table records which provider/model produced each
@@ -14,12 +18,9 @@ let imageProvider: ImageGenerationProvider | null = null;
 export function getTextProvider(): TextGenerationProvider {
   if (!textProvider) {
     const id = process.env.AI_TEXT_PROVIDER ?? "mock";
-    textProvider =
-      id === "mock"
-        ? new MockTextGenerationProvider()
-        : (() => {
-            throw new Error(`Unknown or not-yet-implemented AI_TEXT_PROVIDER: "${id}"`);
-          })();
+    if (id === "mock") textProvider = new MockTextGenerationProvider();
+    else if (id === "gemini") textProvider = new GeminiTextGenerationProvider();
+    else throw new Error(`Unknown or not-yet-implemented AI_TEXT_PROVIDER: "${id}"`);
   }
   return textProvider;
 }
@@ -27,12 +28,9 @@ export function getTextProvider(): TextGenerationProvider {
 export function getVisionProvider(): ImageAnalysisProvider {
   if (!visionProvider) {
     const id = process.env.AI_VISION_PROVIDER ?? "mock";
-    visionProvider =
-      id === "mock"
-        ? new MockImageAnalysisProvider()
-        : (() => {
-            throw new Error(`Unknown or not-yet-implemented AI_VISION_PROVIDER: "${id}"`);
-          })();
+    if (id === "mock") visionProvider = new MockImageAnalysisProvider();
+    else if (id === "gemini") visionProvider = new GeminiImageAnalysisProvider();
+    else throw new Error(`Unknown or not-yet-implemented AI_VISION_PROVIDER: "${id}"`);
   }
   return visionProvider;
 }
@@ -40,12 +38,10 @@ export function getVisionProvider(): ImageAnalysisProvider {
 export function getImageProvider(): ImageGenerationProvider {
   if (!imageProvider) {
     const id = process.env.AI_IMAGE_PROVIDER ?? "mock";
-    imageProvider =
-      id === "mock"
-        ? new MockImageGenerationProvider()
-        : (() => {
-            throw new Error(`Unknown or not-yet-implemented AI_IMAGE_PROVIDER: "${id}"`);
-          })();
+    if (id === "mock") imageProvider = new MockImageGenerationProvider();
+    else if (id === "gemini") imageProvider = new GeminiImageGenerationProvider();
+    else if (id === "pollinations") imageProvider = new PollinationsImageGenerationProvider();
+    else throw new Error(`Unknown or not-yet-implemented AI_IMAGE_PROVIDER: "${id}"`);
   }
   return imageProvider;
 }

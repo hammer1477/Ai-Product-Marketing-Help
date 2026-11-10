@@ -30,6 +30,7 @@ export type TextLayer = LayerBase & {
   textAlign: "left" | "center" | "right";
   lineHeight?: number;
   maxLines?: number;
+  letterSpacing?: number;
 };
 
 export type ImageLayer = LayerBase & {

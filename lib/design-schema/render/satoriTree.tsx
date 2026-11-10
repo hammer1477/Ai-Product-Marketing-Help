@@ -35,6 +35,7 @@ function renderLayer(layer: DesignLayer) {
             color: layer.color,
             textAlign: layer.textAlign,
             lineHeight: layer.lineHeight ?? 1.2,
+            letterSpacing: layer.letterSpacing,
           }}
         >
           {layer.content}

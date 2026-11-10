@@ -1,6 +1,7 @@
 import type { DesignDensity, DesignLayer, DesignSchema } from "../../design-schema/types";
 import type { IconKey } from "../../design-schema/render/icons";
 import type { CreativeContent } from "../types";
+import type { StylePreset } from "../styles";
 
 const ICON_ROTATION: IconKey[] = ["check", "star", "leaf", "shield", "truck", "heart", "sparkles", "tag"];
 
@@ -12,31 +13,33 @@ const SELLING_POINT_COUNT_BY_DENSITY: Record<DesignDensity, number> = {
 
 export function composePosterSchema(
   content: CreativeContent,
-  imageUrl: string,
+  productImageUrl: string,
   density: DesignDensity,
+  style: StylePreset,
+  backgroundImageUrl?: string,
 ): DesignSchema {
   const layers: DesignLayer[] = [
     {
       id: "product-photo",
       type: "image",
-      src: imageUrl,
+      src: productImageUrl,
       fit: "cover",
       x: 580,
       y: 0,
       width: 500,
-      height: 760,
+      height: 1080,
       zIndex: 0,
     },
     {
-      id: "bg-accent",
+      id: "photo-divider",
       type: "shape",
       shape: "rect",
-      fill: "#1e293b",
-      x: 0,
-      y: 760,
-      width: 1080,
-      height: 320,
-      zIndex: 0,
+      fill: style.accent,
+      x: 578,
+      y: 0,
+      width: 2,
+      height: 1080,
+      zIndex: 1,
     },
   ];
 
@@ -46,11 +49,13 @@ export function composePosterSchema(
         id: "badge",
         type: "shape",
         shape: "badge",
-        fill: "#f59e0b",
+        fill: "transparent",
+        stroke: style.accent,
+        strokeWidth: 1,
         x: 64,
-        y: 64,
-        width: 220,
-        height: 56,
+        y: 72,
+        width: 200,
+        height: 40,
         zIndex: 1,
       },
       {
@@ -59,15 +64,16 @@ export function composePosterSchema(
         role: "badgeLabel",
         content: content.badgeLabel.toUpperCase(),
         x: 64,
-        y: 80,
-        width: 220,
-        height: 28,
+        y: 84,
+        width: 200,
+        height: 20,
         zIndex: 2,
         fontFamily: "Inter",
-        fontSize: 20,
-        fontWeight: 800,
-        color: "#1f2937",
+        fontSize: 13,
+        fontWeight: 600,
+        color: style.accent,
         textAlign: "center",
+        letterSpacing: 2,
       },
     );
   }
@@ -78,16 +84,16 @@ export function composePosterSchema(
     role: "headline",
     content: content.headline,
     x: 64,
-    y: 160,
+    y: content.badgeLabel ? 160 : 120,
     width: 480,
-    height: 180,
+    height: 220,
     zIndex: 2,
-    fontFamily: "Inter",
-    fontSize: 60,
-    fontWeight: 800,
-    color: "#f8fafc",
+    fontFamily: style.headlineFont,
+    fontSize: style.headlineFont === "Playfair Display" ? 58 : 50,
+    fontWeight: style.headlineWeight,
+    color: style.textPrimary,
     textAlign: "left",
-    lineHeight: 1.1,
+    lineHeight: 1.18,
     maxLines: 3,
   });
 
@@ -98,16 +104,16 @@ export function composePosterSchema(
       role: "description",
       content: content.description,
       x: 64,
-      y: 380,
+      y: 400,
       width: 460,
       height: 120,
       zIndex: 2,
       fontFamily: "Inter",
-      fontSize: 24,
+      fontSize: 21,
       fontWeight: 400,
-      color: "#cbd5e1",
+      color: style.textMuted,
       textAlign: "left",
-      lineHeight: 1.4,
+      lineHeight: 1.5,
       maxLines: 3,
     });
   }
@@ -117,22 +123,37 @@ export function composePosterSchema(
     content.sellingPoints.length,
   );
 
+  if (sellingPointCount > 0) {
+    layers.push({
+      id: "selling-points-divider",
+      type: "shape",
+      shape: "rect",
+      fill: style.accent,
+      opacity: 0.4,
+      x: 64,
+      y: 800,
+      width: 460,
+      height: 1,
+      zIndex: 1,
+    });
+  }
+
   for (let i = 0; i < sellingPointCount; i++) {
     const row = Math.floor(i / 2);
     const col = i % 2;
-    const baseY = 820 + row * 56;
-    const baseX = 64 + col * 356;
+    const baseY = 836 + row * 52;
+    const baseX = 64 + col * 236;
 
     layers.push(
       {
         id: `selling-point-icon-${i}`,
         type: "icon",
         iconKey: ICON_ROTATION[i % ICON_ROTATION.length],
-        color: "#4ade80",
+        color: style.accent,
         x: baseX,
         y: baseY,
-        width: 32,
-        height: 32,
+        width: 22,
+        height: 22,
         zIndex: 2,
       },
       {
@@ -140,56 +161,116 @@ export function composePosterSchema(
         type: "text",
         role: "sellingPoint",
         content: content.sellingPoints[i],
-        x: baseX + 44,
-        y: baseY + 4,
-        width: 300,
-        height: 32,
+        x: baseX + 32,
+        y: baseY + 2,
+        width: 190,
+        height: 28,
         zIndex: 2,
         fontFamily: "Inter",
-        fontSize: 20,
-        fontWeight: 600,
-        color: "#f1f5f9",
+        fontSize: 16,
+        fontWeight: 500,
+        color: style.textPrimary,
         textAlign: "left",
       },
     );
   }
 
-  const ctaY = sellingPointCount > 2 ? 980 : 920;
+  const ctaY = sellingPointCount > 2 ? 960 : 920;
 
   layers.push(
     {
       id: "cta-pill",
       type: "shape",
       shape: "badge",
-      fill: "#4ade80",
+      fill: style.accent,
       x: 64,
       y: ctaY,
-      width: 260,
-      height: 76,
+      width: 200,
+      height: 56,
       zIndex: 1,
     },
     {
       id: "cta-label",
       type: "text",
       role: "ctaLabel",
-      content: content.ctaLabel,
+      content: content.ctaLabel.toUpperCase(),
       x: 64,
-      y: ctaY + 24,
-      width: 260,
-      height: 32,
+      y: ctaY + 19,
+      width: 200,
+      height: 20,
       zIndex: 2,
       fontFamily: "Inter",
-      fontSize: 26,
+      fontSize: 15,
       fontWeight: 700,
-      color: "#0f172a",
+      color: style.ctaTextColor,
       textAlign: "center",
+      letterSpacing: 1.5,
     },
   );
 
+  // Background image is decorative mood/texture, never the product itself
+  // — AI-generated backgrounds can't guarantee identity preservation, but
+  // they don't need to since the real photo above carries that job. A
+  // brand-ink scrim on top keeps text legible and also hides any
+  // third-party watermark a free background generator might stamp on.
+  const backgroundLayers: DesignLayer[] = backgroundImageUrl
+    ? [
+        {
+          id: "bg-image",
+          type: "image",
+          src: backgroundImageUrl,
+          fit: "cover",
+          x: 0,
+          y: 0,
+          width: 580,
+          height: 1080,
+          zIndex: 0,
+        },
+        {
+          id: "bg-scrim",
+          type: "shape",
+          shape: "rect",
+          fill: style.ink,
+          opacity: 0.88,
+          x: 0,
+          y: 0,
+          width: 580,
+          height: 1080,
+          zIndex: 0,
+        },
+        // Free background generators often stamp a watermark in a bottom
+        // corner. Opacity dimming alone doesn't reliably hide high-contrast
+        // text, so fully mask the bottom strip regardless of what's there.
+        {
+          id: "bg-watermark-mask",
+          type: "shape",
+          shape: "rect",
+          fill: style.ink,
+          x: 0,
+          y: 1030,
+          width: 580,
+          height: 50,
+          zIndex: 0,
+        },
+      ]
+    : [
+        {
+          id: "bg",
+          type: "shape",
+          shape: "rect",
+          fill: style.ink,
+          x: 0,
+          y: 0,
+          width: 580,
+          height: 1080,
+          zIndex: 0,
+        },
+      ];
+
   return {
     schemaVersion: 1,
-    canvas: { width: 1080, height: 1080, backgroundColor: "#0f172a", aspectRatioPreset: "instagram-square" },
-    meta: { density, templateKey: `poster-${density}` },
-    layers,
+    canvas: { width: 1080, height: 1080, backgroundColor: style.panel, aspectRatioPreset: "instagram-square" },
+    meta: { density, templateKey: `poster-${density}-${style.key}` },
+    layers: [...backgroundLayers, ...layers],
   };
 }

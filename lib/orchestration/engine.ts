@@ -4,6 +4,7 @@ import { hasBlockingErrors, validateDesignSchema } from "../design-schema/valida
 import { getImageProvider, getTextProvider } from "../ai/providers/factory";
 import { composeDesignSchema } from "./composeDesignSchema";
 import { decideConcept } from "./decideConcept";
+import { decideStyle } from "./styles";
 import { toDataUri } from "./toDataUri";
 import { CREATIVE_CONTENT_SCHEMA, type CreativeBrief, type CreativeContent } from "./types";
 
@@ -69,6 +70,7 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   };
 
   const decision = decideConcept(brief);
+  const style = decideStyle(brief.category);
 
   const textProvider = getTextProvider();
   const { data: content } = await textProvider.generateJSON<CreativeContent>({
@@ -91,17 +93,32 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
     schema: CREATIVE_CONTENT_SCHEMA,
   });
 
-  const imageProvider = getImageProvider();
-  const { imageUrl: generatedImageUrl } = await imageProvider.generate({
-    prompt: `${decision.concept === "premium_photo" ? "Premium studio photography" : "Advertising background"} for ${brief.name}, category ${brief.category}`,
-    referenceImageUrl: brief.primaryImageUrl,
-    mode: "image-to-image",
-    width: 1080,
-    height: 1080,
-  });
+  // The real uploaded photo is always what ends up in the design — product
+  // identity must never depend on an AI model's ability to preserve it.
+  // AI image generation is used only for a decorative background behind
+  // the real photo (graphic_poster concept), and only as text-to-image
+  // with no reference, since that's the one thing it can't get wrong.
+  const productImageUrl = await toDataUri(brief.primaryImageUrl);
 
-  const inlinedImageUrl = await toDataUri(generatedImageUrl);
-  const schema = composeDesignSchema(content, inlinedImageUrl, decision);
+  let backgroundImageUrl: string | undefined;
+  if (decision.concept === "graphic_poster") {
+    try {
+      const imageProvider = getImageProvider();
+      const { imageUrl } = await imageProvider.generate({
+        prompt: style.backgroundPrompt,
+        mode: "text-to-image",
+        width: 580,
+        height: 1080,
+      });
+      backgroundImageUrl = await toDataUri(imageUrl);
+    } catch (err) {
+      // Background generation is decorative, not essential — fall back to
+      // the flat style color rather than fail the whole job over it.
+      console.error("Background image generation failed, falling back to flat color:", err);
+    }
+  }
+
+  const schema = composeDesignSchema(content, productImageUrl, decision, style, backgroundImageUrl);
 
   const issues = validateDesignSchema(schema);
   if (hasBlockingErrors(issues)) {

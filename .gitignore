@@ -48,4 +48,4 @@ supabase/.temp/
 next-env.d.ts
 
 # design-schema render pipeline test output
-lib/design-schema/render/test-output.png
+lib/design-schema/render/test-output*.png
