@@ -40,6 +40,9 @@ yarn-error.log*
 # Claude Code local settings (may contain locally-cached secrets)
 .claude/
 
+# Supabase CLI local cache
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
