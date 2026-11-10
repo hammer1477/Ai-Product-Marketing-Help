@@ -52,7 +52,7 @@ export function ProductUploadForm() {
   const [state, formAction] = useActionState(createProduct, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-5" encType="multipart/form-data">
+    <form action={formAction} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
         <Label htmlFor="name">Product name *</Label>
         <Input id="name" name="name" required />

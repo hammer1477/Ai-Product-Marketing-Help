@@ -14,7 +14,9 @@ export default async function ProductsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Products</h1>
-        <Button render={<Link href="/products/new" />}>New product</Button>
+        <Button render={<Link href="/products/new" />} nativeButton={false}>
+          New product
+        </Button>
       </div>
 
       {!products || products.length === 0 ? (

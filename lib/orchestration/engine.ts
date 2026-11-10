@@ -72,8 +72,11 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   const decision = decideConcept(brief);
   const style = decideStyle(brief.category);
 
+  // Copy generation, inlining the real product photo, and the decorative
+  // background generation are all independent — run them concurrently
+  // instead of sequentially so total latency is max(...) rather than sum(...).
   const textProvider = getTextProvider();
-  const { data: content } = await textProvider.generateJSON<CreativeContent>({
+  const contentPromise = textProvider.generateJSON<CreativeContent>({
     system:
       "You are an advertising copywriter. Write persuasive, truthful ad copy using ONLY the verified " +
       "product information provided. Never invent specifications, certifications, or claims not present " +
@@ -98,25 +101,26 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   // AI image generation is used only for a decorative background behind
   // the real photo (graphic_poster concept), and only as text-to-image
   // with no reference, since that's the one thing it can't get wrong.
-  const productImageUrl = await toDataUri(brief.primaryImageUrl);
+  const productImagePromise = toDataUri(brief.primaryImageUrl);
 
-  let backgroundImageUrl: string | undefined;
-  if (decision.concept === "graphic_poster") {
-    try {
-      const imageProvider = getImageProvider();
-      const { imageUrl } = await imageProvider.generate({
-        prompt: style.backgroundPrompt,
-        mode: "text-to-image",
-        width: 580,
-        height: 1080,
-      });
-      backgroundImageUrl = await toDataUri(imageUrl);
-    } catch (err) {
-      // Background generation is decorative, not essential — fall back to
-      // the flat style color rather than fail the whole job over it.
-      console.error("Background image generation failed, falling back to flat color:", err);
-    }
-  }
+  const backgroundPromise: Promise<string | undefined> =
+    decision.concept === "graphic_poster"
+      ? getImageProvider()
+          .generate({ prompt: style.backgroundPrompt, mode: "text-to-image", width: 580, height: 1080 })
+          .then((r) => toDataUri(r.imageUrl))
+          .catch((err) => {
+            // Background generation is decorative, not essential — fall
+            // back to the flat style color rather than fail the whole job.
+            console.error("Background image generation failed, falling back to flat color:", err);
+            return undefined;
+          })
+      : Promise.resolve(undefined);
+
+  const [{ data: content }, productImageUrl, backgroundImageUrl] = await Promise.all([
+    contentPromise,
+    productImagePromise,
+    backgroundPromise,
+  ]);
 
   const schema = composeDesignSchema(content, productImageUrl, decision, style, backgroundImageUrl);
 

@@ -39,6 +39,7 @@ export function CreativeEditor({ projectId, initialSchema }: { projectId: string
           <Button
             variant="outline"
             render={<a href={`/api/creative-projects/${projectId}/export`} />}
+            nativeButton={false}
           >
             Export PNG
           </Button>

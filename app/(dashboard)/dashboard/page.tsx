@@ -22,7 +22,9 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back{user?.email ? `, ${user.email}` : ""}.</p>
         </div>
-        <Button render={<Link href="/products/new" />}>New product</Button>
+        <Button render={<Link href="/products/new" />} nativeButton={false}>
+          New product
+        </Button>
       </div>
 
       <Card>

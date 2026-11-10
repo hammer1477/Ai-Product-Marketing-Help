@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
   // runtime rather than bundled, or Turbopack fails trying to place it in
   // an ESM chunk.
   serverExternalPackages: ["@resvg/resvg-js"],
+  // Server Actions default to a 1MB body limit, far too small for a real
+  // product photo upload (ProductUploadForm posts the file directly via a
+  // Server Action, not a separate API route).
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   turbopack: {
     root: __dirname,
     rules: {
