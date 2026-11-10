@@ -11,6 +11,18 @@ import { CREATIVE_CONTENT_SCHEMA, type CreativeBrief, type CreativeContent } fro
 
 const EXPORT_SCALE = 2;
 
+/**
+ * Resolution the background scene is generated at.
+ *
+ * The canvas is 1080 but exports at EXPORT_SCALE, so a scene generated at
+ * canvas size gets upscaled 2x on the way out — which is most of why the
+ * finished poster looked soft next to its crisp text. Generating above
+ * canvas size costs a few seconds and removes that upscale almost
+ * entirely. Not the full 2160: the returns flatten well before there, and
+ * generation time doesn't.
+ */
+const BACKGROUND_RESOLUTION = 1536;
+
 // The single entrypoint sequencing generation, mapped to spec section 7's
 // step list (Phase-1-relevant subset): ingest -> merge into a brief ->
 // decide concept/density -> generate structured copy -> generate/edit
@@ -150,7 +162,12 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   const wantsBackground = decision.concept === "graphic_poster" || decision.concept === "infographic";
   const backgroundImageUrl = wantsBackground
     ? await getImageProvider()
-        .generate({ prompt: style.backgroundPrompt, mode: "text-to-image", width: 1080, height: 1080 })
+        .generate({
+          prompt: style.backgroundPrompt,
+          mode: "text-to-image",
+          width: BACKGROUND_RESOLUTION,
+          height: BACKGROUND_RESOLUTION,
+        })
         .then((r) => toDataUri(r.imageUrl))
         .catch((err) => {
           // Background generation is decorative, not essential — fall

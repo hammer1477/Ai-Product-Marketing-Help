@@ -28,6 +28,14 @@ export async function renderSchemaToPng(
 
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: schema.canvas.width * scale },
+    // Rasterisation quality. The defaults favour speed, which shows up on
+    // an export this large as soft image resampling and visible stair-
+    // stepping on the ellipses the glow and callouts are built from. A
+    // poster is rendered once and looked at for a long time, so the trade
+    // goes the other way here.
+    imageRendering: 0, // optimizeQuality
+    shapeRendering: 2, // geometricPrecision
+    textRendering: 1, // optimizeLegibility
   });
 
   const rendered = resvg.render();

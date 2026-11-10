@@ -49,13 +49,15 @@ export function CreativeEditor({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div className="flex flex-col items-start gap-3">
-        <div className="lg:sticky lg:top-6">
-          <DesignCanvasPreview schema={schema} />
-        </div>
+    // `min-w-0` on both columns is load-bearing: grid tracks size to their
+    // content's minimum by default, and the preview lays its canvas out at
+    // a full 1080px before scaling it down, which otherwise pushes this
+    // column over the one beside it.
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      <div className="min-w-0 lg:sticky lg:top-6">
+        <DesignCanvasPreview schema={schema} />
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4">
         {initialComposition ? (
           <BlockEditPanel blocks={blocks} onChange={setBlocks} />
         ) : (

@@ -83,9 +83,13 @@ export const CREATIVE_CONTENT_SCHEMA = {
         scenePrompt: {
           type: "string",
           description:
-            "A vivid text-to-image prompt for the BACKGROUND SCENE this product should be " +
-            "photographed in — an environment, surface, lighting and mood that suits this " +
-            "exact product. Describe materials, light direction, colour, atmosphere, depth. " +
+            "A vivid text-to-image prompt for the BACKGROUND SCENE this product will be " +
+            "placed into — an environment, surface, lighting and mood that suits this exact " +
+            "product. Describe materials, light direction, colour, atmosphere and depth. " +
+            "Compose it as a backdrop, not as a photograph in its own right: describe an " +
+            "empty surface or pedestal in the middle distance and uncluttered space where a " +
+            "product will stand, with the detail and drama pushed to the edges and the " +
+            "background. A busy centre makes the product look pasted on. " +
             "Never describe the product itself and never mention text, logos or watermarks.",
         },
         layout: {

@@ -102,8 +102,9 @@ async function fetchScene(prompt: string): Promise<string | undefined> {
     const result = await new PollinationsImageGenerationProvider().generate({
       prompt,
       mode: "text-to-image",
-      width: 1080,
-      height: 1080,
+      // Matches the engine, so previews show the real output resolution.
+      width: 1536,
+      height: 1536,
     });
     const { toDataUri } = await import("../lib/orchestration/toDataUri");
     return await toDataUri(result.imageUrl);

@@ -8,50 +8,53 @@ import { renderSchemaToSatoriTree } from "@/lib/design-schema/render/satoriTree"
 // uses (lib/design-schema/render/satoriTree.tsx) so the live preview and the
 // final high-res export can never visually drift — one source of truth,
 // rendered twice: here as real DOM/CSS, there as a Satori SVG -> PNG.
-//
-// Measures its own container width via ResizeObserver rather than using
-// `previewWidth` as a literal size — a fixed pixel width previously
-// overflowed its grid column whenever the page layout gave it less room
-// than that (e.g. a two-column grid inside a narrower max-width page),
-// visually bleeding into the neighboring column.
 export function DesignCanvasPreview({
   schema,
-  previewWidth = 480,
+  maxWidth = 520,
 }: {
   schema: DesignSchema;
-  previewWidth?: number;
+  maxWidth?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(previewWidth);
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    const element = containerRef.current;
+    if (!element) return;
 
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
       if (width) setContainerWidth(width);
     });
-    observer.observe(el);
+    observer.observe(element);
     return () => observer.disconnect();
   }, []);
 
-  const scale = containerWidth / schema.canvas.width;
-  const previewHeight = schema.canvas.height * scale;
+  const scale = (containerWidth ?? maxWidth) / schema.canvas.width;
 
   return (
     <div
       ref={containerRef}
-      style={{
-        width: "100%",
-        maxWidth: previewWidth,
-        height: previewHeight,
-        overflow: "hidden",
-        position: "relative",
-      }}
-      className="rounded-lg border"
+      // The canvas is laid out at its full 1080px and scaled down, so the
+      // container's height has to come from the aspect ratio rather than
+      // from the scaled content — otherwise the box collapses on first
+      // paint and the design spills over whatever sits next to it.
+      // `overflow-hidden` also stops that 1080px child from forcing the
+      // grid column wider than its share.
+      style={{ aspectRatio: `${schema.canvas.width} / ${schema.canvas.height}`, maxWidth }}
+      className="relative w-full overflow-hidden rounded-lg border bg-muted"
     >
-      <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: schema.canvas.width,
+          height: schema.canvas.height,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      >
         {renderSchemaToSatoriTree(schema)}
       </div>
     </div>
