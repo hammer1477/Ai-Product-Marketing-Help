@@ -89,11 +89,15 @@ function weightFactor(fontWeight: number): number {
   return 1 + (fontWeight - 400) * 0.0002;
 }
 
-// Deliberate over-estimate. The two error directions are not symmetric:
-// over-measuring costs a slightly early line break or a slightly smaller
-// headline, while under-measuring puts one block on top of another. So the
-// approximation is biased to break early, every time.
-const SAFETY = 1.035;
+// A small deliberate over-estimate, but only a small one.
+//
+// The bias used to be larger, back when under-measuring meant one block
+// printed over another. The renderer now clamps every layer to its line
+// budget, so the worst an under-measure can do is clip a word — and the
+// cost of over-measuring is no longer free either: it predicts a line that
+// never renders and leaves a visible hole under the headline. This value
+// keeps a margin against clipping without opening those gaps.
+const SAFETY = 1.02;
 
 export type MeasureOptions = {
   fontFamily: string;

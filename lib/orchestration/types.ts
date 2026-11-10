@@ -1,4 +1,5 @@
 import type { DesignDensity } from "../design-schema/types";
+import { BLOCKS_SCHEMA, type RawBlock } from "./blocks/types";
 
 export type CreativeConcept = "premium_photo" | "graphic_poster" | "infographic";
 
@@ -49,6 +50,12 @@ export type CreativeContent = {
   ctaLabel: string;
   badgeLabel?: string;
   artDirection?: ArtDirection;
+  /**
+   * The composed poster content. The flat fields above remain the source of
+   * truth for concepts that don't use blocks (premium photo, infographic)
+   * and as the fallback when block composition fails validation.
+   */
+  blocks?: RawBlock[];
 };
 
 export const CREATIVE_CONTENT_SCHEMA = {
@@ -68,6 +75,7 @@ export const CREATIVE_CONTENT_SCHEMA = {
     },
     ctaLabel: { type: "string", description: "Max 3 words, e.g. 'Shop now'. Never include a price." },
     badgeLabel: { type: "string", description: "Max 2 words, e.g. the brand or 'New'." },
+    blocks: BLOCKS_SCHEMA,
     artDirection: {
       type: "object",
       description: "Art direction tailored to THIS product's own look and market.",
@@ -117,7 +125,15 @@ export const CREATIVE_CONTENT_SCHEMA = {
       ],
     },
   },
-  required: ["headline", "productName", "description", "sellingPoints", "ctaLabel", "artDirection"],
+  required: [
+    "headline",
+    "productName",
+    "description",
+    "sellingPoints",
+    "ctaLabel",
+    "blocks",
+    "artDirection",
+  ],
 };
 
 export type ConceptDecision = {

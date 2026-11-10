@@ -31,6 +31,39 @@ const content: CreativeContent = {
   // its fixed-width pill.
   ctaLabel: "Buy now for 3000 EGP",
   badgeLabel: "JBL",
+  // A dense composition, standing in for what the model returns. Exercises
+  // every block type so a layout change can be checked against the worst
+  // case rather than the easy one.
+  blocks: [
+    { type: "badge", text: "JBL" },
+    { type: "headline", text: "Experience Legendary Sound with Wireless Freedom" },
+    { type: "description", text: "Renowned JBL Pure Bass sound, now completely untethered." },
+    {
+      type: "statRow",
+      items: [
+        { label: "Battery life", value: "57h" },
+        { label: "Fast charge", value: "5 min" },
+        { label: "Bluetooth", value: "5.3" },
+      ],
+    },
+    { type: "divider" },
+    {
+      type: "specGrid",
+      items: [
+        { label: "Driver", value: "33 mm dynamic" },
+        { label: "Weight", value: "160 g" },
+        { label: "Charging", value: "USB-C" },
+        { label: "Controls", value: "Voice Aware" },
+      ],
+    },
+    { type: "rating", stars: 5, caption: "4.8 · 2,300 reviews" },
+    { type: "priceBlock", value: "3,000 EGP", compareAt: "3,800", note: "incl. VAT" },
+    {
+      type: "trustStrip",
+      items: [{ text: "Free delivery" }, { text: "2-year warranty" }, { text: "30-day returns" }],
+    },
+    { type: "cta", text: "Buy now" },
+  ],
 };
 
 const direction: ArtDirection = {
