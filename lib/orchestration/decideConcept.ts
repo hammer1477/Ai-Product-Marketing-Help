@@ -22,8 +22,11 @@ export function decideConcept(brief: CreativeBrief): ConceptDecision {
     return { concept: "premium_photo", density: "minimal" };
   }
 
+  // Spec-heavy categories read better as itemized feature callouts than as
+  // a single paragraph (spec section 3: "electronics advertisement may
+  // need specifications, technical features...").
   if (SPEC_HEAVY_CATEGORIES.has(category)) {
-    return { concept: "graphic_poster", density: "detailed" };
+    return { concept: "infographic", density: "detailed" };
   }
 
   return { concept: "graphic_poster", density: "standard" };

@@ -1,6 +1,6 @@
 import type { DesignDensity } from "../design-schema/types";
 
-export type CreativeConcept = "premium_photo" | "graphic_poster";
+export type CreativeConcept = "premium_photo" | "graphic_poster" | "infographic";
 
 export type CreativeBrief = {
   productId: string;

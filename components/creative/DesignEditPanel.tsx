@@ -22,7 +22,9 @@ export function DesignEditPanel({
   schema: DesignSchema;
   onChange: (next: DesignSchema) => void;
 }) {
-  const textLayers = schema.layers.filter(isTextLayer);
+  // "custom"-role layers are decorative (e.g. the infographic template's
+  // callout numerals) — not meaningful copy to expose for editing.
+  const textLayers = schema.layers.filter(isTextLayer).filter((layer) => layer.role !== "custom");
 
   function updateLayer(id: string, patch: Partial<TextLayer>) {
     onChange({
