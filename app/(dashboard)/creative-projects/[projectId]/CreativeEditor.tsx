@@ -63,18 +63,37 @@ export function CreativeEditor({
         ) : (
           <DesignEditPanel schema={layerSchema} onChange={setLayerSchema} />
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save changes"}
           </Button>
           <Button
             variant="outline"
-            render={<a href={`/api/creative-projects/${projectId}/export`} />}
+            render={<a href={`/api/creative-projects/${projectId}/export?format=svg`} />}
             nativeButton={false}
           >
-            Export PNG
+            Download SVG
+          </Button>
+          <Button
+            variant="outline"
+            render={<a href={`/api/creative-projects/${projectId}/export?format=png&scale=2`} />}
+            nativeButton={false}
+          >
+            PNG for web
+          </Button>
+          <Button
+            variant="outline"
+            render={<a href={`/api/creative-projects/${projectId}/export?format=png&scale=4`} />}
+            nativeButton={false}
+          >
+            PNG for print
           </Button>
         </div>
+        <p className="text-sm text-muted-foreground">
+          SVG keeps all text and shapes as vectors — sharp at any size, and editable in
+          Illustrator or Figma. The product photo and background stay as images inside it.
+          PNG for print is 4320&nbsp;px, a 14-inch poster at 300&nbsp;dpi.
+        </p>
         {savedMessage && <p className="text-sm text-muted-foreground">{savedMessage}</p>}
       </div>
     </div>
