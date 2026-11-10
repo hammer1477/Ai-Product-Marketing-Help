@@ -17,6 +17,9 @@ import { fitText, measureTextBlock, measureTextWidth } from "../../design-schema
 //   8+   copy — always on top of everything
 export const COPY_Z = 8;
 
+/** Corner rounding applied to an uncut product photo. */
+const PHOTO_RADIUS = 20;
+
 export type Built = {
   layers: DesignLayer[];
   /** Vertical space this block occupies, measured. */
@@ -206,11 +209,16 @@ export function pill(opts: PillOptions): Built {
 }
 
 /**
- * Fakes a linear gradient with stacked constant-opacity bands.
+ * A scrim that fades from one opacity to another across its box.
  *
- * Satori has no gradient support, and a single hard-edged scrim rectangle
- * reads as a pasted-on box — the exact "design is two pieces" complaint.
- * Enough bands and the eye stops resolving the steps as edges.
+ * This used to stack two dozen constant-opacity rectangles, because
+ * `shape` was the only fill available. Over a dark ground the steps
+ * blended; over a photograph they showed as grey banding. It's now one
+ * real gradient layer, which also means the vector export carries a
+ * gradient definition instead of twenty-six overlapping rectangles.
+ *
+ * `steps` is accepted and ignored — callers tuned it to hide the banding,
+ * and there is no banding left to hide.
  */
 export function gradientBand(opts: {
   idPrefix: string;
@@ -227,47 +235,25 @@ export function gradientBand(opts: {
   steps?: number;
   zIndex?: number;
 }): DesignLayer[] {
-  const steps = opts.steps ?? 12;
-  const zIndex = opts.zIndex ?? 1;
-  const layers: DesignLayer[] = [];
-
-  for (let i = 0; i < steps; i++) {
-    const t = steps === 1 ? 0 : i / (steps - 1);
-    const opacity = opts.from + (opts.to - opts.from) * t;
-    if (opacity <= 0.004) continue;
-
-    if (opts.direction === "vertical") {
-      const bandHeight = Math.ceil(opts.height / steps) + 1;
-      layers.push({
-        id: `${opts.idPrefix}-${i}`,
-        type: "shape",
-        shape: "rect",
-        fill: opts.fill,
-        opacity: Number(opacity.toFixed(3)),
-        x: opts.x,
-        y: Math.round(opts.y + (opts.height / steps) * i),
-        width: opts.width,
-        height: bandHeight,
-        zIndex,
-      });
-    } else {
-      const bandWidth = Math.ceil(opts.width / steps) + 1;
-      layers.push({
-        id: `${opts.idPrefix}-${i}`,
-        type: "shape",
-        shape: "rect",
-        fill: opts.fill,
-        opacity: Number(opacity.toFixed(3)),
-        x: Math.round(opts.x + (opts.width / steps) * i),
-        y: opts.y,
-        width: bandWidth,
-        height: opts.height,
-        zIndex,
-      });
-    }
-  }
-
-  return layers;
+  return [
+    {
+      id: `${opts.idPrefix}-gradient`,
+      type: "gradient",
+      gradient: "linear",
+      // CSS angles run anticlockwise from "up": 180deg paints downward,
+      // 90deg paints rightward — matching `from` at the top/left edge.
+      angle: opts.direction === "vertical" ? 180 : 90,
+      stops: [
+        { color: opts.fill, offset: 0, opacity: opts.from },
+        { color: opts.fill, offset: 1, opacity: opts.to },
+      ],
+      x: opts.x,
+      y: opts.y,
+      width: opts.width,
+      height: opts.height,
+      zIndex: opts.zIndex ?? 1,
+    },
+  ];
 }
 
 export type ProductStageOptions = {
@@ -323,67 +309,91 @@ export function productStage(opts: ProductStageOptions): DesignLayer[] {
   const productBottom = opts.centerY + box.height / 2;
 
   if (opts.cutoutApplied) {
-    // Concentric low-opacity ellipses approximate a radial glow, which
-    // Satori can't render directly. Many faint rings rather than a few
-    // stronger ones — at high opacity each ring's edge stays visible as a
-    // hard arc, which looks like a bug rather than light.
-    const GLOW_RINGS = 9;
-    for (let i = 0; i < GLOW_RINGS; i++) {
-      const scale = 1.4 - (i / (GLOW_RINGS - 1)) * 0.85;
-      const gw = Math.round(box.width * scale * 1.15);
-      const gh = Math.round(box.height * scale * 1.15);
-      layers.push({
-        id: `product-glow-${i}`,
-        type: "shape",
-        shape: "ellipse",
-        fill: opts.accent,
-        opacity: 0.032,
-        x: Math.round(opts.centerX - gw / 2),
-        y: Math.round(opts.centerY - gh / 2),
-        width: gw,
-        height: gh,
-        zIndex,
-      });
-    }
-
-    // Contact shadow — without something anchoring it to a surface the
-    // product looks like it's floating.
-    const shadowSteps = [
-      { w: 0.72, h: 46, opacity: 0.16 },
-      { w: 0.54, h: 32, opacity: 0.24 },
-      { w: 0.36, h: 20, opacity: 0.3 },
-    ];
-
-    for (const [i, step] of shadowSteps.entries()) {
-      const sw = Math.round(box.width * step.w);
-      layers.push({
-        id: `product-shadow-${i}`,
-        type: "shape",
-        shape: "ellipse",
-        fill: "#000000",
-        opacity: step.opacity,
-        x: Math.round(opts.centerX - sw / 2),
-        y: Math.round(productBottom - step.h / 2),
-        width: sw,
-        height: step.h,
-        zIndex: zIndex + 1,
-      });
-    }
-  } else {
-    // No cutout: the photo still carries its own backdrop, so frame it
-    // deliberately instead of letting a stray rectangle float in the scene.
+    // A real radial gradient, where this was once nine concentric ellipses
+    // whose edges stayed faintly visible as arcs no matter how low their
+    // opacity went.
+    const glowWidth = Math.round(box.width * 1.7);
+    const glowHeight = Math.round(box.height * 1.7);
     layers.push({
-      id: "product-card",
-      type: "shape",
-      shape: "rect",
-      fill: "#fbfbf9",
-      borderRadius: 24,
-      x: Math.round(opts.centerX - box.width / 2) - 24,
-      y: Math.round(opts.centerY - box.height / 2) - 24,
-      width: Math.round(box.width) + 48,
-      height: Math.round(box.height) + 48,
+      id: "product-glow",
+      type: "gradient",
+      gradient: "radial",
+      stops: [
+        { color: opts.accent, offset: 0, opacity: 0.17 },
+        { color: opts.accent, offset: 0.45, opacity: 0.08 },
+        { color: opts.accent, offset: 1, opacity: 0 },
+      ],
+      x: Math.round(opts.centerX - glowWidth / 2),
+      y: Math.round(opts.centerY - glowHeight / 2),
+      width: glowWidth,
+      height: glowHeight,
       zIndex,
     });
+
+    // Contact shadow — without something anchoring it to a surface the
+    // product looks like it's floating. A radial gradient gives it a soft
+    // edge instead of three hard-edged ellipses stacked on each other.
+    const shadowWidth = Math.round(box.width * 0.78);
+    const shadowHeight = 58;
+    layers.push({
+      id: "product-shadow",
+      type: "gradient",
+      gradient: "radial",
+      stops: [
+        { color: "#000000", offset: 0, opacity: 0.42 },
+        { color: "#000000", offset: 0.55, opacity: 0.18 },
+        { color: "#000000", offset: 1, opacity: 0 },
+      ],
+      x: Math.round(opts.centerX - shadowWidth / 2),
+      y: Math.round(productBottom - shadowHeight / 2),
+      width: shadowWidth,
+      height: shadowHeight,
+      zIndex: zIndex + 1,
+    });
+  } else {
+    // No cutout: the photo carries its own backdrop, so it's presented as
+    // a photograph rather than hidden inside a frame. A thick white card
+    // around a dark scene reads as a Polaroid stuck to the poster and
+    // steals size from the product — the thing being sold ends up the
+    // smallest element on the page. Instead the photo gets rounded corners
+    // of its own and a soft drop shadow, so it sits on the scene as a
+    // deliberate object at full size.
+    const boxX = Math.round(opts.centerX - box.width / 2);
+    const boxY = Math.round(opts.centerY - box.height / 2);
+
+    const spread = 30;
+    layers.push(
+      {
+        id: "product-dropshadow",
+        type: "shape",
+        shape: "rect",
+        fill: "#000000",
+        opacity: 0.3,
+        borderRadius: PHOTO_RADIUS + 10,
+        x: boxX - 10,
+        y: boxY + 14,
+        width: Math.round(box.width) + 20,
+        height: Math.round(box.height) + 20,
+        zIndex,
+      },
+      // A soft pool under the photo so the hard-edged rectangle above
+      // isn't the only thing separating it from the scene.
+      {
+        id: "product-dropshadow-soft",
+        type: "gradient",
+        gradient: "radial",
+        stops: [
+          { color: "#000000", offset: 0, opacity: 0.34 },
+          { color: "#000000", offset: 0.6, opacity: 0.14 },
+          { color: "#000000", offset: 1, opacity: 0 },
+        ],
+        x: boxX - spread,
+        y: boxY - spread + 26,
+        width: Math.round(box.width) + spread * 2,
+        height: Math.round(box.height) + spread * 2,
+        zIndex,
+      },
+    );
   }
 
   layers.push({
@@ -398,6 +408,9 @@ export function productStage(opts: ProductStageOptions): DesignLayer[] {
     y,
     width: opts.width,
     height: opts.height,
+    // Rounding a cut-out product would slice the corners off the product
+    // itself; it's only the rectangular photo that wants soft corners.
+    borderRadius: opts.cutoutApplied ? 0 : PHOTO_RADIUS,
     zIndex: zIndex + 2,
   });
 

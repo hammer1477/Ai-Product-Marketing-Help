@@ -27,7 +27,14 @@ export class PollinationsImageGenerationProvider implements ImageGenerationProvi
       );
     }
 
-    const url = `${BASE_URL}/${encodeURIComponent(args.prompt)}?width=${args.width}&height=${args.height}&nologo=true&model=flux`;
+    // Without a seed the service returns the same image for the same
+    // prompt, so regenerating a creative produced a byte-identical
+    // background every time. A random seed per call is what makes a second
+    // generation actually look like a second attempt.
+    const seed = Math.floor(Math.random() * 1_000_000_000);
+    const url =
+      `${BASE_URL}/${encodeURIComponent(args.prompt)}` +
+      `?width=${args.width}&height=${args.height}&nologo=true&model=flux&seed=${seed}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 

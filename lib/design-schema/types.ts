@@ -55,7 +55,34 @@ export type ShapeLayer = LayerBase & {
   borderRadius?: number;
 };
 
-export type DesignLayer = TextLayer | ImageLayer | IconLayer | ShapeLayer;
+export type GradientStop = {
+  color: string;
+  /** Position along the gradient, 0 to 1. */
+  offset: number;
+  /** 0 to 1. Separate from `color` so palettes stay plain hex. */
+  opacity?: number;
+};
+
+/**
+ * A real gradient fill.
+ *
+ * Scrims and glows were previously faked with stacks of two dozen
+ * constant-opacity rectangles, because that's all `shape` could express.
+ * Over a dark ground the steps blended; over a photograph they showed as
+ * banding — grey stripes across the bottom of a product shot. Satori
+ * renders CSS gradients natively and they survive into the SVG export as
+ * real gradient definitions, so one layer replaces the whole stack and the
+ * banding has nowhere to come from.
+ */
+export type GradientLayer = LayerBase & {
+  type: "gradient";
+  gradient: "linear" | "radial";
+  /** CSS degrees for linear gradients: 0 = upward, 90 = rightward. */
+  angle?: number;
+  stops: GradientStop[];
+};
+
+export type DesignLayer = TextLayer | ImageLayer | IconLayer | ShapeLayer | GradientLayer;
 
 export type DesignDensity = "minimal" | "standard" | "detailed";
 
@@ -99,4 +126,8 @@ export function isIconLayer(layer: DesignLayer): layer is IconLayer {
 
 export function isShapeLayer(layer: DesignLayer): layer is ShapeLayer {
   return layer.type === "shape";
+}
+
+export function isGradientLayer(layer: DesignLayer): layer is GradientLayer {
+  return layer.type === "gradient";
 }

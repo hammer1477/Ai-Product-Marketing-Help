@@ -7,7 +7,13 @@ import { decideConcept } from "./decideConcept";
 import { decideStyle, resolveStyle } from "./styles";
 import { removeProductBackdrop, trimTransparentEdges } from "../images/cutout";
 import { toDataUri } from "./toDataUri";
-import { CREATIVE_CONTENT_SCHEMA, type CreativeBrief, type CreativeContent } from "./types";
+import {
+  CREATIVE_CONTENT_SCHEMA,
+  LAYOUT_VARIANTS,
+  type CreativeBrief,
+  type CreativeContent,
+  type LayoutVariant,
+} from "./types";
 
 const EXPORT_SCALE = 2;
 
@@ -85,6 +91,12 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   const decision = decideConcept(brief);
   const preset = decideStyle(brief.category);
 
+  // What this project has already produced. Regenerating is a request for
+  // a different ad, not a retry of the same one, so previous directions are
+  // fed back in as things to avoid — and enforced in code afterwards,
+  // since a prompt is a request and this needs to be a guarantee.
+  const history = await readProjectHistory(supabase, project.id);
+
   // One call produces both the copy and the art direction. Asking the model
   // to art-direct *this* product — its own scene, palette and arrangement —
   // is what stops every product in a category from coming out looking like
@@ -115,6 +127,29 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
           targetPlatform: brief.targetPlatform,
           attributes: brief.attributes,
         }),
+      },
+      ...(history.layouts.length > 0
+        ? [
+            {
+              role: "user" as const,
+              content:
+                `This product has already been advertised ${history.layouts.length} time(s). ` +
+                `Previous arrangements: ${history.layouts.join(", ")}. ` +
+                `Previous moods: ${history.moods.join(", ") || "unknown"}. ` +
+                "Produce a genuinely different ad this time: a different arrangement, a " +
+                "different palette, a different scene, and a different angle on the copy. " +
+                "Do not repeat any of the above.",
+            },
+          ]
+        : []),
+      {
+        // Structured output is close to deterministic for identical input,
+        // so without something that actually differs between runs the model
+        // returns the same composition every time.
+        role: "user" as const,
+        content: `Creative variation token (explore a fresh direction): ${Math.random()
+          .toString(36)
+          .slice(2, 10)}`,
       },
     ],
     schema: CREATIVE_CONTENT_SCHEMA,
@@ -155,7 +190,7 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
 
   const [{ data: content }, productAssets] = await Promise.all([contentPromise, productAssetsPromise]);
 
-  const style = resolveStyle(preset, content.artDirection);
+  const style = resolveStyle(preset, content.artDirection, history.layouts);
 
   // Background generation has to wait for the art direction, since the
   // whole point is that the scene is written for this product.
@@ -221,4 +256,47 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
     .eq("id", project.id);
 
   return { generatedImageId: generatedImage.id };
+}
+
+type ProjectHistory = { layouts: LayoutVariant[]; moods: string[] };
+
+/**
+ * Reads back the arrangements and moods this project has already produced.
+ *
+ * They're recovered from each generation's stored design schema rather than
+ * from a dedicated column: `meta.templateKey` already records the layout,
+ * and `meta.composition.style.moodLabel` the direction, so no migration is
+ * needed to know what a regeneration should avoid.
+ */
+async function readProjectHistory(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  creativeProjectId: string,
+): Promise<ProjectHistory> {
+  const { data, error } = await supabase
+    .from("generated_images")
+    .select("design_schema")
+    .eq("creative_project_id", creativeProjectId)
+    .order("created_at", { ascending: false })
+    .limit(4);
+
+  // History only improves variety — never fail a generation over it.
+  if (error || !data) return { layouts: [], moods: [] };
+
+  const layouts = new Set<LayoutVariant>();
+  const moods = new Set<string>();
+
+  for (const row of data) {
+    const meta = (row.design_schema as { meta?: Record<string, unknown> } | null)?.meta;
+    if (!meta) continue;
+
+    const templateKey = typeof meta.templateKey === "string" ? meta.templateKey : "";
+    const layout = templateKey.split("-")[1] as LayoutVariant | undefined;
+    if (layout && LAYOUT_VARIANTS.includes(layout)) layouts.add(layout);
+
+    const composition = meta.composition as { style?: { moodLabel?: unknown } } | undefined;
+    const mood = composition?.style?.moodLabel;
+    if (typeof mood === "string" && mood) moods.add(mood);
+  }
+
+  return { layouts: [...layouts], moods: [...moods] };
 }

@@ -126,15 +126,14 @@ async function main() {
 
   const background = USE_BACKGROUND ? await fetchScene(direction.scenePrompt) : undefined;
 
-  const cases: Array<{ name: string; layout: LayoutVariant; infographic?: true }> = [
+  const cases: Array<{ name: string; layout: LayoutVariant }> = [
     { name: "split", layout: "split" },
     { name: "spotlight", layout: "spotlight" },
     { name: "editorial", layout: "editorial" },
-    { name: "infographic", layout: "split", infographic: true },
+    { name: "callout", layout: "callout" },
   ];
 
   for (const testCase of cases) {
-    const isInfographic = testCase.infographic === true;
     const style = resolveStyle(STYLE_PRESETS.modernTech, {
       ...direction,
       layout: testCase.layout,
@@ -146,10 +145,7 @@ async function main() {
       productCutoutUrl: cutout,
       cutoutApplied: cut.cutoutApplied,
       productAspectRatio: aspectRatio,
-      decision: {
-        concept: isInfographic ? "infographic" : "graphic_poster",
-        density: "detailed",
-      },
+      decision: { concept: "graphic_poster", density: "detailed" },
       style,
       backgroundImageUrl: background,
     });

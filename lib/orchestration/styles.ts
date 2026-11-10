@@ -1,4 +1,4 @@
-import type { ArtDirection, LayoutVariant } from "./types";
+import { LAYOUT_VARIANTS, type ArtDirection, type LayoutVariant } from "./types";
 
 export type StylePreset = {
   key: string;
@@ -142,12 +142,28 @@ export type ResolvedStyle = StylePreset & {
 const DEFAULT_LAYOUT_BY_STYLE: Record<string, LayoutVariant> = {
   luxury: "editorial",
   fresh: "spotlight",
-  modernTech: "split",
+  modernTech: "callout",
   warmHome: "spotlight",
   playful: "spotlight",
   sleekAuto: "editorial",
   classic: "split",
 };
+
+/**
+ * Returns `layout` unless it was used recently, in which case it advances
+ * to the first arrangement that wasn't. Falls back to the next one in
+ * rotation when every arrangement has been used — so a fifth generation
+ * cycles rather than getting stuck.
+ */
+function rotateIfRepeated(layout: LayoutVariant, recentLayouts: LayoutVariant[]): LayoutVariant {
+  if (recentLayouts.length === 0 || !recentLayouts.includes(layout)) return layout;
+
+  const unused = LAYOUT_VARIANTS.filter((candidate) => !recentLayouts.includes(candidate));
+  if (unused.length > 0) return unused[0];
+
+  const index = LAYOUT_VARIANTS.indexOf(layout);
+  return LAYOUT_VARIANTS[(index + 1) % LAYOUT_VARIANTS.length];
+}
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -204,11 +220,25 @@ const WHITE = { r: 255, g: 255, b: 255 };
  * different" from turning into "some products are illegible" — the one
  * failure mode a category preset could never produce.
  */
-export function resolveStyle(preset: StylePreset, direction?: ArtDirection): ResolvedStyle {
+export function resolveStyle(
+  preset: StylePreset,
+  direction?: ArtDirection,
+  /**
+   * Layouts this project has already produced. A regeneration that returns
+   * the same arrangement isn't a new attempt from the user's point of view,
+   * and asking the model nicely for variety is not a guarantee — so the
+   * layout is rotated here if it repeats.
+   */
+  recentLayouts: LayoutVariant[] = [],
+): ResolvedStyle {
   const fallbackLayout = DEFAULT_LAYOUT_BY_STYLE[preset.key] ?? "split";
 
   if (!direction) {
-    return { ...preset, layout: fallbackLayout, moodLabel: preset.key };
+    return {
+      ...preset,
+      layout: rotateIfRepeated(fallbackLayout, recentLayouts),
+      moodLabel: preset.key,
+    };
   }
 
   const ink = parseHex(direction.colorInk) ? direction.colorInk : preset.ink;
@@ -234,7 +264,7 @@ export function resolveStyle(preset: StylePreset, direction?: ArtDirection): Res
   const panel = mixToward(ink, WHITE, 0.07);
   const ctaTextColor = luminance(accent) > 0.4 ? "#0a0a0b" : "#ffffff";
 
-  const layout = direction.layout ?? fallbackLayout;
+  const layout = rotateIfRepeated(direction.layout ?? fallbackLayout, recentLayouts);
   const headlineFont =
     direction.headlineFont === "Playfair Display" || direction.headlineFont === "Inter"
       ? direction.headlineFont

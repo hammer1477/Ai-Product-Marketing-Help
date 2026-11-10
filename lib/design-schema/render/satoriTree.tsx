@@ -1,10 +1,25 @@
-import type { DesignLayer, DesignSchema } from "../types";
+import type { DesignLayer, DesignSchema, GradientStop } from "../types";
 import { ICON_REGISTRY, isKnownIconKey } from "./icons";
 
 function textAlignToJustify(textAlign: "left" | "center" | "right") {
   if (textAlign === "center") return "center";
   if (textAlign === "right") return "flex-end";
   return "flex-start";
+}
+
+/**
+ * Gradient stops carry hex plus a separate opacity so palettes stay plain
+ * hex everywhere else; CSS needs them combined into one rgba() value.
+ */
+function stopToCss(stop: GradientStop): string {
+  const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(stop.color.trim());
+  const position = `${(stop.offset * 100).toFixed(2)}%`;
+
+  if (!match) return `${stop.color} ${position}`;
+
+  const [r, g, b] = [match[1], match[2], match[3]].map((part) => parseInt(part, 16));
+  const alpha = stop.opacity ?? 1;
+  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)}) ${position}`;
 }
 
 function renderLayer(layer: DesignLayer) {
@@ -87,6 +102,26 @@ function renderLayer(layer: DesignLayer) {
         >
           <Icon color={layer.color} size={size} />
         </div>
+      );
+    }
+
+    case "gradient": {
+      const stops = layer.stops.map(stopToCss).join(", ");
+      const backgroundImage =
+        layer.gradient === "radial"
+          ? `radial-gradient(circle at 50% 50%, ${stops})`
+          : `linear-gradient(${layer.angle ?? 180}deg, ${stops})`;
+
+      return (
+        <div
+          key={layer.id}
+          style={{
+            ...positioning,
+            display: "flex",
+            backgroundImage,
+            borderRadius: layer.gradient === "radial" ? "50%" : 0,
+          }}
+        />
       );
     }
 

@@ -3,7 +3,6 @@ import type { ConceptDecision, CreativeContent } from "./types";
 import type { ResolvedStyle } from "./styles";
 import { composePosterSchema } from "./templates/poster";
 import { composePremiumPhotoSchema } from "./templates/premiumPhoto";
-import { composeInfographicSchema } from "./templates/infographic";
 import { normalizeBlocks } from "./blocks/types";
 
 export type ComposeInput = {
@@ -21,22 +20,11 @@ export type ComposeInput = {
 };
 
 export function composeDesignSchema(input: ComposeInput): DesignSchema {
-  const { content, decision, style, backgroundImageUrl } = input;
+  const { content, decision, backgroundImageUrl } = input;
 
   if (decision.concept === "premium_photo") {
     // Deliberately the uncut original — this concept is the photo.
-    return composePremiumPhotoSchema(content, input.productImageUrl, style);
-  }
-
-  if (decision.concept === "infographic") {
-    return composeInfographicSchema({
-      content,
-      productImageUrl: input.productCutoutUrl,
-      style,
-      cutoutApplied: input.cutoutApplied,
-      productAspectRatio: input.productAspectRatio,
-      backgroundImageUrl,
-    });
+    return composePremiumPhotoSchema(content, input.productImageUrl, input.style);
   }
 
   // The model composes the poster; normalizeBlocks is the gate that turns
@@ -47,6 +35,12 @@ export function composeDesignSchema(input: ComposeInput): DesignSchema {
     ctaLabel: content.ctaLabel,
     sellingPoints: content.sellingPoints ?? [],
   });
+
+  // The infographic concept is the callout arrangement — it used to be a
+  // separate template duplicating the same leader-line drawing, and it now
+  // just pins the layout so every other decision stays shared.
+  const style =
+    decision.concept === "infographic" ? { ...input.style, layout: "callout" as const } : input.style;
 
   return composePosterSchema({
     blocks,

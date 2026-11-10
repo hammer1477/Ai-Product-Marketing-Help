@@ -15,9 +15,9 @@ export type CreativeBrief = {
 };
 
 /** Poster arrangements the art director can choose between. */
-export type LayoutVariant = "split" | "spotlight" | "editorial";
+export type LayoutVariant = "split" | "spotlight" | "editorial" | "callout";
 
-export const LAYOUT_VARIANTS: LayoutVariant[] = ["split", "spotlight", "editorial"];
+export const LAYOUT_VARIANTS: LayoutVariant[] = ["split", "spotlight", "editorial", "callout"];
 
 // The art direction half of the generation call. Hardcoded category presets
 // gave every product in a category an identical-looking ad, which is the
@@ -94,11 +94,13 @@ export const CREATIVE_CONTENT_SCHEMA = {
         },
         layout: {
           type: "string",
-          enum: ["split", "spotlight", "editorial"],
+          enum: ["split", "spotlight", "editorial", "callout"],
           description:
             "split = copy column beside the product (best for feature-rich products). " +
             "spotlight = product centred, copy in a band below (best for beautiful objects). " +
-            "editorial = oversized headline, product bleeding off a corner (best for fashion/lifestyle).",
+            "editorial = oversized headline, product bleeding off a corner (best for fashion/lifestyle). " +
+            "callout = product centred with numbered leader lines pointing out to its specs " +
+            "(best when the product has several concrete, pointable features).",
         },
         headlineFont: {
           type: "string",
