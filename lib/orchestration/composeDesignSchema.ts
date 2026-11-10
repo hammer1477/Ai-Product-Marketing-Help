@@ -45,6 +45,7 @@ export function composeDesignSchema(input: ComposeInput): DesignSchema {
   const blocks = normalizeBlocks(content.blocks, {
     headline: content.headline,
     ctaLabel: content.ctaLabel,
+    sellingPoints: content.sellingPoints ?? [],
   });
 
   return composePosterSchema({

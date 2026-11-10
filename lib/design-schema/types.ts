@@ -71,6 +71,17 @@ export type DesignSchema = {
   meta: {
     density: DesignDensity;
     templateKey?: string;
+    /**
+     * The composition this schema was built from — the block list and the
+     * resolved style, so the design can be re-laid-out rather than only
+     * patched in place.
+     *
+     * Deliberately untyped here: the concrete type lives in
+     * lib/orchestration/composition.ts, and importing it would make
+     * design-schema depend on orchestration when the dependency runs the
+     * other way. Read it through `readComposition()`, which validates.
+     */
+    composition?: unknown;
   };
 };
 

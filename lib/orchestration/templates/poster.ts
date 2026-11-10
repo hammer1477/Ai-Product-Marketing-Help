@@ -50,6 +50,15 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
       // Records the composition that was actually used, so a design you
       // liked can be traced back to the blocks that produced it.
       templateKey: `poster-${style.layout}-${placed.map((block) => block.type).join("+")}`,
+      // The blocks that survived fitting — not the ones that were asked
+      // for. Editing starts from what's actually on the poster, so the
+      // panel can't offer a field for content that was dropped.
+      composition: {
+        blocks: placed,
+        style,
+        cutoutApplied: input.cutoutApplied,
+        productAspectRatio: input.productAspectRatio,
+      },
     },
     layers,
   };

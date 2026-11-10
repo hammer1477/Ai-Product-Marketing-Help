@@ -199,6 +199,7 @@ function normalizeBlock(raw: RawBlock): Block | null {
 export function normalizeBlocks(rawBlocks: RawBlock[] | undefined, fallback: {
   headline: string;
   ctaLabel: string;
+  sellingPoints: string[];
 }): Block[] {
   const normalized = (rawBlocks ?? [])
     .map(normalizeBlock)
@@ -221,6 +222,26 @@ export function normalizeBlocks(rawBlocks: RawBlock[] | undefined, fallback: {
     blocks.unshift({ type: "headline", text: fallback.headline });
   }
 
+  // A poster carrying only measurements sells nothing. The prompt asks for
+  // reasons to buy, but a prompt is a request, not a guarantee — when the
+  // model returns a spec table and no benefits, the separately-generated
+  // selling points stand in for them.
+  const hasBenefits = blocks.some((block) => block.type === "featureList");
+  if (!hasBenefits && fallback.sellingPoints.length > 0) {
+    const items = fallback.sellingPoints
+      .map((point) => cleanString(point, 60))
+      .filter((point): point is string => point !== null)
+      .slice(0, 4);
+
+    if (items.length > 0) {
+      // Below the spec table if there is one, so the objective facts lead
+      // and the benefits land closer to the button.
+      const specIndex = blocks.findIndex((block) => block.type === "specGrid");
+      const insertAt = specIndex >= 0 ? specIndex + 1 : blocks.length;
+      blocks.splice(insertAt, 0, { type: "featureList", items });
+    }
+  }
+
   const cta = deduped.find((block) => block.type === "cta");
   blocks.push(cta ?? { type: "cta", text: fallback.ctaLabel });
 
@@ -238,11 +259,15 @@ export const BLOCKS_SCHEMA = {
   type: "array",
   description:
     "The poster's content, composed from blocks and rendered top to bottom in this order. " +
-    "Choose the blocks that suit THIS product and fill them with real information from the " +
-    "input — a poster with specs, numbers and a price sells better than one with three vague " +
-    "bullets. Use 5 to 8 blocks. Always include exactly one headline and exactly one cta. " +
-    "Only use priceBlock, rating or specGrid when the input actually contains that data; " +
-    "never invent a price, a review count or a specification.",
+    "Choose the blocks that suit THIS product. Use 5 to 8 blocks. Always include exactly one " +
+    "headline, exactly one cta, and — unless the product has no stated benefits at all — one " +
+    "featureList. Only use priceBlock, rating or specGrid when the input actually contains " +
+    "that data; never invent a price, a review count or a specification. " +
+    "CRITICAL: a specification is not a selling point. '51 mm lens width' is a measurement; " +
+    "'blocks 100% of UV rays' is a reason to buy. Measurements belong in specGrid, reasons to " +
+    "buy belong in featureList, and a poster made only of measurements sells nothing. Derive " +
+    "each feature from the stated facts — if the input says 'full UV protection coating', the " +
+    "feature is 'Full UV protection', not a restatement of the dimensions.",
   items: {
     type: "object",
     properties: {
@@ -250,11 +275,17 @@ export const BLOCKS_SCHEMA = {
         type: "string",
         enum: BLOCK_TYPES,
         description:
-          "badge = small brand or 'New' pill. headline = the main line. description = one or " +
-          "two sentences. featureList = icon bullet rows of benefits. specGrid = label/value " +
-          "pairs of real specifications. statRow = two or three headline figures. priceBlock = " +
-          "the price. rating = stars and review count. trustStrip = short reassurances like " +
-          "free shipping. cta = the button. divider = a hairline rule between sections.",
+          "badge = small brand or 'New' pill. " +
+          "headline = the main line. " +
+          "description = one or two sentences on what this is and why it matters — not a " +
+          "list of specifications in sentence form. " +
+          "featureList = reasons to buy, in the customer's words ('Blocks 100% of UV rays'), " +
+          "never measurements and never a restatement of specGrid. " +
+          "specGrid = objective measurements with their names ('Lens width' / '51 mm'). " +
+          "statRow = the two or three figures most worth shouting about. " +
+          "priceBlock = the price. rating = stars and review count. " +
+          "trustStrip = short reassurances like free shipping. " +
+          "cta = the button. divider = a hairline rule between sections.",
       },
       text: { type: "string", description: "For badge, headline, description and cta." },
       items: {
