@@ -106,7 +106,7 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   const backgroundPromise: Promise<string | undefined> =
     decision.concept === "graphic_poster"
       ? getImageProvider()
-          .generate({ prompt: style.backgroundPrompt, mode: "text-to-image", width: 580, height: 1080 })
+          .generate({ prompt: style.backgroundPrompt, mode: "text-to-image", width: 1080, height: 1080 })
           .then((r) => toDataUri(r.imageUrl))
           .catch((err) => {
             // Background generation is decorative, not essential — fall

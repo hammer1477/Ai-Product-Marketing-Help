@@ -218,9 +218,11 @@ export function composePosterSchema(
 
   // Background image is decorative mood/texture, never the product itself
   // — AI-generated backgrounds can't guarantee identity preservation, but
-  // they don't need to since the real photo above carries that job. A
-  // brand-ink scrim on top keeps text legible and also hides any
-  // third-party watermark a free background generator might stamp on.
+  // they don't need to since the real photo above carries that job. It's
+  // full-bleed across the whole canvas for a cohesive cinematic feel
+  // (rather than confined to the text column), with a lighter scrim only
+  // over the text column to keep copy legible — the product card is
+  // already opaque, so the scene reads clearly behind/around it.
   const backgroundLayers: DesignLayer[] = backgroundImageUrl
     ? [
         {
@@ -230,7 +232,7 @@ export function composePosterSchema(
           fit: "cover",
           x: 0,
           y: 0,
-          width: 580,
+          width: 1080,
           height: 1080,
           zIndex: 0,
         },
@@ -239,7 +241,7 @@ export function composePosterSchema(
           type: "shape",
           shape: "rect",
           fill: style.ink,
-          opacity: 0.88,
+          opacity: 0.7,
           x: 0,
           y: 0,
           width: 580,
@@ -248,15 +250,16 @@ export function composePosterSchema(
         },
         // Free background generators often stamp a watermark in a bottom
         // corner. Opacity dimming alone doesn't reliably hide high-contrast
-        // text, so fully mask the bottom strip regardless of what's there.
+        // text, so fully mask the bottom strip regardless of what's there —
+        // full width, since the background now spans the whole canvas.
         {
           id: "bg-watermark-mask",
           type: "shape",
           shape: "rect",
-          fill: style.ink,
+          fill: style.panel,
           x: 0,
           y: 1030,
-          width: 580,
+          width: 1080,
           height: 50,
           zIndex: 0,
         },

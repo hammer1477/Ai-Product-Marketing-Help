@@ -32,7 +32,8 @@ export const STYLE_PRESETS = {
     ctaTextColor: "#0b0b0d",
     headlineFont: "Playfair Display",
     headlineWeight: 700,
-    backgroundPrompt: "elegant dark marble surface with soft warm gold light, luxury product photography backdrop, no text, no watermark",
+    backgroundPrompt:
+      "cinematic dark marble palace interior, dramatic golden light rays breaking through, ornate gold architectural details, atmospheric haze, ultra detailed, moody luxury editorial photography, no text, no watermark, no logo",
   },
   fresh: {
     key: "fresh",
@@ -44,7 +45,8 @@ export const STYLE_PRESETS = {
     ctaTextColor: "#0f2318",
     headlineFont: "Inter",
     headlineWeight: 800,
-    backgroundPrompt: "fresh green botanical leaves and natural light, clean organic food photography backdrop, no text, no watermark",
+    backgroundPrompt:
+      "cinematic lush green jungle canopy with golden sunlight beams breaking through mist, vibrant tropical leaves, dreamy atmosphere, dramatic depth, editorial nature photography, no text, no watermark, no logo",
   },
   modernTech: {
     key: "modernTech",
@@ -56,7 +58,8 @@ export const STYLE_PRESETS = {
     ctaTextColor: "#0a0e17",
     headlineFont: "Inter",
     headlineWeight: 800,
-    backgroundPrompt: "sleek dark blue gradient with subtle circuit board pattern, modern tech product photography backdrop, no text, no watermark",
+    backgroundPrompt:
+      "futuristic cinematic cityscape at night, glowing blue neon light trails, holographic particles floating in the air, dramatic sci-fi atmosphere, ultra detailed, product launch backdrop, no text, no watermark, no logo",
   },
   warmHome: {
     key: "warmHome",
@@ -68,7 +71,8 @@ export const STYLE_PRESETS = {
     ctaTextColor: "#2a1a12",
     headlineFont: "Playfair Display",
     headlineWeight: 600,
-    backgroundPrompt: "warm cozy terracotta and natural wood texture, soft ambient light, home decor photography backdrop, no text, no watermark",
+    backgroundPrompt:
+      "cinematic cozy living room interior, warm golden hour sunlight streaming through large windows, soft shadows, terracotta and natural wood tones, atmospheric dust particles in light beams, editorial home photography, no text, no watermark, no logo",
   },
   playful: {
     key: "playful",
@@ -80,7 +84,8 @@ export const STYLE_PRESETS = {
     ctaTextColor: "#1a1033",
     headlineFont: "Inter",
     headlineWeight: 800,
-    backgroundPrompt: "vibrant colorful abstract shapes, playful pastel gradient, fun energetic photography backdrop, no text, no watermark",
+    backgroundPrompt:
+      "vibrant cinematic explosion of colorful paint splashes and confetti frozen in motion, dynamic energy, playful bold atmosphere, studio lighting, ultra detailed, no text, no watermark, no logo",
   },
   sleekAuto: {
     key: "sleekAuto",
@@ -92,7 +97,8 @@ export const STYLE_PRESETS = {
     ctaTextColor: "#f2f2f3",
     headlineFont: "Inter",
     headlineWeight: 800,
-    backgroundPrompt: "dark metallic brushed surface with dramatic red accent light, automotive showroom photography backdrop, no text, no watermark",
+    backgroundPrompt:
+      "dramatic cinematic dark car showroom, streaking red neon light reflections, atmospheric smoke, wet reflective floor, moody automotive atmosphere, ultra detailed, no text, no watermark, no logo",
   },
   classic: {
     key: "classic",
@@ -104,7 +110,8 @@ export const STYLE_PRESETS = {
     ctaTextColor: "#0f172a",
     headlineFont: "Inter",
     headlineWeight: 800,
-    backgroundPrompt: "clean modern dark blue gradient, soft studio light, professional product photography backdrop, no text, no watermark",
+    backgroundPrompt:
+      "cinematic dark blue abstract light waves and soft smoke, dramatic studio atmosphere, ultra detailed, professional product launch backdrop, no text, no watermark, no logo",
   },
 } as const satisfies Record<string, StylePreset>;
 
