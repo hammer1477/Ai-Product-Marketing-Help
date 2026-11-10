@@ -47,5 +47,5 @@ supabase/.temp/
 *.tsbuildinfo
 next-env.d.ts
 
-# design-schema render pipeline test output
-lib/design-schema/render/test-output*.png
+# local design previews (scripts/preview-designs.ts)
+scripts/preview-output/

@@ -9,10 +9,10 @@ const nextConfig: NextConfig = {
   // the overhead of a Suspense boundary around literally everything.
   // Standard per-request dynamic rendering (the default without this flag)
   // is the right fit here.
-  // @resvg/resvg-js ships a native .node addon; it must be required at
-  // runtime rather than bundled, or Turbopack fails trying to place it in
-  // an ESM chunk.
-  serverExternalPackages: ["@resvg/resvg-js"],
+  // @resvg/resvg-js and sharp both ship native .node addons; they must be
+  // required at runtime rather than bundled, or Turbopack fails trying to
+  // place them in an ESM chunk.
+  serverExternalPackages: ["@resvg/resvg-js", "sharp"],
   // Server Actions default to a 1MB body limit, far too small for a real
   // product photo upload (ProductUploadForm posts the file directly via a
   // Server Action, not a separate API route).

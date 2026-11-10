@@ -19,16 +19,34 @@ function renderLayer(layer: DesignLayer) {
   };
 
   switch (layer.type) {
-    case "text":
+    case "text": {
+      // Clamping is what makes "no overlapping text" a structural
+      // guarantee rather than a hope. Templates position the next block
+      // using a *measured* height, and measurement is an approximation of
+      // what the renderer will do — so without a hard cap, a wrap the
+      // estimate didn't predict spills straight through the block below.
+      // With the clamp, the layer physically cannot render taller than the
+      // line budget it was measured against.
+      const clamp = layer.maxLines
+        ? ({
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: layer.maxLines,
+            overflow: "hidden",
+          } as React.CSSProperties)
+        : ({
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-start",
+            alignItems: textAlignToJustify(layer.textAlign),
+          } as React.CSSProperties);
+
       return (
         <div
           key={layer.id}
           style={{
             ...positioning,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-start",
-            alignItems: textAlignToJustify(layer.textAlign),
+            ...clamp,
             fontFamily: layer.fontFamily,
             fontSize: layer.fontSize,
             fontWeight: layer.fontWeight,
@@ -41,6 +59,7 @@ function renderLayer(layer: DesignLayer) {
           {layer.content}
         </div>
       );
+    }
 
     case "image":
       return (

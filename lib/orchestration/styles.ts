@@ -1,3 +1,5 @@
+import type { ArtDirection, LayoutVariant } from "./types";
+
 export type StylePreset = {
   key: string;
   /** Ground behind the text column. */
@@ -129,4 +131,129 @@ const CATEGORY_STYLE_MAP: Record<string, keyof typeof STYLE_PRESETS> = {
 export function decideStyle(category: string): StylePreset {
   const key = CATEGORY_STYLE_MAP[category] ?? "classic";
   return STYLE_PRESETS[key];
+}
+
+/** A style preset after the AI art director's choices have been merged in. */
+export type ResolvedStyle = StylePreset & {
+  layout: LayoutVariant;
+  moodLabel: string;
+};
+
+const DEFAULT_LAYOUT_BY_STYLE: Record<string, LayoutVariant> = {
+  luxury: "editorial",
+  fresh: "spotlight",
+  modernTech: "split",
+  warmHome: "spotlight",
+  playful: "spotlight",
+  sleekAuto: "editorial",
+  classic: "split",
+};
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+
+function parseHex(hex: string): { r: number; g: number; b: number } | null {
+  if (!HEX.test(hex)) return null;
+  return {
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16),
+  };
+}
+
+function toHex({ r, g, b }: { r: number; g: number; b: number }): string {
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return `#${[r, g, b].map((v) => clamp(v).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** WCAG relative luminance. */
+function luminance(hex: string): number {
+  const rgb = parseHex(hex);
+  if (!rgb) return 0;
+  const channel = (v: number) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b);
+}
+
+function contrastRatio(a: string, b: string): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+function mixToward(hex: string, target: { r: number; g: number; b: number }, amount: number): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return hex;
+  return toHex({
+    r: rgb.r + (target.r - rgb.r) * amount,
+    g: rgb.g + (target.g - rgb.g) * amount,
+    b: rgb.b + (target.b - rgb.b) * amount,
+  });
+}
+
+const WHITE = { r: 255, g: 255, b: 255 };
+
+/**
+ * Merges the model's art direction over the category preset.
+ *
+ * The model is treated as a creative source, not a trusted one: every
+ * colour it returns is validated for format and for actual readable
+ * contrast against the ground it will sit on, and any value failing either
+ * check falls back to the preset's. That keeps "every product looks
+ * different" from turning into "some products are illegible" — the one
+ * failure mode a category preset could never produce.
+ */
+export function resolveStyle(preset: StylePreset, direction?: ArtDirection): ResolvedStyle {
+  const fallbackLayout = DEFAULT_LAYOUT_BY_STYLE[preset.key] ?? "split";
+
+  if (!direction) {
+    return { ...preset, layout: fallbackLayout, moodLabel: preset.key };
+  }
+
+  const ink = parseHex(direction.colorInk) ? direction.colorInk : preset.ink;
+
+  const accent =
+    parseHex(direction.colorAccent) && contrastRatio(direction.colorAccent, ink) >= 2.2
+      ? direction.colorAccent
+      : preset.accent;
+
+  const textPrimary =
+    parseHex(direction.colorTextPrimary) && contrastRatio(direction.colorTextPrimary, ink) >= 4.5
+      ? direction.colorTextPrimary
+      : preset.textPrimary;
+
+  const textMuted =
+    parseHex(direction.colorTextMuted) && contrastRatio(direction.colorTextMuted, ink) >= 3
+      ? direction.colorTextMuted
+      : preset.textMuted;
+
+  // Derived rather than model-chosen: these have exactly one correct answer
+  // given the colours above, and asking the model for them only adds a way
+  // to get unreadable CTA text.
+  const panel = mixToward(ink, WHITE, 0.07);
+  const ctaTextColor = luminance(accent) > 0.4 ? "#0a0a0b" : "#ffffff";
+
+  const layout = direction.layout ?? fallbackLayout;
+  const headlineFont =
+    direction.headlineFont === "Playfair Display" || direction.headlineFont === "Inter"
+      ? direction.headlineFont
+      : preset.headlineFont;
+
+  return {
+    key: preset.key,
+    ink,
+    panel,
+    accent,
+    textPrimary,
+    textMuted,
+    ctaTextColor,
+    headlineFont,
+    headlineWeight: headlineFont === "Playfair Display" ? 700 : 800,
+    backgroundPrompt: direction.scenePrompt?.trim()
+      ? `${direction.scenePrompt.trim()}, cinematic lighting, ultra detailed, professional advertising photography, no text, no watermark, no logo`
+      : preset.backgroundPrompt,
+    layout,
+    moodLabel: direction.moodLabel || preset.key,
+  };
 }

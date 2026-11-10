@@ -4,7 +4,8 @@ import { hasBlockingErrors, validateDesignSchema } from "../design-schema/valida
 import { getImageProvider, getTextProvider } from "../ai/providers/factory";
 import { composeDesignSchema } from "./composeDesignSchema";
 import { decideConcept } from "./decideConcept";
-import { decideStyle } from "./styles";
+import { decideStyle, resolveStyle } from "./styles";
+import { removeProductBackdrop, trimTransparentEdges } from "../images/cutout";
 import { toDataUri } from "./toDataUri";
 import { CREATIVE_CONTENT_SCHEMA, type CreativeBrief, type CreativeContent } from "./types";
 
@@ -70,17 +71,22 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   };
 
   const decision = decideConcept(brief);
-  const style = decideStyle(brief.category);
+  const preset = decideStyle(brief.category);
 
-  // Copy generation, inlining the real product photo, and the decorative
-  // background generation are all independent — run them concurrently
-  // instead of sequentially so total latency is max(...) rather than sum(...).
+  // One call produces both the copy and the art direction. Asking the model
+  // to art-direct *this* product — its own scene, palette and arrangement —
+  // is what stops every product in a category from coming out looking like
+  // the same template with the words swapped.
   const textProvider = getTextProvider();
   const contentPromise = textProvider.generateJSON<CreativeContent>({
     system:
-      "You are an advertising copywriter. Write persuasive, truthful ad copy using ONLY the verified " +
-      "product information provided. Never invent specifications, certifications, or claims not present " +
-      "in the input.",
+      "You are a senior advertising creative director and copywriter at a top agency. " +
+      "Write persuasive, truthful ad copy using ONLY the verified product information provided. " +
+      "Never invent specifications, certifications, or claims not present in the input. " +
+      "Then art-direct this specific product: choose the scene it belongs in, a palette drawn " +
+      "from its own materials and market, and the arrangement that flatters it. Two different " +
+      "products must never receive the same art direction. Copy must be short enough to read on " +
+      "a poster at a glance — long sentences will be cut off.",
     messages: [
       {
         role: "user",
@@ -89,6 +95,7 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
           category: brief.category,
           description: brief.description,
           objective: brief.objective,
+          targetPlatform: brief.targetPlatform,
           attributes: brief.attributes,
         }),
       },
@@ -98,31 +105,66 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
 
   // The real uploaded photo is always what ends up in the design — product
   // identity must never depend on an AI model's ability to preserve it.
-  // AI image generation is used only for a decorative background behind
-  // the real photo (graphic_poster concept), and only as text-to-image
-  // with no reference, since that's the one thing it can't get wrong.
-  const productImagePromise = toDataUri(brief.primaryImageUrl);
+  // AI image generation is used only for the background scene, and only as
+  // text-to-image with no reference, since that's the one thing it can't
+  // get wrong. The cutout step is pure image processing (no model), so it
+  // can't alter the product either — it only deletes the studio sweep
+  // around it so the product can sit inside the scene.
+  const productAssetsPromise = toDataUri(brief.primaryImageUrl).then(async (original) => {
+    try {
+      const cutout = await removeProductBackdrop(original);
+      if (!cutout.cutoutApplied) {
+        return {
+          original,
+          cutout: original,
+          cutoutApplied: false,
+          aspectRatio: cutout.width / cutout.height,
+        };
+      }
+      const trimmed = await trimTransparentEdges(cutout.dataUri);
+      return {
+        original,
+        cutout: trimmed.dataUri,
+        cutoutApplied: true,
+        aspectRatio: trimmed.width / trimmed.height,
+      };
+    } catch (err) {
+      // A failed cutout must never fail the job — fall back to the photo
+      // as uploaded and let the template frame it on a card instead.
+      console.error("Product backdrop removal failed, using original photo:", err);
+      return { original, cutout: original, cutoutApplied: false, aspectRatio: 1 };
+    }
+  });
 
-  const backgroundPromise: Promise<string | undefined> =
-    decision.concept === "graphic_poster"
-      ? getImageProvider()
-          .generate({ prompt: style.backgroundPrompt, mode: "text-to-image", width: 1080, height: 1080 })
-          .then((r) => toDataUri(r.imageUrl))
-          .catch((err) => {
-            // Background generation is decorative, not essential — fall
-            // back to the flat style color rather than fail the whole job.
-            console.error("Background image generation failed, falling back to flat color:", err);
-            return undefined;
-          })
-      : Promise.resolve(undefined);
+  const [{ data: content }, productAssets] = await Promise.all([contentPromise, productAssetsPromise]);
 
-  const [{ data: content }, productImageUrl, backgroundImageUrl] = await Promise.all([
-    contentPromise,
-    productImagePromise,
-    backgroundPromise,
-  ]);
+  const style = resolveStyle(preset, content.artDirection);
 
-  const schema = composeDesignSchema(content, productImageUrl, decision, style, backgroundImageUrl);
+  // Background generation has to wait for the art direction, since the
+  // whole point is that the scene is written for this product.
+  const wantsBackground = decision.concept === "graphic_poster" || decision.concept === "infographic";
+  const backgroundImageUrl = wantsBackground
+    ? await getImageProvider()
+        .generate({ prompt: style.backgroundPrompt, mode: "text-to-image", width: 1080, height: 1080 })
+        .then((r) => toDataUri(r.imageUrl))
+        .catch((err) => {
+          // Background generation is decorative, not essential — fall
+          // back to the flat style color rather than fail the whole job.
+          console.error("Background image generation failed, falling back to flat color:", err);
+          return undefined;
+        })
+    : undefined;
+
+  const schema = composeDesignSchema({
+    content,
+    productImageUrl: productAssets.original,
+    productCutoutUrl: productAssets.cutout,
+    cutoutApplied: productAssets.cutoutApplied,
+    productAspectRatio: productAssets.aspectRatio,
+    decision,
+    style,
+    backgroundImageUrl,
+  });
 
   const issues = validateDesignSchema(schema);
   if (hasBlockingErrors(issues)) {
