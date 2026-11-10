@@ -18,27 +18,35 @@ export function composePosterSchema(
   style: StylePreset,
   backgroundImageUrl?: string,
 ): DesignSchema {
+  // The product photo sits on a clean card, not an edge-to-edge crop: the
+  // slot is tall and narrow (500x1080), and an arbitrary uploaded photo's
+  // aspect ratio rarely matches that, so `fit: "cover"` would zoom in and
+  // chop off parts of the product (exactly what it did before this fix —
+  // a wide product like headphones lost most of its frame). `contain`
+  // guarantees the whole product is always visible, and the card gives it
+  // a deliberate presentation instead of looking like an accidental crop.
   const layers: DesignLayer[] = [
+    {
+      id: "product-card",
+      type: "shape",
+      shape: "rect",
+      fill: "#fafaf8",
+      borderRadius: 20,
+      x: 620,
+      y: 72,
+      width: 420,
+      height: 936,
+      zIndex: 0,
+    },
     {
       id: "product-photo",
       type: "image",
       src: productImageUrl,
-      fit: "cover",
-      x: 580,
-      y: 0,
-      width: 500,
-      height: 1080,
-      zIndex: 0,
-    },
-    {
-      id: "photo-divider",
-      type: "shape",
-      shape: "rect",
-      fill: style.accent,
-      x: 578,
-      y: 0,
-      width: 2,
-      height: 1080,
+      fit: "contain",
+      x: 652,
+      y: 104,
+      width: 356,
+      height: 872,
       zIndex: 1,
     },
   ];
