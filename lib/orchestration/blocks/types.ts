@@ -259,10 +259,14 @@ export const BLOCKS_SCHEMA = {
   type: "array",
   description:
     "The poster's content, composed from blocks and rendered top to bottom in this order. " +
-    "Choose the blocks that suit THIS product. Use 5 to 8 blocks. Always include exactly one " +
-    "headline, exactly one cta, and — unless the product has no stated benefits at all — one " +
-    "featureList. Only use priceBlock, rating or specGrid when the input actually contains " +
-    "that data; never invent a price, a review count or a specification. " +
+    "Choose the blocks that suit THIS product. Use 5 to 8 blocks, and between them show at " +
+    "least six separate facts drawn from the description and attributes. Always include " +
+    "exactly one headline, exactly one cta, and — unless the product has no stated benefits " +
+    "at all — one featureList. Prefer a specGrid whenever the description mentions two or more " +
+    "concrete attributes, even if they appear in prose rather than as labelled fields: naming " +
+    "them ('Frame' / 'Golden metal') is extraction, not invention. What you must never do is " +
+    "state a fact the input does not support — an unstated price, an invented review count, a " +
+    "measurement nobody gave you. " +
     "CRITICAL: a specification is not a selling point. '51 mm lens width' is a measurement; " +
     "'blocks 100% of UV rays' is a reason to buy. Measurements belong in specGrid, reasons to " +
     "buy belong in featureList, and a poster made only of measurements sells nothing. Derive " +

@@ -107,15 +107,25 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
       "You are a senior advertising creative director and copywriter at a top agency. " +
       "Write persuasive, truthful ad copy using ONLY the verified product information provided. " +
       "Never invent specifications, certifications, prices, or claims not present in the input. " +
-      "Then do two things. First, COMPOSE the poster by choosing content blocks — you decide " +
-      "which blocks appear and in what order, so build the poster this product deserves rather " +
-      "than the same shape every time. Mine the input for every concrete fact you can show: " +
-      "real numbers belong in a statRow, real specifications in a specGrid, a stated price in a " +
-      "priceBlock. A poster carrying eight real facts outsells one carrying three vague " +
-      "adjectives. Second, ART-DIRECT it: choose the scene the product belongs in, a palette " +
-      "drawn from its own materials and market, and the arrangement that flatters it. Two " +
-      "different products must never receive the same composition or art direction. Keep every " +
-      "string short enough to read on a poster at a glance — long text is truncated.",
+      "Work in three steps. " +
+      "STEP 1 - EXTRACT. Read the description and attributes and list every concrete fact they " +
+      "contain. Facts are usually buried in prose rather than handed to you as fields: " +
+      "'golden metal frames with black CR-39 lenses and full UV protection coating' is four " +
+      "facts (frame material, lens material, lens colour, UV protection), not one sentence. " +
+      "Look for materials, dimensions, capacities, durations, quantities, compatibility, " +
+      "certifications, what's included, care instructions, and what makes it limited or special. " +
+      "Do not skip a fact because it was phrased casually. " +
+      "STEP 2 - COMPOSE the poster from content blocks, and put those extracted facts on it. " +
+      "Rephrase each into poster language: 'Lens' / 'CR-39 polymer' in a specGrid, or " +
+      "'Full UV protection' in a featureList. Headline figures go in a statRow and a stated " +
+      "price in a priceBlock. Aim to show at least six separate facts; a poster carrying eight " +
+      "real facts outsells one carrying three vague adjectives, and a nearly empty poster is a " +
+      "failure even if every word on it is true. You still must not invent anything the input " +
+      "does not support — extract harder instead. " +
+      "STEP 3 - ART-DIRECT it: choose the scene the product belongs in, a palette drawn from " +
+      "its own materials and market, and the arrangement that flatters it. Two different " +
+      "products must never receive the same composition or art direction. Keep every string " +
+      "short enough to read on a poster at a glance — long text is truncated.",
     messages: [
       {
         role: "user",

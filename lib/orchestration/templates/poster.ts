@@ -1,5 +1,6 @@
 import type { DesignDensity, DesignLayer, DesignSchema } from "../../design-schema/types";
 import type { ResolvedStyle } from "../styles";
+import type { LayoutVariant } from "../types";
 import { gradientBand, pill, productStage, text } from "./layoutKit";
 import { measureTextBlock } from "../../design-schema/measureText";
 import { renderBlock } from "../blocks/render";
@@ -10,6 +11,148 @@ const CANVAS = 1080;
 
 /** Bottom strip reserved for the watermark mask — nothing is placed inside it. */
 const BOTTOM_RESERVED = 96;
+
+/** Where the spotlight arrangement's copy band begins. */
+const SPOTLIGHT_BAND_TOP = 575;
+
+/**
+ * The copy region each stacking arrangement offers.
+ *
+ * Hoisted out of the build functions so a composition can be measured
+ * against every arrangement *before* one is chosen — see pickLayout.
+ */
+const REGIONS: Record<"split" | "spotlight" | "editorial", StackRegion> = {
+  split: {
+    x: 76,
+    width: 448,
+    top: 72,
+    bottom: CANVAS - BOTTOM_RESERVED,
+    align: "left",
+    justify: "center",
+  },
+  spotlight: {
+    x: 140,
+    width: 800,
+    top: SPOTLIGHT_BAND_TOP + 34,
+    bottom: CANVAS - BOTTOM_RESERVED,
+    align: "center",
+    justify: "start",
+  },
+  editorial: {
+    x: 76,
+    width: 440,
+    top: 96,
+    bottom: CANVAS - BOTTOM_RESERVED,
+    align: "left",
+    justify: "start",
+  },
+};
+
+/** Facts a block puts on the poster — a list contributes one per item. */
+function contentScore(blocks: Block[]): number {
+  return blocks.reduce((total, block) => {
+    if (block.type === "divider") return total;
+    if ("items" in block) return total + block.items.length;
+    return total + 1;
+  }, 0);
+}
+
+/** The most leader lines that fit around the product without crowding it. */
+const MAX_CALLOUTS = 6;
+
+/** Below this many facts a poster reads as empty regardless of arrangement. */
+const MIN_FACTS_SHOWN = 6;
+
+/**
+ * The callouts an arrangement would draw, drawn from both list blocks.
+ *
+ * Specs come first because a name plus a value makes the stronger callout
+ * — the eye lands on the value — with features filling any remaining
+ * lines. Taking only one list would have left the callout arrangement
+ * showing so much less than a stacked column that pickLayout always
+ * overrode it, and it would never have been seen.
+ */
+function calloutItems(blocks: Block[]): Array<{ label: string; value?: string }> {
+  const specs = blocks.find((block) => block.type === "specGrid");
+  const features = blocks.find((block) => block.type === "featureList");
+
+  const items: Array<{ label: string; value?: string }> = [];
+  if (specs?.type === "specGrid") {
+    items.push(...specs.items.map((item) => ({ label: item.label, value: item.value })));
+  }
+  if (features?.type === "featureList") {
+    items.push(...features.items.map((item) => ({ label: item })));
+  }
+  return items.slice(0, MAX_CALLOUTS);
+}
+
+/** What the callout arrangement can show, which isn't a stacked column. */
+function calloutPlacement(blocks: Block[]): Block[] {
+  const placed: Block[] = [];
+
+  for (const type of ["badge", "headline"] as const) {
+    const block = blocks.find((candidate) => candidate.type === type);
+    if (block) placed.push(block);
+  }
+
+  const items = calloutItems(blocks);
+  if (items.length > 0) {
+    placed.push({ type: "featureList", items: items.map((item) => item.label) });
+  }
+
+  for (const type of ["priceBlock", "cta"] as const) {
+    const block = blocks.find((candidate) => candidate.type === type);
+    if (block) placed.push(block);
+  }
+
+  return placed;
+}
+
+/**
+ * Chooses the arrangement that actually shows the content.
+ *
+ * The model picks an arrangement before it knows how much its own
+ * composition will need, and arrangements differ enormously in capacity —
+ * the spotlight band holds roughly a third of what the split column does.
+ * Picking first and then discarding whatever doesn't fit is how a poster
+ * built from eight researched facts ended up displaying two.
+ *
+ * So the model's choice is honoured unless another arrangement would show
+ * materially more. Its taste wins ties; it just can't cost the poster its
+ * content.
+ */
+function pickLayout(blocks: Block[], style: ResolvedStyle): LayoutVariant {
+  const requested = style.layout;
+
+  const scoreFor = (layout: LayoutVariant): number =>
+    contentScore(
+      layout === "callout"
+        ? calloutPlacement(blocks)
+        : stackBlocks(blocks, REGIONS[layout], style).placed,
+    );
+
+  const requestedScore = scoreFor(requested);
+
+  let best = requested;
+  let bestScore = requestedScore;
+
+  for (const candidate of ["split", "callout", "editorial", "spotlight"] as LayoutVariant[]) {
+    const score = scoreFor(candidate);
+    if (score > bestScore) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+
+  // The test is starvation, not maximisation. Overriding whenever another
+  // arrangement shows merely *more* collapses everything into the single
+  // highest-capacity one, which costs all the variety the arrangements
+  // exist to provide. So the model's choice stands unless it would gut the
+  // composition: fewer than a handful of facts, or barely half what the
+  // content could support.
+  const starvationFloor = Math.max(MIN_FACTS_SHOWN, bestScore * 0.55);
+  return requestedScore < starvationFloor ? best : requested;
+}
 
 export type PosterInput = {
   blocks: Block[];
@@ -28,18 +171,20 @@ export type PosterInput = {
 // geometry only — it never knows what content it's holding, which is why
 // adding a new kind of block needs no change here at all.
 export function composePosterSchema(input: PosterInput): DesignSchema {
-  const { style } = input;
+  const layout = pickLayout(input.blocks, input.style);
+  const style: ResolvedStyle = { ...input.style, layout };
+  const resolved: PosterInput = { ...input, style };
 
   const build =
-    style.layout === "spotlight"
+    layout === "spotlight"
       ? buildSpotlight
-      : style.layout === "editorial"
+      : layout === "editorial"
         ? buildEditorial
-        : style.layout === "callout"
+        : layout === "callout"
           ? buildCallout
           : buildSplit;
 
-  const { layers, placed } = build(input);
+  const { layers, placed } = build(resolved);
 
   return {
     schemaVersion: 1,
@@ -53,7 +198,7 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
       density: input.density,
       // Records the composition that was actually used, so a design you
       // liked can be traced back to the blocks that produced it.
-      templateKey: `poster-${style.layout}-${placed.map((block) => block.type).join("+")}`,
+      templateKey: `poster-${layout}-${placed.map((block) => block.type).join("+")}`,
       // The blocks that survived fitting — not the ones that were asked
       // for. Editing starts from what's actually on the poster, so the
       // panel can't offer a field for content that was dropped.
@@ -182,16 +327,7 @@ type BuildResult = { layers: DesignLayer[]; placed: Block[] };
 function buildSplit(input: PosterInput): BuildResult {
   const { style, blocks, productImageUrl, cutoutApplied, backgroundImageUrl } = input;
 
-  const region: StackRegion = {
-    x: 76,
-    width: 448,
-    top: 72,
-    bottom: CANVAS - BOTTOM_RESERVED,
-    align: "left",
-    justify: "center",
-  };
-
-  const stack = stackBlocks(blocks, region, style);
+  const stack = stackBlocks(blocks, REGIONS.split, style);
 
   return {
     placed: stack.placed,
@@ -236,18 +372,8 @@ function buildSplit(input: PosterInput): BuildResult {
 function buildSpotlight(input: PosterInput): BuildResult {
   const { style, blocks, productImageUrl, cutoutApplied, backgroundImageUrl } = input;
 
-  const bandTop = 575;
-
-  const region: StackRegion = {
-    x: 140,
-    width: 800,
-    top: bandTop + 34,
-    bottom: CANVAS - BOTTOM_RESERVED,
-    align: "center",
-    justify: "start",
-  };
-
-  const stack = stackBlocks(blocks, region, style);
+  const bandTop = SPOTLIGHT_BAND_TOP;
+  const stack = stackBlocks(blocks, REGIONS.spotlight, style);
 
   return {
     placed: stack.placed,
@@ -302,16 +428,7 @@ function buildSpotlight(input: PosterInput): BuildResult {
 function buildEditorial(input: PosterInput): BuildResult {
   const { style, blocks, productImageUrl, cutoutApplied, backgroundImageUrl } = input;
 
-  const region: StackRegion = {
-    x: 76,
-    width: 440,
-    top: 96,
-    bottom: CANVAS - BOTTOM_RESERVED,
-    align: "left",
-    justify: "start",
-  };
-
-  const stack = stackBlocks(blocks, region, style);
+  const stack = stackBlocks(blocks, REGIONS.editorial, style);
 
   return {
     placed: stack.placed,
@@ -400,6 +517,31 @@ function buildCallout(input: PosterInput): BuildResult {
     });
   }
 
+  let headlineY = 58;
+
+  const badge = blocks.find((block) => block.type === "badge");
+  if (badge?.type === "badge") {
+    placed.push(badge);
+    const built = pill({
+      id: "badge-label",
+      role: "badgeLabel",
+      label: badge.text.toUpperCase(),
+      x: CANVAS / 2,
+      y: 46,
+      anchor: "center",
+      fill: "transparent",
+      stroke: style.accent,
+      textColor: style.accent,
+      fontSize: 13,
+      fontWeight: 600,
+      letterSpacing: 2.4,
+      paddingX: 22,
+      maxWidth: 400,
+    });
+    layers.push(...built.layers);
+    headlineY = 46 + built.height + 20;
+  }
+
   const headline = blocks.find((block) => block.type === "headline");
   if (headline?.type === "headline") {
     placed.push(headline);
@@ -409,7 +551,7 @@ function buildCallout(input: PosterInput): BuildResult {
         role: "headline",
         content: headline.text,
         x: 90,
-        y: 58,
+        y: headlineY,
         maxWidth: 900,
         fontFamily: style.headlineFont,
         fontSize: style.headlineFont === "Playfair Display" ? 48 : 42,
@@ -437,21 +579,13 @@ function buildCallout(input: PosterInput): BuildResult {
     }),
   );
 
-  // A spec table makes better callouts than a sentence does, because the
-  // eye lands on the value. Features are the fallback when there are none.
-  const specs = blocks.find((block) => block.type === "specGrid");
-  const features = blocks.find((block) => block.type === "featureList");
-
-  let callouts: Array<{ label: string; value?: string }> = [];
-  if (specs?.type === "specGrid") {
-    callouts = specs.items.map((item) => ({ label: item.label, value: item.value }));
-    placed.push(specs);
-  } else if (features?.type === "featureList") {
-    callouts = features.items.map((item) => ({ label: item }));
-    placed.push(features);
+  const callouts = calloutItems(blocks);
+  for (const type of ["specGrid", "featureList"] as const) {
+    const block = blocks.find((candidate) => candidate.type === type);
+    if (block) placed.push(block);
   }
 
-  callouts.slice(0, 6).forEach((callout, index) => {
+  callouts.forEach((callout, index) => {
     const isLeft = index % 2 === 0;
     const row = Math.floor(index / 2);
     const rowY = rowYs[row] ?? rowYs[rowYs.length - 1] + (row - rowYs.length + 1) * 170;
