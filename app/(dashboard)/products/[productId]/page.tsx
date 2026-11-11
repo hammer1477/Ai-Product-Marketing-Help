@@ -10,6 +10,10 @@ type ImageAnalysis = {
   suggestedCategory: string;
   confidence: number;
   notes?: string;
+  productType?: string;
+  visibleClaims?: string[];
+  materials?: string[];
+  detectedText?: string[];
 };
 
 export default async function ProductDetailPage({
@@ -106,8 +110,56 @@ export default async function ProductDetailPage({
                 {product.attributes.brandName}
               </p>
             )}
+            {product.attributes?.offer && (
+              <p>
+                <span className="text-muted-foreground">Offer: </span>
+                {product.attributes.offer}
+              </p>
+            )}
+            {product.attributes?.specs && (
+              <div>
+                <span className="text-muted-foreground">Specs &amp; features:</span>
+                <p className="whitespace-pre-line">{product.attributes.specs}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
+        {analysis && (analysis.visibleClaims?.length || analysis.materials?.length || analysis.productType) ? (
+          <Card className="sm:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Read from your photo</CardTitle>
+              <CardDescription>
+                What the AI could see on the product. Printed claims are used as facts in your ads;
+                looks and materials guide the art direction.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm">
+              {analysis.productType && (
+                <p>
+                  <span className="text-muted-foreground">Looks like: </span>
+                  {analysis.productType}
+                </p>
+              )}
+              {[
+                { title: "Printed on the product", items: analysis.visibleClaims },
+                { title: "Materials & finish", items: analysis.materials },
+              ].map(({ title, items }) =>
+                items && items.length > 0 ? (
+                  <div key={title} className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground">{title}</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {items.map((item) => (
+                        <Badge key={item} variant="outline">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null,
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </div>
   );

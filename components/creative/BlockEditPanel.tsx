@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 const BLOCK_TITLES: Record<Block["type"], string> = {
   badge: "Badge",
   headline: "Headline",
+  subheadline: "Subheadline",
   description: "Description",
   featureList: "Feature list",
   specGrid: "Specifications",
@@ -29,9 +30,12 @@ const BLOCK_TITLES: Record<Block["type"], string> = {
 
 export function BlockEditPanel({
   blocks,
+  hiddenTypes = [],
   onChange,
 }: {
   blocks: Block[];
+  /** Block types the current template had no room for. */
+  hiddenTypes?: Block["type"][];
   onChange: (next: Block[]) => void;
 }) {
   function updateBlock(index: number, next: Block) {
@@ -47,10 +51,17 @@ export function BlockEditPanel({
       {blocks.map((block, index) => (
         <section
           key={`${block.type}-${index}`}
-          className="flex flex-col gap-3 rounded-lg border bg-card p-4"
+          className={`flex flex-col gap-3 rounded-lg border bg-card p-4 ${hiddenTypes.includes(block.type) ? "opacity-60" : ""}`}
         >
           <header className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">{BLOCK_TITLES[block.type]}</h3>
+            <h3 className="text-sm font-semibold">
+              {BLOCK_TITLES[block.type]}
+              {hiddenTypes.includes(block.type) && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  Not shown in this template
+                </span>
+              )}
+            </h3>
             {/* The headline and button are structural — a poster without
                 either isn't a smaller poster, it's a broken one. */}
             {block.type !== "headline" && block.type !== "cta" && (
@@ -90,6 +101,7 @@ function BlockFields({
   switch (block.type) {
     case "badge":
     case "headline":
+    case "subheadline":
     case "description":
     case "cta":
       return (
@@ -119,7 +131,16 @@ function BlockFields({
               }
               onRemove={
                 block.items.length > 1
-                  ? () => onChange({ ...block, items: block.items.filter((_, j) => j !== i) })
+                  ? () =>
+                      onChange(
+                        block.type === "featureList"
+                          ? {
+                              ...block,
+                              items: block.items.filter((_, j) => j !== i),
+                              icons: block.icons?.filter((_, j) => j !== i),
+                            }
+                          : { ...block, items: block.items.filter((_, j) => j !== i) },
+                      )
                   : undefined
               }
             />

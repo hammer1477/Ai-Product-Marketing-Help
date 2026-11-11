@@ -30,7 +30,7 @@ export type StackResult = Built & {
 /** Longest a list-style block may get before the fitting pass shortens it. */
 const MAX_ITEMS: Partial<Record<Block["type"], number>> = {
   featureList: 6,
-  specGrid: 6,
+  specGrid: 8,
   statRow: 3,
   trustStrip: 4,
 };
@@ -135,6 +135,8 @@ export function stackBlocks(
   blocks: Block[],
   region: StackRegion,
   style: ResolvedStyle,
+  /** Prefix for layer ids, so several stacks on one poster never collide. */
+  keyPrefix = "b",
 ): StackResult {
   const placed = fitBlocks(blocks, region, style);
   const total = measureStack(placed, region, style);
@@ -154,7 +156,7 @@ export function stackBlocks(
       width: region.width,
       y: cursor,
       align: region.align,
-      key: `b${index}`,
+      key: `${keyPrefix}${index}`,
     });
     layers.push(...built.layers);
     widest = Math.max(widest, built.width);

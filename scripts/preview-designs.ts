@@ -1,17 +1,20 @@
 // Renders every layout to PNG without touching the database, Supabase or
 // the job pipeline — the fast way to see a design change.
 //
-//   npx tsx scripts/preview-designs.ts              (flat colour grounds)
+//   npx tsx scripts/preview-designs.ts              (no scene: gradient grounds)
+//   npx tsx scripts/preview-designs.ts --only=bento,receipt
+//   npx tsx scripts/preview-designs.ts --palette="Noir Gold"
 //   npx tsx scripts/preview-designs.ts --background  (real generated scenes)
 //
 // Output lands in scripts/preview-output/ (gitignored).
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { composeDesignSchema } from "../lib/orchestration/composeDesignSchema";
-import { resolveStyle, STYLE_PRESETS } from "../lib/orchestration/styles";
+import { PALETTES, resolveStyle, STYLE_PRESETS } from "../lib/orchestration/styles";
 import { renderSchemaToPng } from "../lib/design-schema/render/renderPng";
 import { removeProductBackdrop, trimTransparentEdges } from "../lib/images/cutout";
-import type { ArtDirection, CreativeContent, LayoutVariant } from "../lib/orchestration/types";
+import type { ArtDirection, CreativeContent } from "../lib/orchestration/types";
+import { TEMPLATES } from "../lib/orchestration/templates/registry";
 
 const OUT_DIR = path.join(process.cwd(), "scripts/preview-output");
 const USE_BACKGROUND = process.argv.includes("--background");
@@ -70,8 +73,6 @@ const direction: ArtDirection = {
   scenePrompt:
     "dark cinematic recording studio, deep blue and teal light, glowing acoustic panels, " +
     "volumetric haze, reflective floor, dramatic rim lighting",
-  layout: "split",
-  headlineFont: "Inter",
   colorInk: "#070d18",
   colorAccent: "#38bdf8",
   colorTextPrimary: "#f1f6fd",
@@ -116,6 +117,7 @@ async function fetchScene(prompt: string): Promise<string | undefined> {
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
+  const sharp = (await import("sharp")).default;
 
   const original = await makeProductPhoto();
   const cut = await removeProductBackdrop(original);
@@ -125,36 +127,47 @@ async function main() {
   console.log(`Cutout applied: ${cut.cutoutApplied} (aspect ${aspectRatio.toFixed(2)})`);
 
   const background = USE_BACKGROUND ? await fetchScene(direction.scenePrompt) : undefined;
+  const only = process.argv.find((arg) => arg.startsWith("--only="))?.slice(7);
+  // --palette="Noir Gold" previews the catalogue in one of the editor's palettes.
+  const paletteName = process.argv.find((arg) => arg.startsWith("--palette="))?.slice(10);
+  const pal = PALETTES.find((candidate) => candidate.name === paletteName);
+  const style = resolveStyle(
+    STYLE_PRESETS.modernTech,
+    pal
+      ? { ...direction, colorInk: pal.ink, colorAccent: pal.accent, colorTextPrimary: pal.text, colorTextMuted: pal.muted }
+      : direction,
+  );
 
-  const cases: Array<{ name: string; layout: LayoutVariant }> = [
-    { name: "split", layout: "split" },
-    { name: "spotlight", layout: "spotlight" },
-    { name: "editorial", layout: "editorial" },
-    { name: "callout", layout: "callout" },
-  ];
-
-  for (const testCase of cases) {
-    const style = resolveStyle(STYLE_PRESETS.modernTech, {
-      ...direction,
-      layout: testCase.layout,
-    });
-
+  const tiles: Buffer[] = [];
+  for (const template of TEMPLATES) {
+    if (only && !only.split(",").includes(template.id)) continue;
     const schema = composeDesignSchema({
       content,
-      productImageUrl: original,
       productCutoutUrl: cutout,
       cutoutApplied: cut.cutoutApplied,
       productAspectRatio: aspectRatio,
       decision: { concept: "graphic_poster", density: "detailed" },
-      style,
+      style: { ...style, templateId: template.id },
       backgroundImageUrl: background,
     });
 
     const png = await renderSchemaToPng(schema, { scale: 1 });
-    const outPath = path.join(OUT_DIR, `${testCase.name}.png`);
-    await writeFile(outPath, png);
-    console.log(`  ${testCase.name.padEnd(12)} ${png.length} bytes -> ${outPath}`);
+    await writeFile(path.join(OUT_DIR, `${template.id}.png`), png);
+    tiles.push(await sharp(png).resize(360, 360).png().toBuffer());
+    console.log(`  ${template.id.padEnd(18)} ${String(png.length).padStart(8)} bytes`);
   }
+
+  // One contact sheet, so the whole catalogue can be judged at a glance.
+  const cols = 5;
+  const rows = Math.ceil(tiles.length / cols);
+  const sheet = await sharp({
+    create: { width: cols * 370 + 10, height: rows * 370 + 10, channels: 3, background: "#222" },
+  })
+    .composite(tiles.map((input, i) => ({ input, left: 10 + (i % cols) * 370, top: 10 + Math.floor(i / cols) * 370 })))
+    .png()
+    .toBuffer();
+  await writeFile(path.join(OUT_DIR, "_sheet.png"), sheet);
+  console.log(`Contact sheet -> ${path.join(OUT_DIR, "_sheet.png")}`);
 }
 
 main().catch((err) => {

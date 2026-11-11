@@ -121,6 +121,47 @@ const Gift = ({ color, size }: IconProps) => (
   </IconShell>
 );
 
+const Droplet = ({ color, size }: IconProps) => (
+  <IconShell size={size}>
+    <path d="M12 2.5C12 2.5 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-7-12.5-7-12.5z" fill={color} />
+  </IconShell>
+);
+
+const Battery = ({ color, size }: IconProps) => (
+  <IconShell size={size}>
+    <rect x="2" y="7" width="17" height="10" rx="2" stroke={color} strokeWidth={2} />
+    <rect x="20" y="10" width="2" height="4" fill={color} />
+    <rect x="4.5" y="9.5" width="9" height="5" fill={color} />
+  </IconShell>
+);
+
+const Sun = ({ color, size }: IconProps) => (
+  <IconShell size={size}>
+    <circle cx="12" cy="12" r="4.5" fill={color} />
+    <path
+      d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+  </IconShell>
+);
+
+const Music = ({ color, size }: IconProps) => (
+  <IconShell size={size}>
+    <path d="M9 18V5l11-2v13" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+    <circle cx="6.5" cy="18" r="3" fill={color} />
+    <circle cx="17.5" cy="16" r="3" fill={color} />
+  </IconShell>
+);
+
+const Lock = ({ color, size }: IconProps) => (
+  <IconShell size={size}>
+    <rect x="4" y="10" width="16" height="12" rx="2" fill={color} />
+    <path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3" stroke={color} strokeWidth={2} />
+  </IconShell>
+);
+
 export const ICON_REGISTRY = {
   check: Check,
   star: Star,
@@ -134,6 +175,11 @@ export const ICON_REGISTRY = {
   award: Award,
   zap: Zap,
   gift: Gift,
+  droplet: Droplet,
+  battery: Battery,
+  sun: Sun,
+  music: Music,
+  lock: Lock,
 } as const;
 
 export type IconKey = keyof typeof ICON_REGISTRY;
@@ -141,3 +187,11 @@ export type IconKey = keyof typeof ICON_REGISTRY;
 export function isKnownIconKey(key: string): key is IconKey {
   return key in ICON_REGISTRY;
 }
+
+// Compile-time check that iconKeys.ts and the registry list the same names.
+type _SameKeys = [IconKey] extends [import("../iconKeys").IconName]
+  ? [import("../iconKeys").IconName] extends [IconKey]
+    ? true
+    : never
+  : never;
+export const ICON_KEYS_IN_SYNC: _SameKeys = true;

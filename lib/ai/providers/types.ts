@@ -10,6 +10,13 @@ export interface TextGenerationProvider {
     messages: ChatMessage[];
     /** JSON schema the response must conform to. */
     schema: unknown;
+    /**
+     * Images (URLs or data URIs) the model should see alongside the first
+     * user message. Providers without vision ignore them.
+     */
+    images?: string[];
+    /** Sampling temperature: low for extraction, higher for creative work. */
+    temperature?: number;
   }): Promise<{ data: T; usage: Usage & { inputTokens: number; outputTokens: number } }>;
 }
 
@@ -18,6 +25,20 @@ export type ImageAnalysisResult = {
   suggestedProductName?: string;
   detectedColors: string[];
   detectedText?: string[];
+  /** What the product is, in a few words ("over-ear wireless headphones"). */
+  productType?: string;
+  /** Brand name if it is legibly printed on the product or packaging. */
+  brandGuess?: string;
+  /** Claims printed on the product/packaging, verbatim ("SPF 50", "500 ml"). */
+  visibleClaims?: string[];
+  /** Visible materials and finishes ("brushed aluminium", "matte plastic"). */
+  materials?: string[];
+  /** Shape, form factor, notable design details. */
+  visualDetails?: string[];
+  /** Aesthetic keywords ("minimal", "luxury", "playful"). */
+  styleKeywords?: string[];
+  /** Who the product looks aimed at, as a hint only. */
+  audienceHint?: string;
   /** 0-1. UI must label this as "AI suggestion — please confirm" and never
    * auto-promote it to a canonical product field below a reasonable threshold. */
   confidence: number;

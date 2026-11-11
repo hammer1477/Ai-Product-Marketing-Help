@@ -1,4 +1,4 @@
-import type { DesignLayer, DesignSchema, GradientStop } from "../types";
+import type { CornerRadii, DesignLayer, DesignSchema, GradientStop } from "../types";
 import { ICON_REGISTRY, isKnownIconKey } from "./icons";
 
 function textAlignToJustify(textAlign: "left" | "center" | "right") {
@@ -20,6 +20,16 @@ function stopToCss(stop: GradientStop): string {
   const [r, g, b] = [match[1], match[2], match[3]].map((part) => parseInt(part, 16));
   const alpha = stop.opacity ?? 1;
   return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)}) ${position}`;
+}
+
+function cornerStyle(radii: CornerRadii | undefined): React.CSSProperties {
+  if (!radii) return {};
+  return {
+    borderTopLeftRadius: radii[0],
+    borderTopRightRadius: radii[1],
+    borderBottomRightRadius: radii[2],
+    borderBottomLeftRadius: radii[3],
+  };
 }
 
 function renderLayer(layer: DesignLayer) {
@@ -65,6 +75,7 @@ function renderLayer(layer: DesignLayer) {
             fontFamily: layer.fontFamily,
             fontSize: layer.fontSize,
             fontWeight: layer.fontWeight,
+            fontStyle: layer.fontStyle ?? "normal",
             color: layer.color,
             textAlign: layer.textAlign,
             lineHeight: layer.lineHeight ?? 1.2,
@@ -87,6 +98,7 @@ function renderLayer(layer: DesignLayer) {
             ...positioning,
             objectFit: layer.fit,
             borderRadius: layer.borderRadius ?? 0,
+            ...cornerStyle(layer.radii),
           }}
         />
       );
@@ -141,6 +153,7 @@ function renderLayer(layer: DesignLayer) {
             backgroundColor: layer.fill,
             border: layer.stroke ? `${layer.strokeWidth ?? 1}px solid ${layer.stroke}` : undefined,
             borderRadius,
+            ...cornerStyle(layer.radii),
           }}
         />
       );

@@ -84,6 +84,25 @@ export function ProductUploadForm() {
         <Textarea id="description" name="description" rows={3} />
       </div>
 
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="specs">Specs &amp; features</Label>
+        <Textarea
+          id="specs"
+          name="specs"
+          rows={4}
+          placeholder={"Paste anything factual — one per line works best.\ne.g. Battery: 57 hours\nBluetooth 5.3, USB-C fast charge\n2-year warranty, case included"}
+        />
+        <p className="text-xs text-muted-foreground">
+          The more real facts you give, the richer the ad. Nothing is invented — only what you write
+          here, in the description, or what&apos;s printed on the product appears on the poster.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="offer">Current offer (optional)</Label>
+        <Input id="offer" name="offer" placeholder="e.g. 20% off until Sunday · Free delivery over 500 EGP" />
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="price">Price</Label>

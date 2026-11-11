@@ -2,12 +2,15 @@
 
 import { useMemo, useState, useTransition } from "react";
 import type { DesignSchema } from "@/lib/design-schema/types";
-import type { Block } from "@/lib/orchestration/blocks/types";
-import { readComposition, recomposePoster } from "@/lib/orchestration/composition";
+import { readComposition, recomposePoster, type PosterComposition } from "@/lib/orchestration/composition";
 import { DesignCanvasPreview } from "@/components/creative/DesignCanvasPreview";
 import { BlockEditPanel } from "@/components/creative/BlockEditPanel";
 import { DesignEditPanel } from "@/components/creative/DesignEditPanel";
+import { StylePanel } from "@/components/creative/StylePanel";
+import { FontFaces } from "@/components/creative/FontFaces";
+import { UnusedFacts } from "@/components/creative/UnusedFacts";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { saveDesignSchema } from "./actions";
 
 export function CreativeEditor({
@@ -19,21 +22,27 @@ export function CreativeEditor({
 }) {
   const initialComposition = useMemo(() => readComposition(initialSchema), [initialSchema]);
 
-  // Block editing is the real path. The layer editor remains for designs
-  // saved before compositions existed, and for the concepts that don't
-  // compose from blocks (premium photo, infographic).
-  const [blocks, setBlocks] = useState<Block[]>(initialComposition?.blocks ?? []);
+  // Composition editing is the real path: content, template, colours and
+  // fonts all live in it, and the poster is re-laid-out from it on every
+  // change. The layer editor remains for designs saved before
+  // compositions existed.
+  const [composition, setComposition] = useState<PosterComposition | null>(initialComposition);
   const [layerSchema, setLayerSchema] = useState(initialSchema);
   const [isSaving, startSaving] = useTransition();
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
-  // Re-running layout on every edit is what makes the preview honest: type
-  // a longer description and the blocks below it move down, rather than the
-  // text overflowing a box that was measured for the old wording.
   const schema = useMemo(() => {
-    if (!initialComposition) return layerSchema;
-    return recomposePoster(initialSchema, { ...initialComposition, blocks });
-  }, [initialComposition, initialSchema, blocks, layerSchema]);
+    if (!composition) return layerSchema;
+    return recomposePoster(initialSchema, composition);
+  }, [composition, initialSchema, layerSchema]);
+
+  // Blocks the current template had no room for — still kept, so they
+  // return when the user switches to a roomier template.
+  const hiddenTypes = useMemo(() => {
+    const placed = readComposition(schema)?.placedTypes;
+    if (!composition || !placed) return [];
+    return composition.blocks.map((b) => b.type).filter((type) => !placed.includes(type));
+  }, [schema, composition]);
 
   function handleSave() {
     setSavedMessage(null);
@@ -41,9 +50,7 @@ export function CreativeEditor({
       const { issues } = await saveDesignSchema(projectId, schema);
       const warnings = issues.filter((issue) => issue.severity === "warning");
       setSavedMessage(
-        warnings.length > 0
-          ? `Saved, with ${warnings.length} warning(s): ${warnings[0].message}`
-          : "Saved.",
+        warnings.length > 0 ? `Saved, with ${warnings.length} warning(s): ${warnings[0].message}` : "Saved.",
       );
     });
   }
@@ -51,15 +58,35 @@ export function CreativeEditor({
   return (
     // `min-w-0` on both columns is load-bearing: grid tracks size to their
     // content's minimum by default, and the preview lays its canvas out at
-    // a full 1080px before scaling it down, which otherwise pushes this
-    // column over the one beside it.
+    // a full 1080px before scaling it down.
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      <FontFaces />
       <div className="min-w-0 lg:sticky lg:top-6">
         <DesignCanvasPreview schema={schema} />
       </div>
       <div className="flex min-w-0 flex-col gap-4">
-        {initialComposition ? (
-          <BlockEditPanel blocks={blocks} onChange={setBlocks} />
+        {composition ? (
+          <Tabs defaultValue="design">
+            <TabsList>
+              <TabsTrigger value="design">Design</TabsTrigger>
+              <TabsTrigger value="content">Content</TabsTrigger>
+            </TabsList>
+            <TabsContent value="design" className="pt-3">
+              <StylePanel schema={initialSchema} composition={composition} onChange={setComposition} />
+            </TabsContent>
+            <TabsContent value="content" className="flex flex-col gap-5 pt-3">
+              <UnusedFacts
+                facts={composition.facts}
+                blocks={composition.blocks}
+                onChange={(blocks) => setComposition({ ...composition, blocks })}
+              />
+              <BlockEditPanel
+                blocks={composition.blocks}
+                hiddenTypes={hiddenTypes}
+                onChange={(blocks) => setComposition({ ...composition, blocks })}
+              />
+            </TabsContent>
+          </Tabs>
         ) : (
           <DesignEditPanel schema={layerSchema} onChange={setLayerSchema} />
         )}
@@ -90,9 +117,9 @@ export function CreativeEditor({
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          SVG keeps all text and shapes as vectors — sharp at any size, and editable in
-          Illustrator or Figma. The product photo and background stay as images inside it.
-          PNG for print is 4320&nbsp;px, a 14-inch poster at 300&nbsp;dpi.
+          Exports use the last saved version, so save before downloading. SVG keeps all text and
+          shapes as vectors — sharp at any size, and editable in Illustrator or Figma. PNG for print
+          is 4320&nbsp;px, a 14-inch poster at 300&nbsp;dpi.
         </p>
         {savedMessage && <p className="text-sm text-muted-foreground">{savedMessage}</p>}
       </div>

@@ -1,14 +1,13 @@
 import type { DesignSchema } from "../design-schema/types";
 import type { ConceptDecision, CreativeContent } from "./types";
 import type { ResolvedStyle } from "./styles";
-import { composePosterSchema } from "./templates/poster";
-import { composePremiumPhotoSchema } from "./templates/premiumPhoto";
+import { composePosterSchema, templateContentScore, type PosterInput } from "./templates/poster";
 import { normalizeBlocks } from "./blocks/types";
+import { chooseTemplate } from "./templates/registry";
+import type { Fact } from "./factSheet";
 
 export type ComposeInput = {
   content: CreativeContent;
-  /** The photo exactly as uploaded. */
-  productImageUrl: string;
   /** Same photo with its studio backdrop removed, when that was possible. */
   productCutoutUrl: string;
   cutoutApplied: boolean;
@@ -17,38 +16,60 @@ export type ComposeInput = {
   decision: ConceptDecision;
   style: ResolvedStyle;
   backgroundImageUrl?: string;
+  /** Short name for display type; defaults to the product name. */
+  displayName?: string;
+  facts?: Fact[];
 };
 
-export function composeDesignSchema(input: ComposeInput): DesignSchema {
-  const { content, decision, backgroundImageUrl } = input;
-
-  if (decision.concept === "premium_photo") {
-    // Deliberately the uncut original — this concept is the photo.
-    return composePremiumPhotoSchema(content, input.productImageUrl, input.style);
-  }
-
-  // The model composes the poster; normalizeBlocks is the gate that turns
-  // its loose output into something renderable, synthesizing a headline and
-  // a button from the flat copy fields if either is missing.
+/** Normalised blocks plus the poster input, before a template is chosen. */
+export function posterInputFor(input: ComposeInput): PosterInput {
+  const { content } = input;
+  // normalizeBlocks is the gate that turns the model's loose output into
+  // something renderable, synthesizing a headline and a button from the
+  // flat copy fields if either is missing.
   const blocks = normalizeBlocks(content.blocks, {
     headline: content.headline,
     ctaLabel: content.ctaLabel,
     sellingPoints: content.sellingPoints ?? [],
   });
 
-  // The infographic concept is the callout arrangement — it used to be a
-  // separate template duplicating the same leader-line drawing, and it now
-  // just pins the layout so every other decision stays shared.
-  const style =
-    decision.concept === "infographic" ? { ...input.style, layout: "callout" as const } : input.style;
-
-  return composePosterSchema({
+  return {
     blocks,
     productImageUrl: input.productCutoutUrl,
-    density: decision.density,
-    style,
-    backgroundImageUrl,
+    density: input.decision.density,
+    style: input.style,
+    backgroundImageUrl: input.backgroundImageUrl,
     cutoutApplied: input.cutoutApplied,
     productAspectRatio: input.productAspectRatio,
-  });
+    productName: input.displayName ?? content.productName,
+    facts: input.facts,
+  };
+}
+
+/**
+ * Composes the poster. With `templateId` set on the style the design is
+ * fixed; otherwise one is chosen for this product, avoiding `recent`.
+ */
+export function composeDesignSchema(
+  input: ComposeInput,
+  choice: { category: string; objective: string | null; recent: string[]; preferred?: string[] } = {
+    category: "",
+    objective: null,
+    recent: [],
+  },
+): DesignSchema {
+  const poster = posterInputFor(input);
+
+  const templateId =
+    input.style.templateId ??
+    chooseTemplate({
+      category: choice.category,
+      objective: choice.objective,
+      concept: input.decision.concept,
+      recent: choice.recent,
+      preferred: choice.preferred,
+      score: (template) => templateContentScore(poster, template),
+    }).id;
+
+  return composePosterSchema({ ...poster, style: { ...poster.style, templateId } });
 }

@@ -31,13 +31,18 @@ export type TextLayer = LayerBase & {
   lineHeight?: number;
   maxLines?: number;
   letterSpacing?: number;
+  fontStyle?: "normal" | "italic";
 };
+
+/** Per-corner radii: top-left, top-right, bottom-right, bottom-left. */
+export type CornerRadii = [number, number, number, number];
 
 export type ImageLayer = LayerBase & {
   type: "image";
   src: string;
   fit: "cover" | "contain";
   borderRadius?: number;
+  radii?: CornerRadii;
 };
 
 export type IconLayer = LayerBase & {
@@ -53,6 +58,7 @@ export type ShapeLayer = LayerBase & {
   stroke?: string;
   strokeWidth?: number;
   borderRadius?: number;
+  radii?: CornerRadii;
 };
 
 export type GradientStop = {

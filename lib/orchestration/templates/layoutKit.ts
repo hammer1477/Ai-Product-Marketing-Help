@@ -1,5 +1,6 @@
 import type { DesignLayer, TextLayer } from "../../design-schema/types";
 import { fitText, measureTextBlock, measureTextWidth } from "../../design-schema/measureText";
+import { resolveFontFile, type FontFamily } from "../../design-schema/fontRegistry";
 
 // Shared building blocks for poster layouts.
 //
@@ -13,7 +14,7 @@ import { fitText, measureTextBlock, measureTextWidth } from "../../design-schema
 // Stacking contract shared by every template:
 //   0-1  background scene, scrims, watermark mask
 //   2-4  product stage (glow, shadow, photo)
-//   5    band scrims that must sit over the product
+//   5-7  decoration that must sit over the product
 //   8+   copy — always on top of everything
 export const COPY_Z = 8;
 
@@ -35,9 +36,14 @@ export type TextOptions = {
   x: number;
   y: number;
   maxWidth: number;
-  fontFamily: "Inter" | "Playfair Display";
+  fontFamily: FontFamily;
   fontSize: number;
   fontWeight: 400 | 500 | 600 | 700 | 800;
+  italic?: boolean;
+  /** Uppercases the copy *before* measuring, so wrapping stays honest. */
+  uppercase?: boolean;
+  rotation?: number;
+  opacity?: number;
   color: string;
   textAlign?: "left" | "center" | "right";
   lineHeight?: number;
@@ -52,15 +58,20 @@ export type TextOptions = {
 export function text(opts: TextOptions): Built {
   const lineHeight = opts.lineHeight ?? 1.2;
   const maxLines = opts.maxLines ?? 6;
+  const source = opts.uppercase ? opts.content.toUpperCase() : opts.content;
+
+  // Snap to the face that will actually be drawn — see resolveFontFile.
+  const face = resolveFontFile(opts.fontFamily, opts.fontWeight, opts.italic ? "italic" : "normal");
 
   let fontSize = opts.fontSize;
   let metrics;
 
   if (opts.autoFit) {
-    const fitted = fitText(opts.content, opts.maxWidth, maxLines, {
-      fontFamily: opts.fontFamily,
+    const fitted = fitText(source, opts.maxWidth, maxLines, {
+      fontFamily: face.family,
       fontSize: opts.fontSize,
-      fontWeight: opts.fontWeight,
+      fontWeight: face.weight,
+      fontStyle: face.style,
       letterSpacing: opts.letterSpacing,
       lineHeight,
       minFontSize: opts.minFontSize,
@@ -68,10 +79,11 @@ export function text(opts: TextOptions): Built {
     fontSize = fitted.fontSize;
     metrics = fitted.metrics;
   } else {
-    metrics = measureTextBlock(opts.content, opts.maxWidth, {
-      fontFamily: opts.fontFamily,
+    metrics = measureTextBlock(source, opts.maxWidth, {
+      fontFamily: face.family,
       fontSize,
-      fontWeight: opts.fontWeight,
+      fontWeight: face.weight,
+      fontStyle: face.style,
       letterSpacing: opts.letterSpacing,
       lineHeight,
       maxLines,
@@ -93,9 +105,12 @@ export function text(opts: TextOptions): Built {
     width: opts.maxWidth,
     height: metrics.height,
     zIndex: opts.zIndex ?? COPY_Z,
-    fontFamily: opts.fontFamily,
+    rotation: opts.rotation,
+    opacity: opts.opacity,
+    fontFamily: face.family,
     fontSize,
-    fontWeight: opts.fontWeight,
+    fontWeight: face.weight,
+    fontStyle: face.style === "italic" ? "italic" : undefined,
     color: opts.color,
     textAlign: opts.textAlign ?? "left",
     lineHeight,
@@ -105,6 +120,8 @@ export function text(opts: TextOptions): Built {
 
   return { layers: [layer], height: metrics.height, width: metrics.width };
 }
+
+export type ButtonVariant = "pill" | "rect" | "brutal" | "outline" | "underline";
 
 export type PillOptions = {
   id: string;
@@ -124,10 +141,19 @@ export type PillOptions = {
   /** "left" anchors at x; "center" centres the pill on x. */
   anchor?: "left" | "center";
   zIndex?: number;
+  fontFamily?: FontFamily;
+  /**
+   * pill = rounded capsule. rect = squared button. brutal = squared with a
+   * thick border and a hard offset shadow. outline = stroked capsule.
+   * underline = bare label over a rule, for editorial layouts.
+   */
+  variant?: ButtonVariant;
+  /** Border/shadow/label colour for brutal, outline and underline. */
+  edge?: string;
 };
 
 /**
- * A pill sized to its label rather than to a fixed width.
+ * A button sized to its label rather than to a fixed width.
  *
  * Fixed-width pills are why a CTA like "BUY NOW FOR 3000 EGP" rendered as a
  * cramped, overflowing smear — 200px was fine for "SHOP NOW" and nothing
@@ -135,54 +161,84 @@ export type PillOptions = {
  * proportioned button.
  */
 export function pill(opts: PillOptions): Built {
-  const paddingX = opts.paddingX ?? 30;
+  const variant = opts.variant ?? "pill";
+  const paddingX = variant === "underline" ? 0 : (opts.paddingX ?? 30);
   const maxWidth = opts.maxWidth ?? 520;
   const maxTextWidth = maxWidth - paddingX * 2;
-
-  let fontSize = opts.fontSize;
-  let textWidth = measureTextWidth(opts.label, {
-    fontFamily: "Inter",
+  const face = resolveFontFile(opts.fontFamily ?? "Inter", opts.fontWeight);
+  const measureOpts = (fontSize: number) => ({
+    fontFamily: face.family,
     fontSize,
-    fontWeight: opts.fontWeight,
+    fontWeight: face.weight,
     letterSpacing: opts.letterSpacing,
   });
 
-  // Long labels shrink rather than overflow the pill.
+  let fontSize = opts.fontSize;
+  let textWidth = measureTextWidth(opts.label, measureOpts(fontSize));
+
+  // Long labels shrink rather than overflow the button.
   while (textWidth > maxTextWidth && fontSize > 11) {
     fontSize -= 1;
-    textWidth = measureTextWidth(opts.label, {
-      fontFamily: "Inter",
-      fontSize,
-      fontWeight: opts.fontWeight,
-      letterSpacing: opts.letterSpacing,
-    });
+    textWidth = measureTextWidth(opts.label, measureOpts(fontSize));
   }
 
   const width = Math.ceil(Math.min(textWidth + paddingX * 2, maxWidth));
-  const height = Math.round(fontSize * 3.4);
+  const height = variant === "underline" ? Math.round(fontSize * 2) : Math.round(fontSize * 3.4);
   const x = opts.anchor === "center" ? Math.round(opts.x - width / 2) : opts.x;
   const zIndex = opts.zIndex ?? COPY_Z;
+  const edge = opts.edge ?? opts.textColor;
 
   // Satori lays a text block out from its top edge, so centring the label
-  // means offsetting by half the leftover space, not by half the pill.
+  // means offsetting by half the leftover space, not by half the button.
   const textHeight = fontSize * 1.2;
-  const textY = Math.round(opts.y + (height - textHeight) / 2);
+  const textY = variant === "underline" ? opts.y : Math.round(opts.y + (height - textHeight) / 2);
+
+  const container: DesignLayer[] = [];
+  const box = { x, y: opts.y, width, height, zIndex };
+
+  if (variant === "pill" || variant === "outline") {
+    container.push({
+      id: `${opts.id}-pill`,
+      type: "shape",
+      shape: "badge",
+      fill: variant === "outline" ? "transparent" : opts.fill,
+      stroke: variant === "outline" ? edge : opts.stroke,
+      strokeWidth: variant === "outline" ? 2 : opts.stroke ? 1 : undefined,
+      ...box,
+    });
+  } else if (variant === "rect") {
+    container.push({
+      id: `${opts.id}-pill`,
+      type: "shape",
+      shape: "rect",
+      fill: opts.fill,
+      stroke: opts.stroke,
+      strokeWidth: opts.stroke ? 1 : undefined,
+      borderRadius: 4,
+      ...box,
+    });
+  } else if (variant === "brutal") {
+    container.push(
+      { id: `${opts.id}-shadow`, type: "shape", shape: "rect", fill: edge, ...box, x: x + 6, y: opts.y + 6 },
+      { id: `${opts.id}-pill`, type: "shape", shape: "rect", fill: opts.fill, stroke: edge, strokeWidth: 3, ...box },
+    );
+  } else {
+    container.push({
+      id: `${opts.id}-rule`,
+      type: "shape",
+      shape: "rect",
+      fill: edge,
+      x,
+      y: Math.round(opts.y + textHeight + 8),
+      width,
+      height: 3,
+      zIndex,
+    });
+  }
 
   return {
     layers: [
-      {
-        id: `${opts.id}-pill`,
-        type: "shape",
-        shape: "badge",
-        fill: opts.fill,
-        stroke: opts.stroke,
-        strokeWidth: opts.stroke ? 1 : undefined,
-        x,
-        y: opts.y,
-        width,
-        height,
-        zIndex,
-      },
+      ...container,
       {
         id: opts.id,
         type: "text",
@@ -193,10 +249,10 @@ export function pill(opts: PillOptions): Built {
         width,
         height: Math.ceil(textHeight),
         zIndex: zIndex + 1,
-        fontFamily: "Inter",
+        fontFamily: face.family,
         fontSize,
-        fontWeight: opts.fontWeight,
-        color: opts.textColor,
+        fontWeight: face.weight,
+        color: variant === "underline" || variant === "outline" ? edge : opts.textColor,
         textAlign: "center",
         lineHeight: 1.2,
         maxLines: 1,
@@ -209,16 +265,9 @@ export function pill(opts: PillOptions): Built {
 }
 
 /**
- * A scrim that fades from one opacity to another across its box.
- *
- * This used to stack two dozen constant-opacity rectangles, because
- * `shape` was the only fill available. Over a dark ground the steps
- * blended; over a photograph they showed as grey banding. It's now one
- * real gradient layer, which also means the vector export carries a
- * gradient definition instead of twenty-six overlapping rectangles.
- *
- * `steps` is accepted and ignored — callers tuned it to hide the banding,
- * and there is no banding left to hide.
+ * A scrim that fades from one opacity to another across its box — one real
+ * gradient layer (stacked rectangles showed as banding over photographs).
+ * `steps` is accepted and ignored for older callers.
  */
 export function gradientBand(opts: {
   idPrefix: string;
@@ -240,7 +289,7 @@ export function gradientBand(opts: {
       id: `${opts.idPrefix}-gradient`,
       type: "gradient",
       gradient: "linear",
-      // CSS angles run anticlockwise from "up": 180deg paints downward,
+      // CSS angles run clockwise from "up": 180deg paints downward,
       // 90deg paints rightward — matching `from` at the top/left edge.
       angle: opts.direction === "vertical" ? 180 : 90,
       stops: [
@@ -269,6 +318,13 @@ export type ProductStageOptions = {
   /** Intrinsic aspect ratio (w/h) of the image, for locating it in the slot. */
   aspectRatio?: number;
   zIndex?: number;
+  /** Accent halo behind a cut-out product. Off for flat graphic templates. */
+  glow?: boolean;
+  /** Contact shadow under a cut-out product. */
+  shadow?: boolean;
+  rotation?: number;
+  /** Corner radius for an uncut photo. */
+  photoRadius?: number;
 };
 
 /**
@@ -279,7 +335,7 @@ export type ProductStageOptions = {
  * product is what left the contact shadow stranded at the bottom edge with
  * the product hovering above it.
  */
-function containedBox(slotWidth: number, slotHeight: number, aspectRatio?: number) {
+export function containedBox(slotWidth: number, slotHeight: number, aspectRatio?: number) {
   if (!aspectRatio || !Number.isFinite(aspectRatio) || aspectRatio <= 0) {
     return { width: slotWidth, height: slotHeight };
   }
@@ -293,74 +349,66 @@ function containedBox(slotWidth: number, slotHeight: number, aspectRatio?: numbe
  * Places the product with a halo and a contact shadow so it reads as
  * standing *in* the scene rather than pasted on top of it.
  *
- * When the backdrop couldn't be cut away, the photo still has its own white
+ * When the backdrop couldn't be cut away, the photo still has its own
  * rectangle, so the glow is skipped (it would just light up a box) and the
- * photo gets a rounded card instead — a deliberate frame beats an accidental
- * one.
+ * photo is presented as a deliberate rounded photograph with a soft shadow.
  */
 export function productStage(opts: ProductStageOptions): DesignLayer[] {
   const zIndex = opts.zIndex ?? 2;
   const layers: DesignLayer[] = [];
   const x = Math.round(opts.centerX - opts.width / 2);
   const y = Math.round(opts.centerY - opts.height / 2);
+  const photoRadius = opts.photoRadius ?? PHOTO_RADIUS;
 
   // Glow and shadow follow the product's real footprint, not the slot.
   const box = containedBox(opts.width, opts.height, opts.aspectRatio);
   const productBottom = opts.centerY + box.height / 2;
 
   if (opts.cutoutApplied) {
-    // A real radial gradient, where this was once nine concentric ellipses
-    // whose edges stayed faintly visible as arcs no matter how low their
-    // opacity went.
-    const glowWidth = Math.round(box.width * 1.7);
-    const glowHeight = Math.round(box.height * 1.7);
-    layers.push({
-      id: "product-glow",
-      type: "gradient",
-      gradient: "radial",
-      stops: [
-        { color: opts.accent, offset: 0, opacity: 0.17 },
-        { color: opts.accent, offset: 0.45, opacity: 0.08 },
-        { color: opts.accent, offset: 1, opacity: 0 },
-      ],
-      x: Math.round(opts.centerX - glowWidth / 2),
-      y: Math.round(opts.centerY - glowHeight / 2),
-      width: glowWidth,
-      height: glowHeight,
-      zIndex,
-    });
+    if (opts.glow !== false) {
+      const glowWidth = Math.round(box.width * 1.7);
+      const glowHeight = Math.round(box.height * 1.7);
+      layers.push({
+        id: "product-glow",
+        type: "gradient",
+        gradient: "radial",
+        stops: [
+          { color: opts.accent, offset: 0, opacity: 0.17 },
+          { color: opts.accent, offset: 0.45, opacity: 0.08 },
+          { color: opts.accent, offset: 1, opacity: 0 },
+        ],
+        x: Math.round(opts.centerX - glowWidth / 2),
+        y: Math.round(opts.centerY - glowHeight / 2),
+        width: glowWidth,
+        height: glowHeight,
+        zIndex,
+      });
+    }
 
     // Contact shadow — without something anchoring it to a surface the
-    // product looks like it's floating. A radial gradient gives it a soft
-    // edge instead of three hard-edged ellipses stacked on each other.
-    const shadowWidth = Math.round(box.width * 0.78);
-    const shadowHeight = 58;
-    layers.push({
-      id: "product-shadow",
-      type: "gradient",
-      gradient: "radial",
-      stops: [
-        { color: "#000000", offset: 0, opacity: 0.42 },
-        { color: "#000000", offset: 0.55, opacity: 0.18 },
-        { color: "#000000", offset: 1, opacity: 0 },
-      ],
-      x: Math.round(opts.centerX - shadowWidth / 2),
-      y: Math.round(productBottom - shadowHeight / 2),
-      width: shadowWidth,
-      height: shadowHeight,
-      zIndex: zIndex + 1,
-    });
-  } else {
-    // No cutout: the photo carries its own backdrop, so it's presented as
-    // a photograph rather than hidden inside a frame. A thick white card
-    // around a dark scene reads as a Polaroid stuck to the poster and
-    // steals size from the product — the thing being sold ends up the
-    // smallest element on the page. Instead the photo gets rounded corners
-    // of its own and a soft drop shadow, so it sits on the scene as a
-    // deliberate object at full size.
+    // product looks like it's floating.
+    if (opts.shadow !== false) {
+      const shadowWidth = Math.round(box.width * 0.78);
+      const shadowHeight = 58;
+      layers.push({
+        id: "product-shadow",
+        type: "gradient",
+        gradient: "radial",
+        stops: [
+          { color: "#000000", offset: 0, opacity: 0.42 },
+          { color: "#000000", offset: 0.55, opacity: 0.18 },
+          { color: "#000000", offset: 1, opacity: 0 },
+        ],
+        x: Math.round(opts.centerX - shadowWidth / 2),
+        y: Math.round(productBottom - shadowHeight / 2),
+        width: shadowWidth,
+        height: shadowHeight,
+        zIndex: zIndex + 1,
+      });
+    }
+  } else if (!opts.rotation) {
     const boxX = Math.round(opts.centerX - box.width / 2);
     const boxY = Math.round(opts.centerY - box.height / 2);
-
     const spread = 30;
     layers.push(
       {
@@ -368,23 +416,21 @@ export function productStage(opts: ProductStageOptions): DesignLayer[] {
         type: "shape",
         shape: "rect",
         fill: "#000000",
-        opacity: 0.3,
-        borderRadius: PHOTO_RADIUS + 10,
+        opacity: 0.28,
+        borderRadius: photoRadius + 10,
         x: boxX - 10,
         y: boxY + 14,
         width: Math.round(box.width) + 20,
         height: Math.round(box.height) + 20,
         zIndex,
       },
-      // A soft pool under the photo so the hard-edged rectangle above
-      // isn't the only thing separating it from the scene.
       {
         id: "product-dropshadow-soft",
         type: "gradient",
         gradient: "radial",
         stops: [
-          { color: "#000000", offset: 0, opacity: 0.34 },
-          { color: "#000000", offset: 0.6, opacity: 0.14 },
+          { color: "#000000", offset: 0, opacity: 0.3 },
+          { color: "#000000", offset: 0.6, opacity: 0.12 },
           { color: "#000000", offset: 1, opacity: 0 },
         ],
         x: boxX - spread,
@@ -400,9 +446,7 @@ export function productStage(opts: ProductStageOptions): DesignLayer[] {
     id: "product-photo",
     type: "image",
     src: opts.src,
-    // Always contain: an arbitrary photo's aspect ratio rarely matches the
-    // slot, and cover would crop the product (it once chopped most of a pair
-    // of headphones out of frame).
+    // Always contain: cover would crop the product itself.
     fit: "contain",
     x,
     y,
@@ -410,7 +454,8 @@ export function productStage(opts: ProductStageOptions): DesignLayer[] {
     height: opts.height,
     // Rounding a cut-out product would slice the corners off the product
     // itself; it's only the rectangular photo that wants soft corners.
-    borderRadius: opts.cutoutApplied ? 0 : PHOTO_RADIUS,
+    borderRadius: opts.cutoutApplied ? 0 : photoRadius,
+    rotation: opts.rotation,
     zIndex: zIndex + 2,
   });
 

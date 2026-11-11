@@ -1,4 +1,6 @@
-import { LAYOUT_VARIANTS, type ArtDirection, type LayoutVariant } from "./types";
+import type { FontFamily } from "../design-schema/fontRegistry";
+import { contrastRatio, isHex, luminance, mix, WHITE } from "./color";
+import type { ArtDirection, LayoutVariant } from "./types";
 
 export type StylePreset = {
   key: string;
@@ -11,8 +13,8 @@ export type StylePreset = {
   textPrimary: string;
   textMuted: string;
   ctaTextColor: string;
-  headlineFont: "Playfair Display" | "Inter";
-  headlineWeight: 600 | 700 | 800;
+  headlineFont: FontFamily;
+  headlineWeight: 400 | 500 | 600 | 700 | 800;
   /** Prompt for a decorative background image — never the product itself. */
   backgroundPrompt: string;
 };
@@ -133,157 +135,117 @@ export function decideStyle(category: string): StylePreset {
   return STYLE_PRESETS[key];
 }
 
-/** A style preset after the AI art director's choices have been merged in. */
-export type ResolvedStyle = StylePreset & {
-  layout: LayoutVariant;
-  moodLabel: string;
+/** Colours a user picked by hand. They beat anything a template derives. */
+export type ColorOverrides = {
+  background?: string;
+  text?: string;
+  muted?: string;
+  accent?: string;
 };
 
-const DEFAULT_LAYOUT_BY_STYLE: Record<string, LayoutVariant> = {
-  luxury: "editorial",
-  fresh: "spotlight",
-  modernTech: "callout",
-  warmHome: "spotlight",
-  playful: "spotlight",
-  sleekAuto: "editorial",
-  classic: "split",
+export type FontOverrides = {
+  headline?: FontFamily;
+  body?: FontFamily;
 };
 
 /**
- * Returns `layout` unless it was used recently, in which case it advances
- * to the first arrangement that wasn't. Falls back to the next one in
- * rotation when every arrangement has been used — so a fifth generation
- * cycles rather than getting stuck.
+ * A style after the AI art director's choices have been merged in.
+ *
+ * This is the *base* palette. Each template paints it differently — a dark
+ * template grounds on `ink`, a paper template grounds on a light tint and
+ * sets `ink` as the text — so one palette yields many looks. Typography
+ * fields here are the template's defaults after painting; `fontOverrides`
+ * and `colorOverrides` are the user's edits, applied last.
  */
-function rotateIfRepeated(layout: LayoutVariant, recentLayouts: LayoutVariant[]): LayoutVariant {
-  if (recentLayouts.length === 0 || !recentLayouts.includes(layout)) return layout;
+export type ResolvedStyle = StylePreset & {
+  /** Legacy arrangement name, kept so pre-template designs still open. */
+  layout: LayoutVariant;
+  moodLabel: string;
+  templateId?: string;
+  headlineItalic?: boolean;
+  headlineUppercase?: boolean;
+  headlineTracking?: number;
+  headlineLineHeight?: number;
+  /** Multiplier over the column-derived headline size. */
+  headlineScale?: number;
+  bodyFont?: FontFamily;
+  ctaStyle?: CtaStyle;
+  /** Hairlines, borders, grid lines. */
+  line?: string;
+  /** Raised card fill. */
+  surface?: string;
+  /** Second accent for vivid/mesh templates. */
+  accent2?: string;
+  colorOverrides?: ColorOverrides;
+  fontOverrides?: FontOverrides;
+  /** The copy's angle, recorded so regenerations try a different one. */
+  copyAngle?: string;
+};
 
-  const unused = LAYOUT_VARIANTS.filter((candidate) => !recentLayouts.includes(candidate));
-  if (unused.length > 0) return unused[0];
-
-  const index = LAYOUT_VARIANTS.indexOf(layout);
-  return LAYOUT_VARIANTS[(index + 1) % LAYOUT_VARIANTS.length];
-}
-
-const HEX = /^#[0-9a-fA-F]{6}$/;
-
-function parseHex(hex: string): { r: number; g: number; b: number } | null {
-  if (!HEX.test(hex)) return null;
-  return {
-    r: parseInt(hex.slice(1, 3), 16),
-    g: parseInt(hex.slice(3, 5), 16),
-    b: parseInt(hex.slice(5, 7), 16),
-  };
-}
-
-function toHex({ r, g, b }: { r: number; g: number; b: number }): string {
-  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-  return `#${[r, g, b].map((v) => clamp(v).toString(16).padStart(2, "0")).join("")}`;
-}
-
-/** WCAG relative luminance. */
-function luminance(hex: string): number {
-  const rgb = parseHex(hex);
-  if (!rgb) return 0;
-  const channel = (v: number) => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b);
-}
-
-function contrastRatio(a: string, b: string): number {
-  const la = luminance(a);
-  const lb = luminance(b);
-  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
-}
-
-function mixToward(hex: string, target: { r: number; g: number; b: number }, amount: number): string {
-  const rgb = parseHex(hex);
-  if (!rgb) return hex;
-  return toHex({
-    r: rgb.r + (target.r - rgb.r) * amount,
-    g: rgb.g + (target.g - rgb.g) * amount,
-    b: rgb.b + (target.b - rgb.b) * amount,
-  });
-}
-
-const WHITE = { r: 255, g: 255, b: 255 };
+export type CtaStyle = "pill" | "rect" | "brutal" | "outline" | "underline";
 
 /**
  * Merges the model's art direction over the category preset.
  *
  * The model is treated as a creative source, not a trusted one: every
- * colour it returns is validated for format and for actual readable
- * contrast against the ground it will sit on, and any value failing either
- * check falls back to the preset's. That keeps "every product looks
- * different" from turning into "some products are illegible" — the one
- * failure mode a category preset could never produce.
+ * colour it returns is validated for format and for readable contrast
+ * against the ground it will sit on, and any value failing either check
+ * falls back to the preset's.
  */
-export function resolveStyle(
-  preset: StylePreset,
-  direction?: ArtDirection,
-  /**
-   * Layouts this project has already produced. A regeneration that returns
-   * the same arrangement isn't a new attempt from the user's point of view,
-   * and asking the model nicely for variety is not a guarantee — so the
-   * layout is rotated here if it repeats.
-   */
-  recentLayouts: LayoutVariant[] = [],
-): ResolvedStyle {
-  const fallbackLayout = DEFAULT_LAYOUT_BY_STYLE[preset.key] ?? "split";
-
+export function resolveStyle(preset: StylePreset, direction?: ArtDirection): ResolvedStyle {
   if (!direction) {
-    return {
-      ...preset,
-      layout: rotateIfRepeated(fallbackLayout, recentLayouts),
-      moodLabel: preset.key,
-    };
+    return { ...preset, layout: "split", moodLabel: preset.key };
   }
 
-  const ink = parseHex(direction.colorInk) ? direction.colorInk : preset.ink;
+  const ink = isHex(direction.colorInk) ? direction.colorInk : preset.ink;
 
   const accent =
-    parseHex(direction.colorAccent) && contrastRatio(direction.colorAccent, ink) >= 2.2
+    isHex(direction.colorAccent) && contrastRatio(direction.colorAccent, ink) >= 2.2
       ? direction.colorAccent
       : preset.accent;
 
   const textPrimary =
-    parseHex(direction.colorTextPrimary) && contrastRatio(direction.colorTextPrimary, ink) >= 4.5
+    isHex(direction.colorTextPrimary) && contrastRatio(direction.colorTextPrimary, ink) >= 4.5
       ? direction.colorTextPrimary
       : preset.textPrimary;
 
   const textMuted =
-    parseHex(direction.colorTextMuted) && contrastRatio(direction.colorTextMuted, ink) >= 3
+    isHex(direction.colorTextMuted) && contrastRatio(direction.colorTextMuted, ink) >= 3
       ? direction.colorTextMuted
       : preset.textMuted;
 
-  // Derived rather than model-chosen: these have exactly one correct answer
-  // given the colours above, and asking the model for them only adds a way
-  // to get unreadable CTA text.
-  const panel = mixToward(ink, WHITE, 0.07);
-  const ctaTextColor = luminance(accent) > 0.4 ? "#0a0a0b" : "#ffffff";
-
-  const layout = rotateIfRepeated(direction.layout ?? fallbackLayout, recentLayouts);
-  const headlineFont =
-    direction.headlineFont === "Playfair Display" || direction.headlineFont === "Inter"
-      ? direction.headlineFont
-      : preset.headlineFont;
-
   return {
-    key: preset.key,
+    ...preset,
     ink,
-    panel,
+    panel: mix(ink, WHITE, 0.07),
     accent,
     textPrimary,
     textMuted,
-    ctaTextColor,
-    headlineFont,
-    headlineWeight: headlineFont === "Playfair Display" ? 700 : 800,
+    ctaTextColor: luminance(accent) > 0.4 ? "#0a0a0b" : "#ffffff",
     backgroundPrompt: direction.scenePrompt?.trim()
       ? `${direction.scenePrompt.trim()}, cinematic lighting, ultra detailed, professional advertising photography, no text, no watermark, no logo`
       : preset.backgroundPrompt,
-    layout,
+    layout: "split",
     moodLabel: direction.moodLabel || preset.key,
   };
 }
+
+/** Curated base palettes offered as one-click swatches in the editor. */
+export const PALETTES: Array<{ name: string; ink: string; accent: string; text: string; muted: string }> = [
+  { name: "Noir Gold", ink: "#0b0b0d", accent: "#c9a84c", text: "#f5f1e8", muted: "#b9b3a3" },
+  { name: "Midnight Cyan", ink: "#070d18", accent: "#38bdf8", text: "#f1f6fd", muted: "#9fb2cc" },
+  { name: "Forest Lime", ink: "#0f2318", accent: "#a3e635", text: "#f3fbf6", muted: "#b7d9c5" },
+  { name: "Plum Pink", ink: "#1a1033", accent: "#ff6b9d", text: "#fff5fa", muted: "#d3c2e8" },
+  { name: "Espresso", ink: "#2a1a12", accent: "#e2a75e", text: "#fbf2e8", muted: "#d8c2ab" },
+  { name: "Racing Red", ink: "#0c0c0e", accent: "#ef3b2d", text: "#f2f2f3", muted: "#a1a1a6" },
+  { name: "Electric", ink: "#0d0b1f", accent: "#7c5cff", text: "#f4f2ff", muted: "#b4addb" },
+  { name: "Acid", ink: "#111111", accent: "#d4ff3a", text: "#fafafa", muted: "#b5b5b5" },
+  { name: "Ocean", ink: "#04212b", accent: "#2dd4bf", text: "#ecfeff", muted: "#9cc7cc" },
+  { name: "Terracotta", ink: "#2b1510", accent: "#f0794a", text: "#fff3ec", muted: "#e0b9a8" },
+  { name: "Blush", ink: "#3a1f2b", accent: "#f9a8c4", text: "#fff3f7", muted: "#e3bccb" },
+  { name: "Sunflower", ink: "#1b1a14", accent: "#ffc93c", text: "#fffaf0", muted: "#cfc6a8" },
+  { name: "Cobalt", ink: "#0a1a4a", accent: "#ff8a3d", text: "#f2f5ff", muted: "#aab6dd" },
+  { name: "Sage", ink: "#1f2a22", accent: "#b7c9a8", text: "#f4f7f2", muted: "#b9c4b5" },
+  { name: "Mono", ink: "#121212", accent: "#ffffff", text: "#ffffff", muted: "#a3a3a3" },
+  { name: "Cherry Cola", ink: "#2a0a0f", accent: "#ff3d5a", text: "#fff0f2", muted: "#e0a9b3" },
+];

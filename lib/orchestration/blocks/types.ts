@@ -17,6 +17,8 @@
 // Adding a new kind of content to posters means adding a block here and a
 // renderer for it — not editing every template.
 
+import { ICON_KEYS, isIconName, type IconName } from "../../design-schema/iconKeys";
+
 export type SpecItem = {
   /** Short label, e.g. "Battery". */
   label: string;
@@ -29,10 +31,12 @@ export type Block =
   | { type: "badge"; text: string }
   /** The main display line. Always present. */
   | { type: "headline"; text: string }
+  /** A supporting line under the headline — the promise, in one breath. */
+  | { type: "subheadline"; text: string }
   /** One or two supporting sentences. */
   | { type: "description"; text: string }
   /** Icon + text rows. The workhorse for selling points. */
-  | { type: "featureList"; items: string[] }
+  | { type: "featureList"; items: string[]; /** Parallel to items; chosen by the model. */ icons?: IconName[] }
   /** Two-column label/value pairs — the densest way to show real specs. */
   | { type: "specGrid"; items: SpecItem[] }
   /** Two or three oversized figures with captions underneath. */
@@ -53,6 +57,7 @@ export type BlockType = Block["type"];
 export const BLOCK_TYPES: BlockType[] = [
   "badge",
   "headline",
+  "subheadline",
   "description",
   "featureList",
   "specGrid",
@@ -77,6 +82,7 @@ export const DROP_ORDER: BlockType[] = [
   "rating",
   "statRow",
   "badge",
+  "subheadline",
   "specGrid",
   "description",
   "featureList",
@@ -94,7 +100,7 @@ export const DROP_ORDER: BlockType[] = [
 export type RawBlock = {
   type?: string;
   text?: string;
-  items?: Array<{ label?: string; value?: string; text?: string }>;
+  items?: Array<{ label?: string; value?: string; text?: string; icon?: string }>;
   value?: string;
   compareAt?: string;
   note?: string;
@@ -126,17 +132,31 @@ function normalizeBlock(raw: RawBlock): Block | null {
       return text ? { type: "headline", text } : null;
     }
 
+    case "subheadline": {
+      const text = cleanString(raw.text, 110);
+      return text ? { type: "subheadline", text } : null;
+    }
+
     case "description": {
       const text = cleanString(raw.text, 220);
       return text ? { type: "description", text } : null;
     }
 
     case "featureList": {
-      const items = (raw.items ?? [])
-        .map((item) => cleanString(item.text ?? item.value ?? item.label, 60))
-        .filter((item): item is string => item !== null)
+      const rows = (raw.items ?? [])
+        .map((item) => ({ text: cleanString(item.text ?? item.value ?? item.label, 60), icon: item.icon }))
+        .filter((row): row is { text: string; icon: string | undefined } => row.text !== null)
         .slice(0, 6);
-      return items.length > 0 ? { type: "featureList", items } : null;
+      if (rows.length === 0) return null;
+      return {
+        type: "featureList",
+        items: rows.map((row) => row.text),
+        // Only kept when the model actually chose icons; otherwise the
+        // renderer's own varied rotation reads better than a column of ticks.
+        icons: rows.some((row) => isIconName(row.icon))
+          ? rows.map((row) => (isIconName(row.icon) ? row.icon : "check"))
+          : undefined,
+      };
     }
 
     case "specGrid":
@@ -148,7 +168,7 @@ function normalizeBlock(raw: RawBlock): Block | null {
           return label && value ? { label, value } : null;
         })
         .filter((item): item is SpecItem => item !== null)
-        .slice(0, raw.type === "statRow" ? 3 : 6);
+        .slice(0, raw.type === "statRow" ? 3 : 8);
       return items.length > 0 ? { type: raw.type, items } : null;
     }
 
@@ -205,7 +225,7 @@ export function normalizeBlocks(rawBlocks: RawBlock[] | undefined, fallback: {
     .map(normalizeBlock)
     .filter((block): block is Block => block !== null);
 
-  const singletons: BlockType[] = ["badge", "headline", "description", "priceBlock", "rating", "cta"];
+  const singletons: BlockType[] = ["badge", "headline", "subheadline", "description", "priceBlock", "rating", "cta"];
   const seen = new Set<BlockType>();
   const deduped = normalized.filter((block) => {
     if (!singletons.includes(block.type)) return true;
@@ -259,19 +279,17 @@ export const BLOCKS_SCHEMA = {
   type: "array",
   description:
     "The poster's content, composed from blocks and rendered top to bottom in this order. " +
-    "Choose the blocks that suit THIS product. Use 5 to 8 blocks, and between them show at " +
-    "least six separate facts drawn from the description and attributes. Always include " +
-    "exactly one headline, exactly one cta, and — unless the product has no stated benefits " +
-    "at all — one featureList. Prefer a specGrid whenever the description mentions two or more " +
-    "concrete attributes, even if they appear in prose rather than as labelled fields: naming " +
-    "them ('Frame' / 'Golden metal') is extraction, not invention. What you must never do is " +
-    "state a fact the input does not support — an unstated price, an invented review count, a " +
-    "measurement nobody gave you. " +
+    "Build it from the FACT SHEET you were given: choose the blocks that suit THIS product and fill " +
+    "them with its strongest facts. Use 6 to 10 blocks, and between them show at least eight separate " +
+    "facts when the fact sheet has them. Always include exactly one headline, exactly one cta, and — " +
+    "unless the product has no stated benefits at all — one featureList. Use a specGrid whenever the " +
+    "fact sheet has two or more measurable specs, a statRow for the two or three most impressive " +
+    "figures, a priceBlock whenever a price is known, and a trustStrip for stated guarantees, " +
+    "shipping or what's included. Never state a fact the fact sheet does not support. " +
     "CRITICAL: a specification is not a selling point. '51 mm lens width' is a measurement; " +
     "'blocks 100% of UV rays' is a reason to buy. Measurements belong in specGrid, reasons to " +
-    "buy belong in featureList, and a poster made only of measurements sells nothing. Derive " +
-    "each feature from the stated facts — if the input says 'full UV protection coating', the " +
-    "feature is 'Full UV protection', not a restatement of the dimensions.",
+    "buy belong in featureList, and a poster made only of measurements sells nothing. Don't repeat " +
+    "the same fact in two blocks.",
   items: {
     type: "object",
     properties: {
@@ -279,39 +297,47 @@ export const BLOCKS_SCHEMA = {
         type: "string",
         enum: BLOCK_TYPES,
         description:
-          "badge = small brand or 'New' pill. " +
+          "badge = small brand, 'New' or offer pill (max 3 words). " +
           "headline = the main line. " +
+          "subheadline = one line under the headline that completes its promise (max 12 words). " +
           "description = one or two sentences on what this is and why it matters — not a " +
           "list of specifications in sentence form. " +
           "featureList = reasons to buy, in the customer's words ('Blocks 100% of UV rays'), " +
           "never measurements and never a restatement of specGrid. " +
-          "specGrid = objective measurements with their names ('Lens width' / '51 mm'). " +
+          "specGrid = objective measurements with their names ('Lens width' / '51 mm'), up to 8. " +
           "statRow = the two or three figures most worth shouting about. " +
-          "priceBlock = the price. rating = stars and review count. " +
-          "trustStrip = short reassurances like free shipping. " +
+          "priceBlock = the price. rating = stars and review count, ONLY if stated. " +
+          "trustStrip = short reassurances like free shipping, warranty, what's in the box. " +
           "cta = the button. divider = a hairline rule between sections.",
       },
-      text: { type: "string", description: "For badge, headline, description and cta." },
+      text: { type: "string", description: "For badge, headline, subheadline, description and cta." },
       items: {
         type: "array",
         description:
-          "For featureList use the text field of each item. For specGrid and statRow use " +
-          "label and value — label is the short name ('Battery'), value is the figure ('57 h').",
+          "For featureList use text and icon on each item. For specGrid and statRow use " +
+          "label and value — label is the short name ('Battery'), value is the figure ('57 h'). " +
+          "For trustStrip use text.",
         items: {
           type: "object",
           properties: {
             label: { type: "string" },
             value: { type: "string" },
             text: { type: "string" },
+            icon: {
+              type: "string",
+              enum: [...ICON_KEYS],
+              description: "featureList only: the icon that best depicts this benefit.",
+            },
           },
         },
       },
       value: { type: "string", description: "For priceBlock: the price as displayed." },
-      compareAt: { type: "string", description: "For priceBlock: a struck-through original price." },
+      compareAt: { type: "string", description: "For priceBlock: a struck-through original price, ONLY if stated." },
       note: { type: "string", description: "For priceBlock: a short note such as 'incl. VAT'." },
       stars: { type: "number", description: "For rating: 1 to 5." },
       caption: { type: "string", description: "For rating: e.g. '4.8 · 2,300 reviews'." },
     },
+    propertyOrdering: ["type", "text", "items", "value", "compareAt", "note", "stars", "caption"],
     required: ["type"],
   },
 };

@@ -4,6 +4,7 @@ import { measureTextBlock, measureTextWidth } from "../../design-schema/measureT
 import type { ResolvedStyle } from "../styles";
 import { COPY_Z, pill, text, type Built } from "../templates/layoutKit";
 import type { Block } from "./types";
+import type { FontFamily } from "../../design-schema/fontRegistry";
 
 // One renderer per block type. Every one returns its measured height, which
 // is the contract the stacking engine depends on — a block that reports a
@@ -27,10 +28,12 @@ export function renderBlock(block: Block, ctx: BlockContext): Built {
       return renderBadge(block.text, ctx);
     case "headline":
       return renderHeadline(block.text, ctx);
+    case "subheadline":
+      return renderSubheadline(block.text, ctx);
     case "description":
       return renderDescription(block.text, ctx);
     case "featureList":
-      return renderFeatureList(block.items, ctx);
+      return renderFeatureList(block.items, ctx, block.icons);
     case "specGrid":
       return renderSpecGrid(block.items, ctx);
     case "statRow":
@@ -52,7 +55,8 @@ export function renderBlock(block: Block, ctx: BlockContext): Built {
 export function gapAfter(block: Block, next: Block | undefined): number {
   if (!next) return 0;
   if (block.type === "badge") return 24;
-  if (block.type === "headline") return next.type === "description" ? 20 : 26;
+  if (block.type === "headline") return next.type === "subheadline" ? 14 : next.type === "description" ? 20 : 26;
+  if (block.type === "subheadline") return next.type === "description" ? 16 : 24;
   if (block.type === "divider") return 24;
   if (next.type === "divider") return 24;
   if (next.type === "cta") return 32;
@@ -63,6 +67,11 @@ export function gapAfter(block: Block, next: Block | undefined): number {
 
 function centreX(ctx: BlockContext): number {
   return ctx.x + ctx.width / 2;
+}
+
+/** The template's body face — every non-display line uses it. */
+function body(ctx: BlockContext): FontFamily {
+  return ctx.style.bodyFont ?? "Inter";
 }
 
 function renderBadge(label: string, ctx: BlockContext): Built {
@@ -76,6 +85,7 @@ function renderBadge(label: string, ctx: BlockContext): Built {
     fill: "transparent",
     stroke: ctx.style.accent,
     textColor: ctx.style.accent,
+    fontFamily: body(ctx),
     fontSize: 13,
     fontWeight: 600,
     letterSpacing: 2.4,
@@ -84,11 +94,16 @@ function renderBadge(label: string, ctx: BlockContext): Built {
   });
 }
 
+/** Display size for a headline in a column of `width`, before template scale. */
+export function headlineBaseSize(width: number): number {
+  // The same 58px that reads as confident in a 450px column is cramped
+  // across 780px, and lost in a 900px one.
+  return width > 760 ? 58 : width > 640 ? 54 : width > 520 ? 60 : 52;
+}
+
 function renderHeadline(content: string, ctx: BlockContext): Built {
-  // Display size scales with the column: the same 58px that reads as
-  // confident in a 450px column is cramped across 780px.
-  const base = ctx.width > 640 ? 54 : ctx.width > 520 ? 60 : 52;
-  const size = ctx.style.headlineFont === "Playfair Display" ? base + 4 : base;
+  const s = ctx.style;
+  const size = Math.round(headlineBaseSize(ctx.width) * (s.headlineScale ?? 1));
 
   return text({
     id: `${ctx.key}-headline`,
@@ -97,15 +112,40 @@ function renderHeadline(content: string, ctx: BlockContext): Built {
     x: ctx.x,
     y: ctx.y,
     maxWidth: ctx.width,
-    fontFamily: ctx.style.headlineFont,
+    fontFamily: s.headlineFont,
     fontSize: size,
-    fontWeight: ctx.style.headlineWeight,
-    color: ctx.style.textPrimary,
+    fontWeight: s.headlineWeight,
+    italic: s.headlineItalic,
+    uppercase: s.headlineUppercase,
+    letterSpacing: s.headlineTracking,
+    color: s.textPrimary,
     textAlign: ctx.align,
-    lineHeight: 1.1,
+    lineHeight: s.headlineLineHeight ?? 1.1,
     maxLines: 4,
     autoFit: true,
-    minFontSize: Math.round(size * 0.55),
+    minFontSize: Math.round(size * 0.5),
+  });
+}
+
+function renderSubheadline(content: string, ctx: BlockContext): Built {
+  // Between the display face and body copy: the body face, larger and
+  // heavier, so it reads as part of the headline rather than the paragraph.
+  return text({
+    id: `${ctx.key}-subheadline`,
+    role: "custom",
+    content,
+    x: ctx.x,
+    y: ctx.y,
+    maxWidth: ctx.width,
+    fontFamily: body(ctx),
+    fontSize: ctx.width > 640 ? 26 : 23,
+    fontWeight: 500,
+    color: ctx.style.textPrimary,
+    textAlign: ctx.align,
+    lineHeight: 1.3,
+    maxLines: 2,
+    autoFit: true,
+    minFontSize: 17,
   });
 }
 
@@ -117,7 +157,7 @@ function renderDescription(content: string, ctx: BlockContext): Built {
     x: ctx.x,
     y: ctx.y,
     maxWidth: ctx.width,
-    fontFamily: "Inter",
+    fontFamily: body(ctx),
     fontSize: 20,
     fontWeight: 400,
     color: ctx.style.textMuted,
@@ -127,7 +167,7 @@ function renderDescription(content: string, ctx: BlockContext): Built {
   });
 }
 
-function renderFeatureList(items: string[], ctx: BlockContext): Built {
+function renderFeatureList(items: string[], ctx: BlockContext, icons?: string[]): Built {
   const layers: DesignLayer[] = [];
   const iconSize = 20;
   const indent = ctx.align === "center" ? 0 : iconSize + 14;
@@ -142,7 +182,7 @@ function renderFeatureList(items: string[], ctx: BlockContext): Built {
       x: ctx.x + indent,
       y: cursor,
       maxWidth: ctx.width - indent,
-      fontFamily: "Inter",
+      fontFamily: body(ctx),
       fontSize: 17,
       fontWeight: 500,
       color: ctx.style.textPrimary,
@@ -155,7 +195,7 @@ function renderFeatureList(items: string[], ctx: BlockContext): Built {
       layers.push({
         id: `${ctx.key}-feature-icon-${i}`,
         type: "icon",
-        iconKey: FEATURE_ICONS[i % FEATURE_ICONS.length],
+        iconKey: icons?.[i] ?? FEATURE_ICONS[i % FEATURE_ICONS.length],
         color: ctx.style.accent,
         x: ctx.x,
         y: Math.round(cursor + 2),
@@ -190,7 +230,7 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
     const row = Math.floor(i / columns);
 
     const labelMetrics = measureTextBlock(item.label.toUpperCase(), cellWidth, {
-      fontFamily: "Inter",
+      fontFamily: body(ctx),
       fontSize: 12,
       fontWeight: 600,
       letterSpacing: 1.4,
@@ -198,7 +238,7 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
       maxLines: 1,
     });
     const valueMetrics = measureTextBlock(item.value, cellWidth, {
-      fontFamily: "Inter",
+      fontFamily: body(ctx),
       fontSize: 19,
       fontWeight: 700,
       lineHeight: 1.25,
@@ -231,7 +271,7 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
         x: cellX,
         y: cellY,
         maxWidth: cellWidth,
-        fontFamily: "Inter",
+        fontFamily: body(ctx),
         fontSize: 12,
         fontWeight: 600,
         color: ctx.style.accent,
@@ -247,7 +287,7 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
         x: cellX,
         y: cellY + cell.labelMetrics.height + 6,
         maxWidth: cellWidth,
-        fontFamily: "Inter",
+        fontFamily: body(ctx),
         fontSize: 19,
         fontWeight: 700,
         color: ctx.style.textPrimary,
@@ -282,7 +322,7 @@ function renderStatRow(items: { label: string; value: string }[], ctx: BlockCont
       x: cellX,
       y: ctx.y,
       maxWidth: cellWidth,
-      fontFamily: "Inter",
+      fontFamily: body(ctx),
       fontSize: valueSize,
       fontWeight: 800,
       color: ctx.style.accent,
@@ -300,7 +340,7 @@ function renderStatRow(items: { label: string; value: string }[], ctx: BlockCont
       x: cellX,
       y: ctx.y + value.height + 6,
       maxWidth: cellWidth,
-      fontFamily: "Inter",
+      fontFamily: body(ctx),
       fontSize: 14,
       fontWeight: 500,
       color: ctx.style.textMuted,
@@ -330,7 +370,7 @@ function renderPriceBlock(
     x: ctx.x,
     y: ctx.y,
     maxWidth: ctx.width,
-    fontFamily: "Inter",
+    fontFamily: body(ctx),
     fontSize: priceSize,
     fontWeight: 800,
     color: ctx.style.textPrimary,
@@ -354,7 +394,7 @@ function renderPriceBlock(
         : Math.round(ctx.x + price.width + 14);
     const compareWidth = Math.ceil(
       measureTextWidth(block.compareAt, {
-        fontFamily: "Inter",
+        fontFamily: body(ctx),
         fontSize: compareSize,
         fontWeight: 500,
       }),
@@ -369,7 +409,7 @@ function renderPriceBlock(
           x: compareX,
           y: Math.round(ctx.y + price.height - compareSize * 1.25),
           maxWidth: compareWidth,
-          fontFamily: "Inter",
+          fontFamily: body(ctx),
           fontSize: compareSize,
           fontWeight: 500,
           color: ctx.style.textMuted,
@@ -405,7 +445,7 @@ function renderPriceBlock(
       x: ctx.x,
       y: ctx.y + price.height + 4,
       maxWidth: ctx.width,
-      fontFamily: "Inter",
+      fontFamily: body(ctx),
       fontSize: 14,
       fontWeight: 400,
       color: ctx.style.textMuted,
@@ -426,7 +466,7 @@ function renderRating(stars: number, caption: string, ctx: BlockContext): Built 
   const starGap = 5;
   const starsWidth = stars * starSize + (stars - 1) * starGap;
   const captionWidth = Math.ceil(
-    measureTextWidth(caption, { fontFamily: "Inter", fontSize: 15, fontWeight: 500 }),
+    measureTextWidth(caption, { fontFamily: body(ctx), fontSize: 15, fontWeight: 500 }),
   );
   const totalWidth = starsWidth + 12 + captionWidth;
 
@@ -455,7 +495,7 @@ function renderRating(stars: number, caption: string, ctx: BlockContext): Built 
       x: startX + starsWidth + 12,
       y: ctx.y + 1,
       maxWidth: captionWidth + 4,
-      fontFamily: "Inter",
+      fontFamily: body(ctx),
       fontSize: 15,
       fontWeight: 500,
       color: ctx.style.textMuted,
@@ -479,7 +519,7 @@ function renderTrustStrip(items: string[], ctx: BlockContext): Built {
     x: ctx.x,
     y: ctx.y,
     maxWidth: ctx.width,
-    fontFamily: "Inter",
+    fontFamily: body(ctx),
     fontSize: 14,
     fontWeight: 500,
     color: ctx.style.textMuted,
@@ -490,20 +530,42 @@ function renderTrustStrip(items: string[], ctx: BlockContext): Built {
 }
 
 function renderCta(label: string, ctx: BlockContext): Built {
-  return pill({
+  return ctaButton(label, ctx.style, {
     id: `${ctx.key}-cta`,
-    role: "ctaLabel",
-    label: label.toUpperCase(),
     x: ctx.align === "center" ? centreX(ctx) : ctx.x,
     y: ctx.y,
     anchor: ctx.align === "center" ? "center" : "left",
-    fill: ctx.style.accent,
-    textColor: ctx.style.ctaTextColor,
+    maxWidth: ctx.width,
+  });
+}
+
+/**
+ * The call-to-action in the template's own button style. Exported so
+ * templates that place the CTA outside the copy stack draw the same button.
+ */
+export function ctaButton(
+  label: string,
+  style: ResolvedStyle,
+  at: { id: string; x: number; y: number; anchor: "left" | "center"; maxWidth: number; zIndex?: number },
+): Built {
+  return pill({
+    id: at.id,
+    role: "ctaLabel",
+    label: label.toUpperCase(),
+    x: at.x,
+    y: at.y,
+    anchor: at.anchor,
+    fill: style.accent,
+    textColor: style.ctaTextColor,
+    edge: style.ctaStyle === "brutal" ? style.textPrimary : style.accent,
+    variant: style.ctaStyle ?? "pill",
+    fontFamily: style.bodyFont ?? "Inter",
     fontSize: 16,
     fontWeight: 700,
     letterSpacing: 1.6,
     paddingX: 34,
-    maxWidth: ctx.width,
+    maxWidth: at.maxWidth,
+    zIndex: at.zIndex,
   });
 }
 

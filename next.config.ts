@@ -13,6 +13,13 @@ const nextConfig: NextConfig = {
   // required at runtime rather than bundled, or Turbopack fails trying to
   // place them in an ESM chunk.
   serverExternalPackages: ["@resvg/resvg-js", "sharp"],
+  // The poster renderer reads its font files from public/fonts with fs at
+  // runtime (Satori needs the raw buffers). On Vercel, public/ is served
+  // from the CDN and is NOT inside serverless functions unless traced in,
+  // so without this every generation and export would fail on missing fonts.
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./public/fonts/**/*"],
+  },
   // Server Actions default to a 1MB body limit, far too small for a real
   // product photo upload (ProductUploadForm posts the file directly via a
   // Server Action, not a separate API route).

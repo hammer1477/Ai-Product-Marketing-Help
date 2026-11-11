@@ -27,6 +27,8 @@ export async function createProduct(
   const targetPlatform = String(formData.get("targetPlatform") ?? "").trim() || null;
   const price = String(formData.get("price") ?? "").trim();
   const brandName = String(formData.get("brandName") ?? "").trim();
+  const specs = String(formData.get("specs") ?? "").trim().slice(0, 4000);
+  const offer = String(formData.get("offer") ?? "").trim().slice(0, 200);
   const file = formData.get("image") as File | null;
 
   if (!name || !category || !file || file.size === 0) {
@@ -36,6 +38,8 @@ export async function createProduct(
   const attributes: Record<string, string> = {};
   if (price) attributes.price = price;
   if (brandName) attributes.brandName = brandName;
+  if (specs) attributes.specs = specs;
+  if (offer) attributes.offer = offer;
 
   const { data: product, error: productError } = await supabase
     .from("products")

@@ -30,8 +30,10 @@ export const LAYOUT_VARIANTS: LayoutVariant[] = ["split", "spotlight", "editoria
 export type ArtDirection = {
   /** Text-to-image prompt for the background scene. Never the product itself. */
   scenePrompt: string;
-  layout: LayoutVariant;
-  headlineFont: "Playfair Display" | "Inter";
+  /** Legacy — the template is now chosen in code. */
+  layout?: LayoutVariant;
+  /** Legacy — typography now comes from the template. */
+  headlineFont?: string;
   /** Deep ground colour the copy sits on. */
   colorInk: string;
   /** Accent for badge, CTA fill, dividers, icons. */
@@ -56,6 +58,15 @@ export type CreativeContent = {
    * and as the fallback when block composition fails validation.
    */
   blocks?: RawBlock[];
+  /** The extraction step's output. Validated by normalizeFactSheet. */
+  factSheet?: Record<string, unknown>;
+  /** The creative director's brief to the layout engine. Validated by normalizeDesignBrief. */
+  designBrief?: {
+    templatePreferences?: string[];
+    displayName?: string;
+    secondaryAccent?: string;
+    copyAngle?: string;
+  };
 };
 
 export const CREATIVE_CONTENT_SCHEMA = {
@@ -90,22 +101,11 @@ export const CREATIVE_CONTENT_SCHEMA = {
             "empty surface or pedestal in the middle distance and uncluttered space where a " +
             "product will stand, with the detail and drama pushed to the edges and the " +
             "background. A busy centre makes the product look pasted on. " +
+            "Write it like a photographer's shot list: name the surface the product stands on, " +
+            "the light source and its direction, the colour grade, the lens feel (e.g. 85mm, " +
+            "shallow depth of field) and one or two props or textures that echo the product's " +
+            "own materials. " +
             "Never describe the product itself and never mention text, logos or watermarks.",
-        },
-        layout: {
-          type: "string",
-          enum: ["split", "spotlight", "editorial", "callout"],
-          description:
-            "split = copy column beside the product (best for feature-rich products). " +
-            "spotlight = product centred, copy in a band below (best for beautiful objects). " +
-            "editorial = oversized headline, product bleeding off a corner (best for fashion/lifestyle). " +
-            "callout = product centred with numbered leader lines pointing out to its specs " +
-            "(best when the product has several concrete, pointable features).",
-        },
-        headlineFont: {
-          type: "string",
-          enum: ["Playfair Display", "Inter"],
-          description: "Playfair Display for luxury/editorial/beauty; Inter for tech/sport/modern.",
         },
         colorInk: {
           type: "string",
@@ -121,8 +121,6 @@ export const CREATIVE_CONTENT_SCHEMA = {
       },
       required: [
         "scenePrompt",
-        "layout",
-        "headlineFont",
         "colorInk",
         "colorAccent",
         "colorTextPrimary",

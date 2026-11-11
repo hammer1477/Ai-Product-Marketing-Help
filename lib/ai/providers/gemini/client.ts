@@ -1,5 +1,7 @@
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-const REQUEST_TIMEOUT_MS = 30_000;
+// Calls now carry the product photo and return long structured output (a
+// full fact sheet), which can run past 30s on a busy day.
+const REQUEST_TIMEOUT_MS = 45_000;
 const MAX_RETRIES = 2;
 const RETRYABLE_STATUS = new Set([429, 503]);
 

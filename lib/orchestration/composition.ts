@@ -1,33 +1,36 @@
 import type { DesignSchema } from "../design-schema/types";
 import { isImageLayer } from "../design-schema/types";
 import type { ResolvedStyle } from "./styles";
-import type { Block } from "./blocks/types";
+import type { Block, BlockType } from "./blocks/types";
 import { composePosterSchema } from "./templates/poster";
+import type { Fact } from "./factSheet";
 
 // Lets a saved design be re-laid-out instead of only patched.
 //
-// The editor used to work on the rendered layer list, which is a lossy view
-// of the design: once blocks are flattened to layers, a spec's label and
-// its value are two unrelated text layers, a price is indistinguishable
-// from a caption, and nothing records that any of them belonged together.
-// That's why the edit panel showed "51 mm" labelled as a selling point and
-// hid the price entirely.
-//
-// Carrying the composition inside the schema fixes that at the source. The
-// editor reads blocks, edits blocks, and re-runs layout — so edits also
-// re-flow instead of overflowing a box sized for the old text.
+// The composition — blocks, base style, chosen template — rides inside the
+// schema, so the editor edits blocks and re-runs layout. That's also what
+// makes template switching, recolouring and font changes possible after
+// generation: they're all just a different style handed to the same
+// composer.
 
 export type PosterComposition = {
   blocks: Block[];
   style: ResolvedStyle;
   cutoutApplied: boolean;
   productAspectRatio: number;
+  productName?: string;
+  /** Block types the current template actually drew. */
+  placedTypes?: BlockType[];
+  /** The scene, when the current template doesn't draw it as a layer. */
+  sceneUrl?: string;
+  /** Everything extraction found — the editor offers the unused ones. */
+  facts?: Fact[];
 };
 
 /**
  * Reads the composition back out of a schema, returning null for schemas
- * saved before compositions existed or for concepts that don't use blocks.
- * Callers fall back to layer-level editing in that case.
+ * saved before compositions existed. Callers fall back to layer-level
+ * editing in that case.
  */
 export function readComposition(schema: DesignSchema): PosterComposition | null {
   const raw = schema.meta.composition;
@@ -45,6 +48,10 @@ export function readComposition(schema: DesignSchema): PosterComposition | null 
       typeof candidate.productAspectRatio === "number" && candidate.productAspectRatio > 0
         ? candidate.productAspectRatio
         : 1,
+    productName: typeof candidate.productName === "string" ? candidate.productName : undefined,
+    placedTypes: Array.isArray(candidate.placedTypes) ? candidate.placedTypes : undefined,
+    sceneUrl: typeof candidate.sceneUrl === "string" ? candidate.sceneUrl : undefined,
+    facts: Array.isArray(candidate.facts) ? candidate.facts : undefined,
   };
 }
 
@@ -53,30 +60,35 @@ function layerSrc(schema: DesignSchema, id: string): string | undefined {
   return layer && isImageLayer(layer) ? layer.src : undefined;
 }
 
+/** The images a schema carries, wherever the current template put them. */
+export function readAssets(schema: DesignSchema, composition: PosterComposition) {
+  return {
+    productImageUrl: layerSrc(schema, "product-photo"),
+    backgroundImageUrl: layerSrc(schema, "bg-image") ?? composition.sceneUrl,
+  };
+}
+
 /**
  * Rebuilds a schema from an edited composition.
  *
  * Pure and synchronous — no network, no AI, no image processing — which is
- * what lets the browser re-run it on every keystroke for a live preview
- * that re-flows. The product photo and background scene are lifted off the
- * existing schema rather than stored twice; they're already embedded there
- * as data URIs, and a megabyte of base64 copied into the metadata would
- * double the size of every saved design.
+ * what lets the browser re-run it on every keystroke, and render every
+ * template as a live thumbnail. Images are lifted off the existing schema
+ * rather than stored twice.
  */
-export function recomposePoster(
-  schema: DesignSchema,
-  composition: PosterComposition,
-): DesignSchema {
-  const productImageUrl = layerSrc(schema, "product-photo");
+export function recomposePoster(schema: DesignSchema, composition: PosterComposition): DesignSchema {
+  const { productImageUrl, backgroundImageUrl } = readAssets(schema, composition);
   if (!productImageUrl) return schema;
 
   return composePosterSchema({
     blocks: composition.blocks,
     productImageUrl,
-    backgroundImageUrl: layerSrc(schema, "bg-image"),
+    backgroundImageUrl,
     density: schema.meta.density,
     style: composition.style,
     cutoutApplied: composition.cutoutApplied,
     productAspectRatio: composition.productAspectRatio,
+    productName: composition.productName,
+    facts: composition.facts,
   });
 }
