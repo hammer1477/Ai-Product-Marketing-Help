@@ -4,6 +4,7 @@ import { createClient } from "@/lib/db/supabase/server";
 import { getCreditBalance } from "@/lib/credits/getBalance";
 import { CreditBalanceWidget } from "@/components/dashboard/CreditBalanceWidget";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { getProfile, greetingName } from "@/lib/profile/getProfile";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
-  const { balance, reserved } = await getCreditBalance(user.id);
+  const [{ balance, reserved }, profile] = await Promise.all([getCreditBalance(user.id), getProfile(user.id)]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,7 +34,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </nav>
           <div className="flex items-center gap-3">
-            <CreditBalanceWidget balance={balance} reserved={reserved} />
+            <CreditBalanceWidget balance={balance} reserved={reserved} unlimited={profile.role === "owner"} />
+            <Link href="/profile" className="text-sm font-medium hover:underline underline-offset-4">
+              {greetingName(profile, user.email)}
+            </Link>
             <SignOutButton />
           </div>
         </div>

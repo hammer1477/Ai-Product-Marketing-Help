@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/db/supabase/server";
+import { getProfile, greetingName } from "@/lib/profile/getProfile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -8,6 +9,9 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const profile = user ? await getProfile(user.id) : null;
+  const name = profile ? greetingName(profile, user?.email) : null;
 
   const { data: products } = await supabase
     .from("products")
@@ -20,7 +24,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back{user?.email ? `, ${user.email}` : ""}.</p>
+          <p className="text-muted-foreground">Welcome back{name ? `, ${name}` : ""}.</p>
         </div>
         <Button render={<Link href="/products/new" />} nativeButton={false}>
           New product
