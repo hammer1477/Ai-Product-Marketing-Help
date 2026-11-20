@@ -4,6 +4,7 @@ import { EXTRACTION_RULES } from "./factSheet";
 import type { CreativeBrief, CreativeContent } from "./types";
 import type { BrandKit } from "../brand/kit";
 import type { CopyAngle } from "./angles";
+import { CREATIVE_DIRECTOR } from "../ai/personas";
 
 export type CreativeHistory = {
   templates: string[];
@@ -38,9 +39,8 @@ export function generateCreative(args: {
 
   return provider.generateJSON<CreativeContent>({
     system:
-      "You are a senior advertising creative director and copywriter at a top agency, with a " +
-      "meticulous researcher's discipline. You can see the product photo. Work in four steps, " +
-      "in the order of the response fields. " +
+      CREATIVE_DIRECTOR +
+      " You can see the product photo. Work in four steps, in the order of the response fields. " +
       "STEP 1 - EXTRACT into factSheet. " +
       EXTRACTION_RULES +
       " Everything after this step may use ONLY facts on your fact sheet — never invent " +
@@ -67,6 +67,7 @@ export function generateCreative(args: {
     // literal, high enough that copy and art direction vary between runs.
     // The variation token below does most of the varying.
     temperature: 0.7,
+    tier: "expert",
     images: args.image ? [args.image] : undefined,
     messages: [
       {

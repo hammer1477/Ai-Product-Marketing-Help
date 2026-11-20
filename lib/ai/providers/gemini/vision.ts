@@ -1,6 +1,7 @@
 import type { ImageAnalysisProvider } from "../types";
 import { callGemini, fetchImageAsBase64 } from "./client";
 import { sanitizeSchemaForGemini } from "./sanitizeSchema";
+import { PRODUCT_ANALYST } from "../../personas";
 
 const MODEL = process.env.GEMINI_VISION_MODEL ?? "gemini-flash-lite-latest";
 
@@ -54,12 +55,8 @@ export class GeminiImageAnalysisProvider implements ImageAnalysisProvider {
     const image = await fetchImageAsBase64(args.imageUrl);
 
     const prompt =
-      "Analyze this product photo for an advertising platform. Your output is the evidence an ad " +
-      "copywriter will rely on, so be thorough and exact. Read every legible word on the product and " +
-      "packaging — zoom in mentally on small print, labels, embossing and screens — and transcribe it " +
-      "verbatim. Separate out printed claims, specs and quantities. Describe materials, finishes, form " +
-      "and design details you can actually see. Identify the category and give an honest confidence " +
-      "(0-1) — do not inflate it. Never invent specifications, claims or text that are not visible." +
+      PRODUCT_ANALYST +
+      " Analyse this product photo for an advertising platform and identify its category." +
       (args.hints?.userProvidedName ? ` The seller calls this product "${args.hints.userProvidedName}".` : "") +
       (args.hints?.userProvidedCategory
         ? ` The seller categorized this as "${args.hints.userProvidedCategory}" — you may agree or disagree.`

@@ -17,6 +17,12 @@ export interface TextGenerationProvider {
     images?: string[];
     /** Sampling temperature: low for extraction, higher for creative work. */
     temperature?: number;
+    /**
+     * "expert" for work that needs judgement — creative direction, strategy,
+     * art direction: a stronger model that reasons before answering.
+     * "fast" (default) for quick, literal tasks.
+     */
+    tier?: "fast" | "expert";
   }): Promise<{ data: T; usage: Usage & { inputTokens: number; outputTokens: number } }>;
 }
 

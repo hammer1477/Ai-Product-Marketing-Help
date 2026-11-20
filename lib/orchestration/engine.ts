@@ -18,6 +18,7 @@ import { generateCreative } from "./creative";
 import { toModelImage } from "../images/modelImage";
 import { applyBrandFonts, applyBrandStyle, BRAND_KIT_COLUMNS, readBrandKit } from "../brand/kit";
 import { angleById } from "./angles";
+import { IMAGE_QUALITY } from "../ai/personas";
 import { claimScrubber, dropEmptyBlocks, sellerText } from "./claims";
 
 const EXPORT_SCALE = 2;
@@ -199,7 +200,8 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   // so that switching to one that does in the editor has a scene to show.
   const backgroundImageUrl = await getImageProvider()
     .generate({
-      prompt: style.backgroundPrompt,
+      // The art director's shot list, held to a flagship-campaign finish.
+      prompt: `${style.backgroundPrompt}. ${IMAGE_QUALITY}`,
       mode: "text-to-image",
       width: BACKGROUND_RESOLUTION,
       height: BACKGROUND_RESOLUTION,

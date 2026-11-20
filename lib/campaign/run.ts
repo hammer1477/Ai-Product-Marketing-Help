@@ -17,6 +17,7 @@ import { toDataUri } from "../orchestration/toDataUri";
 import type { CreativeBrief, CreativeContent } from "../orchestration/types";
 import { campaignSchema, matchAds, normalizePlan, type RawCampaign } from "./plan";
 import { claimScrubber, dropEmptyBlocks, sellerText } from "../orchestration/claims";
+import { CAMPAIGN_STRATEGIST, IMAGE_QUALITY } from "../ai/personas";
 
 const EXPORT_SCALE = 2;
 const BACKGROUND_RESOLUTION = 1536;
@@ -110,7 +111,7 @@ export async function runCampaignGeneration(jobId: string): Promise<{ campaignId
   };
 
   const background = await getImageProvider()
-    .generate({ prompt: style.backgroundPrompt, mode: "text-to-image", width: BACKGROUND_RESOLUTION, height: BACKGROUND_RESOLUTION })
+    .generate({ prompt: `${style.backgroundPrompt}. ${IMAGE_QUALITY}`, mode: "text-to-image", width: BACKGROUND_RESOLUTION, height: BACKGROUND_RESOLUTION })
     .then((r) => toDataUri(r.imageUrl))
     .catch((err) => {
       console.error("Campaign background failed, using gradient grounds:", err);
@@ -189,10 +190,10 @@ function writeCampaign(args: {
   const { brief, analysis, brand, angles } = args;
   return getTextProvider().generateJSON<RawCampaign>({
     system:
-      "You are the strategy director of a leading performance-marketing agency, running a paid and " +
-      "organic campaign on Instagram and Facebook for a small-business client. You can see the product " +
-      "photo. Your client is not a marketer: everything addressed to them must be plain, specific and " +
-      "actionable. Work in the order of the response fields. " +
+      CAMPAIGN_STRATEGIST +
+      " You are running a paid and organic campaign on Instagram and Facebook for a small-business " +
+      "client. You can see the product photo. Your client is not a marketer: everything addressed to " +
+      "them must be plain, specific and actionable. Work in the order of the response fields. " +
       "STEP 1 - EXTRACT the fact sheet. " +
       EXTRACTION_RULES +
       " Everything after this step may use ONLY facts on your fact sheet — never invent specifications, " +
@@ -213,6 +214,7 @@ function writeCampaign(args: {
       "POSTER DESIGN CATALOGUE (id: name — look (scheme; suits)):\n" +
       TEMPLATE_CATALOGUE,
     temperature: 0.7,
+    tier: "expert",
     images: args.image ? [args.image] : undefined,
     messages: [
       {

@@ -13,6 +13,10 @@ const BACKOFF_MS = [2_000, 5_000, 10_000];
  */
 const FALLBACK_MODEL: Record<string, string> = {
   "gemini-flash-lite-latest": "gemini-flash-latest",
+  // Expert work degrades to the lighter model rather than failing; it keeps
+  // its thinking budget, which the lighter model also honours.
+  "gemini-flash-latest": "gemini-flash-lite-latest",
+  "gemini-pro-latest": "gemini-flash-latest",
 };
 
 function getApiKey(): string {
@@ -26,10 +30,12 @@ function sleep(ms: number) {
 }
 
 export async function callGemini(model: string, body: unknown): Promise<any> {
+  const fallback = FALLBACK_MODEL[model];
   try {
-    return await callModel(model, body);
+    // With somewhere to fall back to, don't spend long waiting out an
+    // overloaded model: one retry, then switch.
+    return await callModel(model, body, fallback ? 1 : MAX_RETRIES);
   } catch (err) {
-    const fallback = FALLBACK_MODEL[model];
     if (fallback && err instanceof Error && /\((429|500|503)\)/.test(err.message)) {
       console.warn(`Gemini ${model} unavailable, falling back to ${fallback}`);
       return callModel(fallback, body);
@@ -38,10 +44,10 @@ export async function callGemini(model: string, body: unknown): Promise<any> {
   }
 }
 
-async function callModel(model: string, body: unknown): Promise<any> {
+async function callModel(model: string, body: unknown, retries = MAX_RETRIES): Promise<any> {
   let lastError: Error | null = null;
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -56,7 +62,7 @@ async function callModel(model: string, body: unknown): Promise<any> {
 
       if (!res.ok) {
         const text = await res.text();
-        if (RETRYABLE_STATUS.has(res.status) && attempt < MAX_RETRIES) {
+        if (RETRYABLE_STATUS.has(res.status) && attempt < retries) {
           lastError = new Error(`Gemini API error (${res.status}) for model ${model}: ${text}`);
           await sleep(BACKOFF_MS[attempt] + Math.random() * 1000);
           continue;
@@ -73,7 +79,7 @@ async function callModel(model: string, body: unknown): Promise<any> {
       lastError = isAbort
         ? new Error(`Gemini request timed out after ${REQUEST_TIMEOUT_MS}ms for model ${model}`)
         : (err as Error);
-      if (attempt < MAX_RETRIES) {
+      if (attempt < retries) {
         await sleep(BACKOFF_MS[attempt] + Math.random() * 1000);
         continue;
       }

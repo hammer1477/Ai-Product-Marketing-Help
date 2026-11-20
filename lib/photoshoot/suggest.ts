@@ -2,6 +2,7 @@ import "server-only";
 import { getTextProvider } from "../ai/providers/factory";
 import type { ImageAnalysisResult } from "../ai/providers/types";
 import { isHex } from "../orchestration/color";
+import { PHOTO_DIRECTOR } from "../ai/personas";
 
 // Photoshoot scene ideas written for one product. The model looks at the
 // photo and the seller's details and art-directs sets that suit this
@@ -62,14 +63,15 @@ export async function suggestScenes(args: {
   const { product, analysis, avoid = [] } = args;
   const { data } = await getTextProvider().generateJSON<Raw>({
     system:
-      "You are a commercial product photographer and art director planning a lifestyle photoshoot. You " +
-      "can see the product photo. Propose six DIFFERENT sets this exact product would be photographed in " +
+      PHOTO_DIRECTOR +
+      " You are planning a lifestyle photoshoot and can see the product photo. Propose six DIFFERENT sets this exact product would be photographed in " +
       "to sell it: draw on its materials, colours, size, who buys it and where it's used. Mix the safe and " +
       "the striking — at least one clean studio set, at least one real-life setting where it's used, and " +
       "at least one bold, scroll-stopping idea. Each set's colours must flatter the product's own colours. " +
       "The product is placed into the set afterwards, so every set has an empty surface in the centre " +
       "foreground for it.",
     temperature: 0.9,
+    tier: "expert",
     images: args.image ? [args.image] : undefined,
     messages: [
       {

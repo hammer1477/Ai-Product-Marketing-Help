@@ -1,3 +1,5 @@
+import { IMAGE_QUALITY } from "../ai/personas";
+
 // Scene presets for product photoshoots. Each prompt describes an EMPTY
 // set — the product is never generated, only the place it's photographed
 // in. The real cutout is composited in afterwards.
@@ -23,9 +25,5 @@ export function sceneById(id: string | null | undefined): PhotoScene | undefined
 
 /** The full prompt for a scene: an empty set with a clear surface for the product. */
 export function scenePrompt(scene: string): string {
-  return (
-    `${scene}. Empty product photography set with a clear flat surface in the lower middle of the frame ` +
-    "where a product will be placed. No products, no objects in the centre, no text, no logos, no people. " +
-    "Professional commercial photography, photorealistic, high detail, soft natural shadows."
-  );
+  return `${scene}. An empty set with a clear flat surface in the lower middle of the frame where a product will be placed. ${IMAGE_QUALITY}`;
 }
