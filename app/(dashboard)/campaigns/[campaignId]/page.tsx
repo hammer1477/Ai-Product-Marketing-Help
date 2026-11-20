@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/supabase/server";
-import { isWorking, loadProjectCards } from "@/lib/jobs/projectStatus";
+import { isWorking, loadProjectCards, splitFailures } from "@/lib/jobs/projectStatus";
+import { angleById } from "@/lib/orchestration/angles";
+import { FailureNotices } from "@/components/jobs/FailureNotices";
 import { AdCard } from "@/components/creative/AdCard";
 import { AutoRefresh } from "@/components/jobs/AutoRefresh";
 
@@ -17,13 +19,15 @@ export default async function CampaignPage({ params }: { params: Promise<{ campa
   if (!campaign) notFound();
   const product = campaign.products as unknown as { id: string; name: string } | null;
 
-  const cards = await loadProjectCards(supabase, { campaignId });
+  const all = await loadProjectCards(supabase, { campaignId });
+  const { visible: cards, failures } = splitFailures(all, (c) => `${angleById(c.angle)?.label ?? "An"} ad`);
   const working = cards.filter((c) => isWorking(c.status)).length;
   const done = cards.filter((c) => c.imageUrl).length;
 
   return (
     <div className="flex flex-col gap-6">
       <AutoRefresh active={working > 0} />
+      <FailureNotices failures={failures} noun="ads" />
       <div>
         {product && (
           <Link href={`/products/${product.id}`} className="text-sm text-muted-foreground underline underline-offset-4">

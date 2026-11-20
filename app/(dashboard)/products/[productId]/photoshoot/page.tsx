@@ -5,6 +5,7 @@ import { formatForPlatform } from "@/lib/orchestration/formats";
 import { sceneById } from "@/lib/photoshoot/scenes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AutoRefresh } from "@/components/jobs/AutoRefresh";
+import { FailureNotices } from "@/components/jobs/FailureNotices";
 import { ShotGrid, type PendingShot } from "@/components/photoshoot/ShotGrid";
 import { PhotoshootStudio } from "./PhotoshootStudio";
 
@@ -53,11 +54,15 @@ export default async function ProductPhotoshootPage({ params }: { params: Promis
     height: s.height,
     url: supabase.storage.from("generated-images").getPublicUrl(s.storage_path).data.publicUrl,
   }));
-  const working = pending.some((p) => p.status !== "failed");
+  // Failed shots don't get a tile — they're announced once as a toast.
+  const failures = pending.filter((p) => p.status === "failed").map((p) => ({ id: p.id, label: p.scene }));
+  const inFlight = pending.filter((p) => p.status !== "failed");
+  const working = inFlight.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
       <AutoRefresh active={working} />
+      <FailureNotices failures={failures} />
       <div>
         <Link href={`/products/${product.id}`} className="text-sm text-muted-foreground underline underline-offset-4">
           &larr; {product.name}
@@ -78,7 +83,7 @@ export default async function ProductPhotoshootPage({ params }: { params: Promis
       </Card>
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Shots</h2>
-        <ShotGrid shots={gallery} pending={pending} />
+        <ShotGrid shots={gallery} pending={inFlight} />
       </section>
     </div>
   );

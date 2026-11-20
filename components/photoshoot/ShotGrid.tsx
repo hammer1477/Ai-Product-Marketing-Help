@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, Loader2, TriangleAlert } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 
 export type Shot = {
   id: string;
@@ -10,6 +10,7 @@ export type Shot = {
   productName?: string;
   productId?: string;
 };
+/** A shot still being made. Failures are toasted, not shown here. */
 export type PendingShot = { id: string; status: string; error: string | null; scene: string };
 
 export function ShotGrid({ shots, pending = [] }: { shots: Shot[]; pending?: PendingShot[] }) {
@@ -22,19 +23,9 @@ export function ShotGrid({ shots, pending = [] }: { shots: Shot[]; pending?: Pen
         <div
           key={p.id}
           className="flex aspect-square break-inside-avoid flex-col items-center justify-center gap-2 rounded-lg border bg-muted p-4 text-center text-xs text-muted-foreground"
-          title={p.error ?? undefined}
         >
-          {p.status === "failed" ? (
-            <>
-              <TriangleAlert className="size-5 text-destructive" />
-              {p.scene}: failed, credits refunded
-            </>
-          ) : (
-            <>
-              <Loader2 className="size-5 animate-spin" />
-              {p.status === "pending" ? "Queued" : "Shooting"} · {p.scene}
-            </>
-          )}
+          <Loader2 className="size-5 animate-spin" />
+          {p.status === "pending" ? "Queued" : "Shooting"} · {p.scene}
         </div>
       ))}
       {shots.map((shot) => (

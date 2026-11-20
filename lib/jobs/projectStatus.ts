@@ -72,3 +72,16 @@ export async function loadProjectCards(
 export function isWorking(status: ProjectCard["status"]): boolean {
   return status === "pending" || status === "processing";
 }
+
+/**
+ * Splits cards into what to show and what to announce: an ad whose only
+ * attempt failed has nothing to show, so it's toasted (credits refunded)
+ * instead of taking a tile. A failed regeneration keeps its earlier render.
+ */
+export function splitFailures(cards: ProjectCard[], labelFor: (card: ProjectCard) => string) {
+  const failed = cards.filter((c) => c.status === "failed" && !c.imageUrl);
+  return {
+    visible: cards.filter((c) => !(c.status === "failed" && !c.imageUrl)),
+    failures: failed.map((c) => ({ id: c.id, label: labelFor(c) })),
+  };
+}

@@ -68,7 +68,9 @@ export class PollinationsImageGenerationProvider implements ImageGenerationProvi
       const body = await res.text();
       // Parallel jobs (a campaign, a photoshoot) trip the per-IP limit;
       // the reply says how long to wait, so wait rather than fail.
-      if ((res.status === 402 || res.status === 429) && attempt < MAX_RATE_LIMIT_RETRIES) {
+      // 402/429: per-IP free-tier limit. 503: the whole service is at
+      // capacity ("retry after 10s"). All three say when to come back.
+      if ((res.status === 402 || res.status === 429 || res.status === 503) && attempt < MAX_RATE_LIMIT_RETRIES) {
         const seconds = Number(/retry after (\d+)\s*s/i.exec(body)?.[1] ?? res.headers.get("retry-after") ?? 45);
         if (seconds <= MAX_RETRY_WAIT_S) {
           // Jitter so queued jobs don't all retry in the same second.

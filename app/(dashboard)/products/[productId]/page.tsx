@@ -11,7 +11,9 @@ import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AdCard } from "@/components/creative/AdCard";
 import { AutoRefresh } from "@/components/jobs/AutoRefresh";
-import { isWorking, loadProjectCards } from "@/lib/jobs/projectStatus";
+import { isWorking, loadProjectCards, splitFailures } from "@/lib/jobs/projectStatus";
+import { angleById } from "@/lib/orchestration/angles";
+import { FailureNotices } from "@/components/jobs/FailureNotices";
 
 type ImageAnalysis = {
   suggestedCategory: string;
@@ -52,10 +54,11 @@ export default async function ProductDetailPage({
     primaryImageUrl = signed?.signedUrl ?? null;
   }
 
-  const [cards, { count: shotCount }] = await Promise.all([
+  const [allCards, { count: shotCount }] = await Promise.all([
     loadProjectCards(supabase, { productId }),
     supabase.from("photoshoot_images").select("id", { count: "exact", head: true }).eq("product_id", productId),
   ]);
+  const { visible: cards, failures } = splitFailures(allCards, (c) => `${angleById(c.angle)?.label ?? "An"} ad`);
   const anyWorking = cards.some((card) => isWorking(card.status));
 
   const analysis = primaryImage?.ai_analysis as ImageAnalysis | null;
@@ -64,6 +67,7 @@ export default async function ProductDetailPage({
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <AutoRefresh active={anyWorking} />
+      <FailureNotices failures={failures} noun="ads" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{product.name || "Untitled product"}</h1>

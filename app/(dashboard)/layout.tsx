@@ -4,6 +4,7 @@ import { createClient } from "@/lib/db/supabase/server";
 import { getCreditBalance } from "@/lib/credits/getBalance";
 import { CreditBalanceWidget } from "@/components/dashboard/CreditBalanceWidget";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { Toaster } from "@/components/ui/sonner";
 import { getProfile, greetingName, hasUnlimitedCredits } from "@/lib/profile/getProfile";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -59,6 +60,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      <Toaster richColors position="top-right" />
     </div>
   );
 }
