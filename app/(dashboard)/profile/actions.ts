@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export type UpdateProfileState = { error?: string; success?: boolean };
 
@@ -36,5 +37,44 @@ export async function updateProfile(
   }
 
   revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export type ChangePasswordState = { error?: string; success?: boolean };
+
+const MIN_PASSWORD = 6; // Matches sign-up.
+
+/**
+ * Changes the signed-in user's password. The current password is checked
+ * first, so a session left open on someone else's computer can't be used
+ * to lock the owner out of their own account.
+ */
+export async function changePassword(_prev: ChangePasswordState, formData: FormData): Promise<ChangePasswordState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { error: "Not authenticated." };
+
+  const current = String(formData.get("current") ?? "");
+  const next = String(formData.get("next") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (!current) return { error: "Enter your current password." };
+  if (next.length < MIN_PASSWORD) return { error: `Your new password needs at least ${MIN_PASSWORD} characters.` };
+  if (next !== confirm) return { error: "The new passwords don't match." };
+  if (next === current) return { error: "Choose a password different from your current one." };
+
+  // Verify the current password on a throwaway client, so the check can't
+  // disturb the session in this browser's cookies.
+  const verifier = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error: wrong } = await verifier.auth.signInWithPassword({ email: user.email, password: current });
+  if (wrong) return { error: "Your current password isn't right." };
+  await verifier.auth.signOut();
+
+  const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) return { error: error.message };
   return { success: true };
 }

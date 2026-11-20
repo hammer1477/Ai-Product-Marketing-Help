@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { RoyalChip, tierOf } from "@/components/royal/Royal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "./ProfileForm";
+import { PasswordForm } from "./PasswordForm";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -62,6 +63,16 @@ export default async function ProfilePage() {
         </CardHeader>
         <CardContent>
           <ProfileForm username={profile.username ?? ""} displayName={profile.displayName ?? ""} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Password</CardTitle>
+          <CardDescription>Change the password you log in with. We&apos;ll check your current one first.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PasswordForm />
         </CardContent>
       </Card>
     </div>
