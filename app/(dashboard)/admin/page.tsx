@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CreditsForm, RoleForm } from "./UserRowActions";
+import { MasterPosters } from "@/components/admin/MasterPosters";
 
 // The owner's console. Owner-only (404 for everyone else), and styled as a
 // realm of its own: always dark, oxblood and gold — the one room in the
@@ -203,6 +204,7 @@ export default async function MasterConsole({ searchParams }: { searchParams: Pr
             "radial-gradient(70% 50% at 10% 0%, rgba(127,18,38,0.45), transparent 70%), radial-gradient(60% 50% at 100% 100%, rgba(180,120,20,0.18), transparent 70%)",
         }}
       />
+      <MasterPosters />
       {/* Gold filigree with crowns, like the walls of a throne room. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 opacity-[0.07]" style={{ backgroundImage: FILIGREE }} />
       {/* Velvet glow pooling at the throne. */}

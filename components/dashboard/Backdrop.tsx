@@ -1,3 +1,5 @@
+import { Stickers } from "./Stickers";
+
 // Decorative figures behind the dashboard: soft orbs and floating shapes in
 // the brand colours. Fixed, behind everything, never interactive — and low
 // enough in contrast that content always wins.
@@ -50,6 +52,7 @@ function Figure({ kind, size, color }: { kind: (typeof FIGURES)[number]["kind"];
 export function Backdrop() {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
+      <Stickers />
       {FIGURES.map((f, i) => (
         <div
           key={i}
