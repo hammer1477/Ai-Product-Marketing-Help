@@ -1,11 +1,22 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Crown } from "lucide-react";
 import { createClient } from "@/lib/db/supabase/server";
 import { getCreditBalance } from "@/lib/credits/getBalance";
 import { CreditBalanceWidget } from "@/components/dashboard/CreditBalanceWidget";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { BrandMark } from "@/components/theme/BrandMark";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Toaster } from "@/components/ui/sonner";
 import { getProfile, greetingName, hasUnlimitedCredits } from "@/lib/profile/getProfile";
+
+const NAV = [
+  { href: "/dashboard", label: "Home" },
+  { href: "/products", label: "Products" },
+  { href: "/photoshoot", label: "Photoshoot" },
+  { href: "/brand", label: "Brand" },
+  { href: "/credits", label: "Credits" },
+];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -18,48 +29,58 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const [{ balance, reserved }, profile] = await Promise.all([getCreditBalance(user.id), getProfile(user.id)]);
+  const owner = profile.role === "owner";
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
+    <div className="relative min-h-screen bg-background">
+      {/* A soft wash of the brand colours behind the header. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-60 dark:opacity-40"
+        style={{
+          background:
+            "radial-gradient(60% 100% at 15% 0%, color-mix(in oklab, var(--brand-1) 22%, transparent), transparent), radial-gradient(50% 90% at 85% 0%, color-mix(in oklab, var(--brand-2) 16%, transparent), transparent)",
+        }}
+      />
+      <header className="sticky top-0 z-30 border-b bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <nav className="flex items-center gap-6">
-            <Link href="/dashboard" className="font-semibold">
-              AI Advertising Studio
+          <nav className="flex min-w-0 items-center gap-1 overflow-x-auto">
+            <Link href="/dashboard" className="mr-3 flex shrink-0 items-center gap-2 font-semibold">
+              <BrandMark />
+              <span className="hidden sm:inline">AI Advertising Studio</span>
             </Link>
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-              Dashboard
-            </Link>
-            <Link href="/products" className="text-sm text-muted-foreground hover:text-foreground">
-              Products
-            </Link>
-            <Link href="/photoshoot" className="text-sm text-muted-foreground hover:text-foreground">
-              Photoshoot
-            </Link>
-            <Link href="/brand" className="text-sm text-muted-foreground hover:text-foreground">
-              Brand
-            </Link>
-            <Link href="/credits" className="text-sm text-muted-foreground hover:text-foreground">
-              Credits
-            </Link>
-            {profile.role === "owner" && (
-              <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
-                Admin
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="shrink-0 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            ))}
+            {owner && (
+              <Link
+                href="/admin"
+                className="ml-1 flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/50 bg-gradient-to-r from-amber-500/15 to-rose-600/15 px-3 py-1.5 text-sm font-semibold text-amber-600 transition hover:from-amber-500/25 hover:to-rose-600/25 dark:text-amber-300"
+              >
+                <Crown className="size-3.5" /> Master console
               </Link>
             )}
           </nav>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2.5">
             <Link href="/credits" aria-label="Credits">
               <CreditBalanceWidget balance={balance} reserved={reserved} unlimited={hasUnlimitedCredits(profile.role)} />
             </Link>
-            <Link href="/profile" className="text-sm font-medium hover:underline underline-offset-4">
+            <ThemeToggle />
+            <Link href="/profile" className="hidden text-sm font-medium underline-offset-4 hover:underline md:inline">
+              {owner && <Crown className="mr-1 inline size-3.5 -translate-y-px text-amber-500" />}
               {greetingName(profile, user.email)}
             </Link>
             <SignOutButton />
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      <main className="relative mx-auto max-w-6xl px-4 py-8">{children}</main>
       <Toaster richColors position="top-right" />
     </div>
   );
