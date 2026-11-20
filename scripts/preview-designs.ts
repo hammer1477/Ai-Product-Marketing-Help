@@ -7,6 +7,7 @@
 //   npx tsx scripts/preview-designs.ts --background  (real generated scenes)
 //   npx tsx scripts/preview-designs.ts --format=story (portrait | story | landscape)
 //   npx tsx scripts/preview-designs.ts --logo        (stamps a demo dark wordmark logo)
+//   npx tsx scripts/preview-designs.ts --brand=#bg,#accent,#text,#muted  (a brand kit's exact colours)
 //
 // Output lands in scripts/preview-output/ (gitignored).
 import { mkdir, writeFile } from "node:fs/promises";
@@ -18,6 +19,7 @@ import { removeProductBackdrop, trimTransparentEdges } from "../lib/images/cutou
 import type { ArtDirection, CreativeContent } from "../lib/orchestration/types";
 import { TEMPLATES } from "../lib/orchestration/templates/registry";
 import { formatDef } from "../lib/orchestration/formats";
+import { applyBrandStyle } from "../lib/brand/kit";
 
 const OUT_DIR = path.join(process.cwd(), "scripts/preview-output");
 const USE_BACKGROUND = process.argv.includes("--background");
@@ -155,6 +157,10 @@ async function main() {
       .toBuffer();
     logo = { src: `data:image/png;base64,${mark.toString("base64")}`, aspect: 3, tone: "dark" };
   }
+  const brandArg = process.argv.find((arg) => arg.startsWith("--brand="))?.slice(8).split(",");
+  const brandStyle = brandArg
+    ? applyBrandStyle(style, { colors: { ink: brandArg[0], accent: brandArg[1], text: brandArg[2], muted: brandArg[3] } })
+    : style;
   const tiles: Buffer[] = [];
   for (const template of TEMPLATES) {
     if (only && !only.split(",").includes(template.id)) continue;
@@ -164,7 +170,7 @@ async function main() {
       cutoutApplied: cut.cutoutApplied,
       productAspectRatio: aspectRatio,
       decision: { concept: "graphic_poster", density: "detailed" },
-      style: { ...style, templateId: template.id, format: format.id },
+      style: { ...brandStyle, templateId: template.id, format: format.id },
       backgroundImageUrl: background,
       logo,
     });

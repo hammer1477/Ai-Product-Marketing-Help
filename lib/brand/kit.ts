@@ -81,9 +81,12 @@ export function kitHasLook(kit: BrandKit | null): boolean {
 }
 
 /**
- * The style with the brand's palette and typefaces swapped in — the same
- * fields the editor's palette swatches set, so every template paints a
- * brand palette the way it paints any other.
+ * The style with the brand's palette and typefaces swapped in.
+ *
+ * Brand colours are applied *exactly*, as overrides. Handed over only as a
+ * base palette, templates repaint them to their own scheme — a paper
+ * template swaps the brand background for cream, a dark one muddies a light
+ * background — and the brand's colours never actually appear.
  */
 export function applyBrandStyle(style: ResolvedStyle, kit: BrandKit | null): ResolvedStyle {
   if (!kit) return style;
@@ -97,7 +100,12 @@ export function applyBrandStyle(style: ResolvedStyle, kit: BrandKit | null): Res
       textMuted: kit.colors.muted,
       panel: mix(kit.colors.ink, WHITE, 0.07),
       accent2: undefined,
-      colorOverrides: undefined,
+      colorOverrides: {
+        background: kit.colors.ink,
+        text: kit.colors.text,
+        muted: kit.colors.muted,
+        accent: kit.colors.accent,
+      },
     };
   }
   if (kit.headlineFont || kit.bodyFont) {
@@ -111,4 +119,20 @@ export function applyBrandStyle(style: ResolvedStyle, kit: BrandKit | null): Res
     };
   }
   return next;
+}
+
+/** Whether `style` already carries the kit's colours and fonts. */
+export function brandApplied(style: ResolvedStyle, kit: BrandKit | null): boolean {
+  if (!kit) return false;
+  const o = style.colorOverrides;
+  const colorsOk =
+    !kit.colors ||
+    (o?.background === kit.colors.ink &&
+      o?.text === kit.colors.text &&
+      o?.muted === kit.colors.muted &&
+      o?.accent === kit.colors.accent);
+  const fontsOk =
+    (!kit.headlineFont || style.fontOverrides?.headline === kit.headlineFont) &&
+    (!kit.bodyFont || style.fontOverrides?.body === kit.bodyFont);
+  return colorsOk && fontsOk;
 }

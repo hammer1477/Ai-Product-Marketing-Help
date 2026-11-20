@@ -3,7 +3,7 @@
 import { memo, useDeferredValue, useMemo } from "react";
 import Link from "next/link";
 import { Shuffle, RotateCcw, Check, Stamp } from "lucide-react";
-import { applyBrandStyle, kitHasLook, type BrandKit } from "@/lib/brand/kit";
+import { applyBrandStyle, brandApplied, kitHasLook, type BrandKit } from "@/lib/brand/kit";
 import type { DesignSchema } from "@/lib/design-schema/types";
 import { BODY_FONTS, FONT_FAMILIES, isFontFamily, type FontFamily } from "@/lib/design-schema/fontRegistry";
 import { recomposePoster, type PosterComposition } from "@/lib/orchestration/composition";
@@ -366,15 +366,20 @@ function BrandSection({
         <h3 className="text-sm font-semibold">Brand{kit.brandName ? ` · ${kit.brandName}` : ""}</h3>
       </header>
       <div className="flex flex-wrap gap-2">
-        {kitHasLook(kit) && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onChange({ ...composition, style: applyBrandStyle(composition.style, kit) })}
-          >
-            Apply brand colours &amp; fonts
-          </Button>
-        )}
+        {kitHasLook(kit) &&
+          (brandApplied(composition.style, kit) ? (
+            <span className="flex items-center gap-1.5 px-1 text-xs font-medium text-emerald-600">
+              <Check className="size-3.5" /> Brand colours &amp; fonts on
+            </span>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onChange({ ...composition, style: applyBrandStyle(composition.style, kit) })}
+            >
+              Apply brand colours &amp; fonts
+            </Button>
+          ))}
         {kit.logo && !logo && (
           <Button variant="outline" size="sm" onClick={() => onChange({ ...composition, logo: kit.logo, logoHidden: false })}>
             Add logo

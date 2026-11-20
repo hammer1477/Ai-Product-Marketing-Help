@@ -90,7 +90,7 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
   const reframed = reframeLayers(built.layers, format.id);
   const layers =
     input.logo && !input.logoHidden
-      ? [...reframed, ...placeLogo(reframed, format, input.logo, palette.ground)]
+      ? [...reframed, ...placeLogo(reframed, format, input.logo, palette)]
       : reframed;
 
   // A template that doesn't draw the scene still has to carry it, or
