@@ -4,7 +4,7 @@ import { createClient } from "@/lib/db/supabase/server";
 import { getCreditBalance } from "@/lib/credits/getBalance";
 import { CreditBalanceWidget } from "@/components/dashboard/CreditBalanceWidget";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
-import { getProfile, greetingName } from "@/lib/profile/getProfile";
+import { getProfile, greetingName, hasUnlimitedCredits } from "@/lib/profile/getProfile";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -32,9 +32,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/products" className="text-sm text-muted-foreground hover:text-foreground">
               Products
             </Link>
+            {profile.role === "owner" && (
+              <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
+                Admin
+              </Link>
+            )}
           </nav>
           <div className="flex items-center gap-3">
-            <CreditBalanceWidget balance={balance} reserved={reserved} unlimited={profile.role === "owner"} />
+            <CreditBalanceWidget balance={balance} reserved={reserved} unlimited={hasUnlimitedCredits(profile.role)} />
             <Link href="/profile" className="text-sm font-medium hover:underline underline-offset-4">
               {greetingName(profile, user.email)}
             </Link>

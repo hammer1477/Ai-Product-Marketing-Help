@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/supabase/server";
-import { getProfile, greetingName } from "@/lib/profile/getProfile";
+import { getProfile, greetingName, hasUnlimitedCredits } from "@/lib/profile/getProfile";
 import { getCreditBalance } from "@/lib/credits/getBalance";
 import { formatCredits } from "@/lib/credits/format";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ export default async function ProfilePage() {
     getProfile(user.id),
     getCreditBalance(user.id),
   ]);
-  const isOwner = profile.role === "owner";
+  const unlimited = hasUnlimitedCredits(profile.role);
   const spendable = Number(balance) - Number(reserved);
   const name = greetingName(profile, user.email);
 
@@ -31,7 +31,7 @@ export default async function ProfilePage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{name}</h1>
-            {isOwner && <Badge>Owner</Badge>}
+            {profile.role !== "user" && <Badge className="capitalize">{profile.role}</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
@@ -44,9 +44,9 @@ export default async function ProfilePage() {
         </CardHeader>
         <CardContent>
           <p className="text-3xl font-semibold">
-            {isOwner ? "Unlimited" : formatCredits(spendable)}
+            {unlimited ? "Unlimited" : formatCredits(spendable)}
           </p>
-          {!isOwner && reserved > 0 && (
+          {!unlimited && reserved > 0 && (
             <p className="mt-1 text-sm text-muted-foreground">
               {formatCredits(Number(reserved))} held for generations in progress
             </p>

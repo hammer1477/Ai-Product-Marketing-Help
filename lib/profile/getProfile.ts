@@ -3,8 +3,20 @@ import { createClient } from "@/lib/db/supabase/server";
 export type Profile = {
   username: string | null;
   displayName: string | null;
-  role: "user" | "owner";
+  role: Role;
 };
+
+export const ROLES = ["user", "family", "owner"] as const;
+export type Role = (typeof ROLES)[number];
+
+export function isRole(value: unknown): value is Role {
+  return typeof value === "string" && (ROLES as readonly string[]).includes(value);
+}
+
+/** Owner and family generate for free; only owners can open the admin portal. */
+export function hasUnlimitedCredits(role: Role): boolean {
+  return role === "owner" || role === "family";
+}
 
 export async function getProfile(userId: string): Promise<Profile> {
   const supabase = await createClient();
@@ -17,7 +29,7 @@ export async function getProfile(userId: string): Promise<Profile> {
   return {
     username: data?.username ?? null,
     displayName: data?.display_name ?? null,
-    role: data?.role === "owner" ? "owner" : "user",
+    role: isRole(data?.role) ? data.role : "user",
   };
 }
 
