@@ -183,6 +183,8 @@ export type ResolvedStyle = StylePreset & {
   copyAngle?: string;
   /** Canvas size. Absent means square, which every design before formats was. */
   format?: AdFormat;
+  /** User's text size: 0.85 compact, 1 regular, 1.15 large. Fitting shrinks from here. */
+  textScale?: number;
   /** Whose palette the design wears. Absent on designs from before the choice existed. */
   colorSource?: ColorSource;
   /**

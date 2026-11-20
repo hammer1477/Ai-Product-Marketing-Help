@@ -29,6 +29,12 @@ import { cn } from "@/lib/utils";
 // the composition's style, and the poster is re-laid-out from it — so a
 // template switch re-flows the copy rather than restyling stale geometry.
 
+const TEXT_SIZES = [
+  { label: "Compact", scale: 0.85, hint: "Fits the most" },
+  { label: "Regular", scale: 1, hint: "As designed" },
+  { label: "Large", scale: 1.15, hint: "Bold, fewer facts" },
+];
+
 const COLOR_FIELDS: Array<{ key: keyof ColorOverrides; label: string }> = [
   { key: "background", label: "Background" },
   { key: "text", label: "Text" },
@@ -116,6 +122,39 @@ export function StylePanel({
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground">{f.usage}</span>
                 </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <header>
+          <h3 className="text-sm font-semibold">Text size</h3>
+          <p className="text-xs text-muted-foreground">
+            Compact fits more specs and features on the ad. Every design also tightens its type a little before it
+            ever cuts content.
+          </p>
+        </header>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Text size">
+          {TEXT_SIZES.map((t) => {
+            const on = Math.abs((style.textScale ?? 1) - t.scale) < 0.01;
+            return (
+              <button
+                key={t.label}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => setStyle({ textScale: t.scale === 1 ? undefined : t.scale })}
+                className={cn(
+                  "rounded-lg border p-2 text-left transition",
+                  on ? "border-foreground bg-foreground/5 ring-1 ring-foreground" : "hover:bg-muted",
+                )}
+              >
+                <span className="block font-semibold" style={{ fontSize: 13 * t.scale }}>
+                  {t.label}
+                </span>
+                <span className="block text-[11px] text-muted-foreground">{t.hint}</span>
               </button>
             );
           })}

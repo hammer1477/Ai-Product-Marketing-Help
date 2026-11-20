@@ -29,6 +29,7 @@ import {
   typeBehind,
   y2kOrbit,
 } from "./catalog/graphic";
+import { catalogPage, factBoard, specSheet } from "./catalog/dense";
 
 export type { TemplateDef, TemplateTag };
 
@@ -59,6 +60,10 @@ export const TEMPLATES: TemplateDef[] = [
   spotlight,
   editorialCorner,
   specCallout,
+  // Information-first designs, for sellers who want every fact on the ad.
+  specSheet,
+  factBoard,
+  catalogPage,
 ];
 
 const BY_ID = new Map(TEMPLATES.map((t) => [t.id, t]));

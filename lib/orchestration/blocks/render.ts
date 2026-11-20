@@ -20,7 +20,19 @@ export type BlockContext = {
   align: "left" | "center";
   /** Index within the stack, so repeated blocks get unique layer ids. */
   key: string;
+  /** Shrink chosen by the fitting pass so more content fits; 1 = as designed. */
+  scale?: number;
 };
+
+/** Text scale for a block: the fitting pass's shrink times the user's text size. */
+function k(ctx: BlockContext): number {
+  return (ctx.scale ?? 1) * (ctx.style.textScale ?? 1);
+}
+
+/** A design size in px, at this block's scale. Never below legible. */
+function px(ctx: BlockContext, n: number): number {
+  return Math.max(9, Math.round(n * k(ctx)));
+}
 
 export function renderBlock(block: Block, ctx: BlockContext): Built {
   switch (block.type) {
@@ -52,7 +64,11 @@ export function renderBlock(block: Block, ctx: BlockContext): Built {
 }
 
 /** Vertical gap to leave *after* a block, in px. */
-export function gapAfter(block: Block, next: Block | undefined): number {
+export function gapAfter(block: Block, next: Block | undefined, scale = 1): number {
+  return Math.round(baseGap(block, next) * scale);
+}
+
+function baseGap(block: Block, next: Block | undefined): number {
   if (!next) return 0;
   if (block.type === "badge") return 24;
   if (block.type === "headline") return next.type === "subheadline" ? 14 : next.type === "description" ? 20 : 26;
@@ -86,10 +102,10 @@ function renderBadge(label: string, ctx: BlockContext): Built {
     stroke: ctx.style.accent,
     textColor: ctx.style.accent,
     fontFamily: body(ctx),
-    fontSize: 13,
+    fontSize: px(ctx, 13),
     fontWeight: 600,
     letterSpacing: 2.4,
-    paddingX: 22,
+    paddingX: px(ctx, 22),
     maxWidth: ctx.width,
   });
 }
@@ -103,7 +119,9 @@ export function headlineBaseSize(width: number): number {
 
 function renderHeadline(content: string, ctx: BlockContext): Built {
   const s = ctx.style;
-  const size = Math.round(headlineBaseSize(ctx.width) * (s.headlineScale ?? 1));
+  // Display type follows body text size only gently: it's the one line
+  // that must stay big when everything else tightens.
+  const size = Math.round(headlineBaseSize(ctx.width) * (s.headlineScale ?? 1) * Math.sqrt(k(ctx)));
 
   return text({
     id: `${ctx.key}-headline`,
@@ -138,14 +156,14 @@ function renderSubheadline(content: string, ctx: BlockContext): Built {
     y: ctx.y,
     maxWidth: ctx.width,
     fontFamily: body(ctx),
-    fontSize: ctx.width > 640 ? 26 : 23,
+    fontSize: px(ctx, ctx.width > 640 ? 26 : 23),
     fontWeight: 500,
     color: ctx.style.textPrimary,
     textAlign: ctx.align,
     lineHeight: 1.3,
     maxLines: 2,
     autoFit: true,
-    minFontSize: 17,
+    minFontSize: px(ctx, 17),
   });
 }
 
@@ -158,7 +176,7 @@ function renderDescription(content: string, ctx: BlockContext): Built {
     y: ctx.y,
     maxWidth: ctx.width,
     fontFamily: body(ctx),
-    fontSize: 20,
+    fontSize: px(ctx, 20),
     fontWeight: 400,
     color: ctx.style.textMuted,
     textAlign: ctx.align,
@@ -169,8 +187,9 @@ function renderDescription(content: string, ctx: BlockContext): Built {
 
 function renderFeatureList(items: string[], ctx: BlockContext, icons?: string[]): Built {
   const layers: DesignLayer[] = [];
-  const iconSize = 20;
-  const indent = ctx.align === "center" ? 0 : iconSize + 14;
+  const iconSize = px(ctx, 20);
+  const rowGap = px(ctx, 14);
+  const indent = ctx.align === "center" ? 0 : iconSize + px(ctx, 14);
   let cursor = ctx.y;
   let widest = 0;
 
@@ -183,7 +202,7 @@ function renderFeatureList(items: string[], ctx: BlockContext, icons?: string[])
       y: cursor,
       maxWidth: ctx.width - indent,
       fontFamily: body(ctx),
-      fontSize: 17,
+      fontSize: px(ctx, 17),
       fontWeight: 500,
       color: ctx.style.textPrimary,
       textAlign: ctx.align,
@@ -209,10 +228,10 @@ function renderFeatureList(items: string[], ctx: BlockContext, icons?: string[])
     widest = Math.max(widest, row.width + indent);
     // Advance by the row's own measured height, so a bullet that wraps to
     // two lines pushes the next one down instead of printing through it.
-    cursor += row.height + 14;
+    cursor += row.height + rowGap;
   });
 
-  return { layers, height: cursor - ctx.y - 14, width: widest };
+  return { layers, height: cursor - ctx.y - rowGap, width: widest };
 }
 
 function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockContext): Built {
@@ -231,7 +250,7 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
 
     const labelMetrics = measureTextBlock(item.label.toUpperCase(), cellWidth, {
       fontFamily: body(ctx),
-      fontSize: 12,
+      fontSize: px(ctx, 12),
       fontWeight: 600,
       letterSpacing: 1.4,
       lineHeight: 1.3,
@@ -239,13 +258,13 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
     });
     const valueMetrics = measureTextBlock(item.value, cellWidth, {
       fontFamily: body(ctx),
-      fontSize: 19,
+      fontSize: px(ctx, 19),
       fontWeight: 700,
       lineHeight: 1.25,
       maxLines: 2,
     });
 
-    const height = labelMetrics.height + 6 + valueMetrics.height;
+    const height = labelMetrics.height + px(ctx, 6) + valueMetrics.height;
     rowHeights[row] = Math.max(rowHeights[row] ?? 0, height);
     return { item, column, row, labelMetrics, valueMetrics };
   });
@@ -256,7 +275,7 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
   let offset = 0;
   rowHeights.forEach((height, index) => {
     rowOffsets[index] = offset;
-    offset += height + 20;
+    offset += height + px(ctx, 20);
   });
 
   for (const cell of cells) {
@@ -272,7 +291,7 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
         y: cellY,
         maxWidth: cellWidth,
         fontFamily: body(ctx),
-        fontSize: 12,
+        fontSize: px(ctx, 12),
         fontWeight: 600,
         color: ctx.style.accent,
         textAlign: ctx.align,
@@ -285,10 +304,10 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
         role: "sellingPoint",
         content: cell.item.value,
         x: cellX,
-        y: cellY + cell.labelMetrics.height + 6,
+        y: cellY + cell.labelMetrics.height + px(ctx, 6),
         maxWidth: cellWidth,
         fontFamily: body(ctx),
-        fontSize: 19,
+        fontSize: px(ctx, 19),
         fontWeight: 700,
         color: ctx.style.textPrimary,
         textAlign: ctx.align,
@@ -298,18 +317,18 @@ function renderSpecGrid(items: { label: string; value: string }[], ctx: BlockCon
     );
   }
 
-  return { layers, height: Math.max(0, offset - 20), width: ctx.width };
+  return { layers, height: Math.max(0, offset - px(ctx, 20)), width: ctx.width };
 }
 
 function renderStatRow(items: { label: string; value: string }[], ctx: BlockContext): Built {
-  const columns = Math.min(items.length, 3);
+  const columns = Math.min(items.length, 4);
   const gutter = 18;
   const cellWidth = Math.floor((ctx.width - gutter * (columns - 1)) / columns);
   const layers: DesignLayer[] = [];
 
   // Figures are the loudest thing in the library, so they get display
   // weight and the accent colour — a poster needs at most one of these.
-  const valueSize = cellWidth > 200 ? 44 : 36;
+  const valueSize = px(ctx, cellWidth > 200 ? 44 : 36);
   let tallest = 0;
 
   items.slice(0, columns).forEach((item, i) => {
@@ -330,7 +349,7 @@ function renderStatRow(items: { label: string; value: string }[], ctx: BlockCont
       lineHeight: 1.05,
       maxLines: 1,
       autoFit: true,
-      minFontSize: 24,
+      minFontSize: px(ctx, 24),
     });
 
     const caption = text({
@@ -338,10 +357,10 @@ function renderStatRow(items: { label: string; value: string }[], ctx: BlockCont
       role: "sellingPoint",
       content: item.label,
       x: cellX,
-      y: ctx.y + value.height + 6,
+      y: ctx.y + value.height + px(ctx, 6),
       maxWidth: cellWidth,
       fontFamily: body(ctx),
-      fontSize: 14,
+      fontSize: px(ctx, 14),
       fontWeight: 500,
       color: ctx.style.textMuted,
       textAlign: ctx.align === "center" ? "center" : "left",
@@ -350,7 +369,7 @@ function renderStatRow(items: { label: string; value: string }[], ctx: BlockCont
     });
 
     layers.push(...value.layers, ...caption.layers);
-    tallest = Math.max(tallest, value.height + 6 + caption.height);
+    tallest = Math.max(tallest, value.height + px(ctx, 6) + caption.height);
   });
 
   return { layers, height: tallest, width: ctx.width };
@@ -361,7 +380,7 @@ function renderPriceBlock(
   ctx: BlockContext,
 ): Built {
   const layers: DesignLayer[] = [];
-  const priceSize = 46;
+  const priceSize = px(ctx, 46);
 
   const price = text({
     id: `${ctx.key}-price`,
@@ -378,7 +397,7 @@ function renderPriceBlock(
     lineHeight: 1.1,
     maxLines: 1,
     autoFit: true,
-    minFontSize: 28,
+    minFontSize: px(ctx, 28),
   });
   layers.push(...price.layers);
 
@@ -387,7 +406,7 @@ function renderPriceBlock(
   // The comparison price sits on the price's baseline rather than under it,
   // which is how it reads as "was X, now Y" instead of two separate facts.
   if (block.compareAt) {
-    const compareSize = 22;
+    const compareSize = px(ctx, 22);
     const compareX =
       ctx.align === "center"
         ? Math.round(centreX(ctx) + price.width / 2 + 14)
@@ -446,7 +465,7 @@ function renderPriceBlock(
       y: ctx.y + price.height + 4,
       maxWidth: ctx.width,
       fontFamily: body(ctx),
-      fontSize: 14,
+      fontSize: px(ctx, 14),
       fontWeight: 400,
       color: ctx.style.textMuted,
       textAlign: ctx.align,
@@ -462,11 +481,12 @@ function renderPriceBlock(
 
 function renderRating(stars: number, caption: string, ctx: BlockContext): Built {
   const layers: DesignLayer[] = [];
-  const starSize = 19;
+  const starSize = px(ctx, 19);
+  const captionSize = px(ctx, 15);
   const starGap = 5;
   const starsWidth = stars * starSize + (stars - 1) * starGap;
   const captionWidth = Math.ceil(
-    measureTextWidth(caption, { fontFamily: body(ctx), fontSize: 15, fontWeight: 500 }),
+    measureTextWidth(caption, { fontFamily: body(ctx), fontSize: captionSize, fontWeight: 500 }),
   );
   const totalWidth = starsWidth + 12 + captionWidth;
 
@@ -496,7 +516,7 @@ function renderRating(stars: number, caption: string, ctx: BlockContext): Built 
       y: ctx.y + 1,
       maxWidth: captionWidth + 4,
       fontFamily: body(ctx),
-      fontSize: 15,
+      fontSize: captionSize,
       fontWeight: 500,
       color: ctx.style.textMuted,
       textAlign: "left",
@@ -520,7 +540,7 @@ function renderTrustStrip(items: string[], ctx: BlockContext): Built {
     y: ctx.y,
     maxWidth: ctx.width,
     fontFamily: body(ctx),
-    fontSize: 14,
+    fontSize: px(ctx, 14),
     fontWeight: 500,
     color: ctx.style.textMuted,
     textAlign: ctx.align,
@@ -536,6 +556,7 @@ function renderCta(label: string, ctx: BlockContext): Built {
     y: ctx.y,
     anchor: ctx.align === "center" ? "center" : "left",
     maxWidth: ctx.width,
+    scale: k(ctx),
   });
 }
 
@@ -546,8 +567,10 @@ function renderCta(label: string, ctx: BlockContext): Built {
 export function ctaButton(
   label: string,
   style: ResolvedStyle,
-  at: { id: string; x: number; y: number; anchor: "left" | "center"; maxWidth: number; zIndex?: number },
+  at: { id: string; x: number; y: number; anchor: "left" | "center"; maxWidth: number; zIndex?: number; scale?: number },
 ): Built {
+  // Gently, like the headline: the button must stay an obvious target.
+  const s = Math.sqrt(at.scale ?? style.textScale ?? 1);
   return pill({
     id: at.id,
     role: "ctaLabel",
@@ -560,10 +583,10 @@ export function ctaButton(
     edge: style.ctaStyle === "brutal" ? style.textPrimary : style.accent,
     variant: style.ctaStyle ?? "pill",
     fontFamily: style.bodyFont ?? "Inter",
-    fontSize: 16,
+    fontSize: Math.round(16 * s),
     fontWeight: 700,
     letterSpacing: 1.6,
-    paddingX: 34,
+    paddingX: Math.round(34 * s),
     maxWidth: at.maxWidth,
     zIndex: at.zIndex,
   });

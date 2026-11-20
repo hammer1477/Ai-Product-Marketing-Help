@@ -44,7 +44,7 @@ const ADDABLE: Array<{ type: Block["type"]; hint: string; make: (price?: string)
 ];
 
 /** How many items each list holds before the design gets crowded. */
-const LIST_LIMITS: Partial<Record<Block["type"], number>> = { featureList: 6, specGrid: 8, statRow: 4, trustStrip: 4 };
+const LIST_LIMITS: Partial<Record<Block["type"], number>> = { featureList: 10, specGrid: 12, statRow: 4, trustStrip: 6 };
 
 export function BlockEditPanel({
   blocks,
