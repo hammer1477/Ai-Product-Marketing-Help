@@ -6,6 +6,7 @@
 //   npx tsx scripts/preview-designs.ts --palette="Noir Gold"
 //   npx tsx scripts/preview-designs.ts --background  (real generated scenes)
 //   npx tsx scripts/preview-designs.ts --format=story (portrait | story | landscape)
+//   npx tsx scripts/preview-designs.ts --logo        (stamps a demo dark wordmark logo)
 //
 // Output lands in scripts/preview-output/ (gitignored).
 import { mkdir, writeFile } from "node:fs/promises";
@@ -143,6 +144,17 @@ async function main() {
   const format = formatDef(process.argv.find((arg) => arg.startsWith("--format="))?.slice(9));
   const tileW = format.width >= format.height ? 360 : Math.round((360 * format.width) / format.height);
   const tileH = format.height >= format.width ? 360 : Math.round((360 * format.height) / format.width);
+  let logo: { src: string; aspect: number; tone: "light" | "dark" } | undefined;
+  if (process.argv.includes("--logo")) {
+    const mark = await sharp(
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="120"><circle cx="60" cy="60" r="44" fill="#1d1d1f"/><text x="120" y="80" font-family="Arial Black, Arial" font-weight="900" font-size="56" fill="#1d1d1f">ACME</text></svg>`,
+      ),
+    )
+      .png()
+      .toBuffer();
+    logo = { src: `data:image/png;base64,${mark.toString("base64")}`, aspect: 3, tone: "dark" };
+  }
   const tiles: Buffer[] = [];
   for (const template of TEMPLATES) {
     if (only && !only.split(",").includes(template.id)) continue;
@@ -154,6 +166,7 @@ async function main() {
       decision: { concept: "graphic_poster", density: "detailed" },
       style: { ...style, templateId: template.id, format: format.id },
       backgroundImageUrl: background,
+      logo,
     });
 
     const png = await renderSchemaToPng(schema, { scale: 1 });

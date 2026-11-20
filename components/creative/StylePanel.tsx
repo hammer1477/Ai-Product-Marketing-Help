@@ -1,7 +1,9 @@
 "use client";
 
 import { memo, useDeferredValue, useMemo } from "react";
-import { Shuffle, RotateCcw, Check } from "lucide-react";
+import Link from "next/link";
+import { Shuffle, RotateCcw, Check, Stamp } from "lucide-react";
+import { applyBrandStyle, kitHasLook, type BrandKit } from "@/lib/brand/kit";
 import type { DesignSchema } from "@/lib/design-schema/types";
 import { BODY_FONTS, FONT_FAMILIES, isFontFamily, type FontFamily } from "@/lib/design-schema/fontRegistry";
 import { recomposePoster, type PosterComposition } from "@/lib/orchestration/composition";
@@ -32,11 +34,13 @@ export function StylePanel({
   schema,
   composition,
   onChange,
+  brandKit = null,
 }: {
   /** The saved schema, for its images. */
   schema: DesignSchema;
   composition: PosterComposition;
   onChange: (next: PosterComposition) => void;
+  brandKit?: BrandKit | null;
 }) {
   const style = composition.style;
   const current = templateFor(style);
@@ -70,6 +74,8 @@ export function StylePanel({
 
   return (
     <div className="flex flex-col gap-6">
+      <BrandSection composition={composition} onChange={onChange} kit={brandKit} />
+
       <section className="flex flex-col gap-3">
         <header>
           <h3 className="text-sm font-semibold">Size</h3>
@@ -328,3 +334,68 @@ const TemplateGallery = memo(function TemplateGallery({
     </div>
   );
 });
+
+function BrandSection({
+  composition,
+  onChange,
+  kit,
+}: {
+  composition: PosterComposition;
+  onChange: (next: PosterComposition) => void;
+  kit: BrandKit | null;
+}) {
+  if (!kit) {
+    return (
+      <p className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+        <Stamp className="size-3.5 shrink-0" />
+        <span>
+          <Link href="/brand" className="font-medium text-foreground underline underline-offset-4">
+            Set up a brand kit
+          </Link>{" "}
+          to put your logo, colours and fonts on every ad.
+        </span>
+      </p>
+    );
+  }
+
+  const logo = composition.logo;
+  return (
+    <section className="flex flex-col gap-2.5 rounded-lg border p-3">
+      <header className="flex items-center gap-2">
+        <Stamp className="size-3.5" />
+        <h3 className="text-sm font-semibold">Brand{kit.brandName ? ` · ${kit.brandName}` : ""}</h3>
+      </header>
+      <div className="flex flex-wrap gap-2">
+        {kitHasLook(kit) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onChange({ ...composition, style: applyBrandStyle(composition.style, kit) })}
+          >
+            Apply brand colours &amp; fonts
+          </Button>
+        )}
+        {kit.logo && !logo && (
+          <Button variant="outline" size="sm" onClick={() => onChange({ ...composition, logo: kit.logo, logoHidden: false })}>
+            Add logo
+          </Button>
+        )}
+        {logo && (
+          <label className="flex items-center gap-2 px-1 text-xs font-medium">
+            <input
+              type="checkbox"
+              checked={!composition.logoHidden}
+              onChange={(e) => onChange({ ...composition, logoHidden: !e.target.checked })}
+            />
+            Show logo
+          </label>
+        )}
+        {logo && kit.logo && logo.src !== kit.logo.src && (
+          <Button variant="ghost" size="sm" onClick={() => onChange({ ...composition, logo: kit.logo, logoHidden: false })}>
+            Use latest logo
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}

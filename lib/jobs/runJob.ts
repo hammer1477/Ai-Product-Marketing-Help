@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from "../db/supabase/server";
 import { runCreativeGeneration } from "../orchestration/engine";
+import { runPhotoshootShot } from "../photoshoot/run";
 
 export type RunJobResult =
   | { claimed: false }
@@ -26,7 +27,8 @@ export async function runJob(targetJobId?: string): Promise<RunJobResult> {
   const job = claimedJobs[0];
 
   try {
-    await runCreativeGeneration(job.id);
+    if (job.kind === "photoshoot") await runPhotoshootShot(job.id);
+    else await runCreativeGeneration(job.id);
     const { error: finalizeError } = await supabase.rpc("finalize_credits", { p_job_id: job.id });
     if (finalizeError) throw new Error(`Failed to finalize credits: ${finalizeError.message}`);
     return { claimed: true, jobId: job.id, success: true };

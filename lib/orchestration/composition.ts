@@ -4,6 +4,7 @@ import type { ResolvedStyle } from "./styles";
 import type { Block, BlockType } from "./blocks/types";
 import { composePosterSchema } from "./templates/poster";
 import type { Fact } from "./factSheet";
+import type { BrandLogo } from "../brand/kit";
 
 // Lets a saved design be re-laid-out instead of only patched.
 //
@@ -25,6 +26,8 @@ export type PosterComposition = {
   sceneUrl?: string;
   /** Everything extraction found — the editor offers the unused ones. */
   facts?: Fact[];
+  logo?: BrandLogo;
+  logoHidden?: boolean;
 };
 
 /**
@@ -52,6 +55,19 @@ export function readComposition(schema: DesignSchema): PosterComposition | null 
     placedTypes: Array.isArray(candidate.placedTypes) ? candidate.placedTypes : undefined,
     sceneUrl: typeof candidate.sceneUrl === "string" ? candidate.sceneUrl : undefined,
     facts: Array.isArray(candidate.facts) ? candidate.facts : undefined,
+    logo: readLogo(candidate.logo),
+    logoHidden: candidate.logoHidden === true,
+  };
+}
+
+function readLogo(raw: unknown): BrandLogo | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const logo = raw as Partial<BrandLogo>;
+  if (typeof logo.src !== "string" || !logo.src.startsWith("data:image/")) return undefined;
+  return {
+    src: logo.src,
+    aspect: typeof logo.aspect === "number" && logo.aspect > 0 ? logo.aspect : 1,
+    tone: logo.tone === "light" ? "light" : "dark",
   };
 }
 
@@ -90,5 +106,7 @@ export function recomposePoster(schema: DesignSchema, composition: PosterComposi
     productAspectRatio: composition.productAspectRatio,
     productName: composition.productName,
     facts: composition.facts,
+    logo: composition.logo,
+    logoHidden: composition.logoHidden,
   });
 }

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { runJob } from "@/lib/jobs/runJob";
+
+// Generation can wait out an image provider's rate limit (see the
+// Pollinations provider), so allow the full budget.
+export const maxDuration = 300;
 import { createServiceRoleClient } from "@/lib/db/supabase/server";
 
 const MAX_JOBS_PER_INVOCATION = 5;

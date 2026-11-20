@@ -16,6 +16,8 @@ import { normalizeFactSheet, type FactSheet } from "./factSheet";
 import { normalizeDesignBrief } from "./designBrief";
 import { generateCreative } from "./creative";
 import { toModelImage } from "../images/modelImage";
+import { applyBrandStyle, BRAND_KIT_COLUMNS, readBrandKit } from "../brand/kit";
+import { angleById } from "./angles";
 
 const EXPORT_SCALE = 2;
 
@@ -50,7 +52,7 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
 
   const { data: project, error: projectError } = await supabase
     .from("creative_projects")
-    .select("id, product_id, design_schema")
+    .select("id, product_id, design_schema, angle, variant_index, campaign_id")
     .eq("id", job.creative_project_id)
     .single();
   if (projectError || !project) throw new Error(`Creative project not found: ${job.creative_project_id}`);
@@ -135,14 +137,31 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
 
   // One call: it extracts the fact sheet first, then writes the copy,
   // composition, art direction and design brief from it.
-  const contentPromise = generateCreative({ provider: textProvider, brief, analysis, image: modelImage, history });
+  const { data: kitRow } = await supabase
+    .from("brand_kits")
+    .select(BRAND_KIT_COLUMNS)
+    .eq("user_id", job.user_id)
+    .maybeSingle();
+  const brand = readBrandKit(kitRow);
+  const angle = angleById(project.angle);
+
+  const contentPromise = generateCreative({
+    provider: textProvider,
+    brief,
+    analysis,
+    image: modelImage,
+    history,
+    brand,
+    angle,
+  });
 
   const [{ data: content }, productAssets] = await Promise.all([contentPromise, productAssetsPromise]);
 
   const factSheet = normalizeFactSheet(content.factSheet as Partial<FactSheet> | undefined, brief);
   const designBrief = normalizeDesignBrief(content.designBrief);
   const style: ResolvedStyle = {
-    ...resolveStyle(preset, content.artDirection),
+    // The brand kit's palette and fonts win over the art director's.
+    ...applyBrandStyle(resolveStyle(preset, content.artDirection), brand),
     accent2: designBrief.secondaryAccent,
     // Recorded on the style so the next regeneration can steer away from it.
     copyAngle: designBrief.copyAngle,
@@ -170,6 +189,18 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
       return undefined;
     });
 
+  // A campaign variant draws from its own slice of the catalogue, so the
+  // ads in one campaign never share a design. Only on the first run — a
+  // regeneration is already steered away from what it made before.
+  let slice: { index: number; of: number } | undefined;
+  if (project.campaign_id && project.variant_index !== null && !project.design_schema) {
+    const { count } = await supabase
+      .from("creative_projects")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", project.campaign_id);
+    if (count && count > 1) slice = { index: project.variant_index, of: count };
+  }
+
   const schema = composeDesignSchema(
     {
       content,
@@ -179,14 +210,16 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
       decision,
       style,
       backgroundImageUrl,
-      displayName: designBrief.displayName,
+      displayName: brand?.brandName && !designBrief.displayName ? brand.brandName : designBrief.displayName,
       facts: factSheet.facts,
+      logo: brand?.logo,
     },
     {
       category: brief.category,
       objective: brief.objective,
       recent: history.templates,
       preferred: designBrief.templatePreferences,
+      slice,
     },
   );
 

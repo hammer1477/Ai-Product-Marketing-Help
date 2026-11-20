@@ -4,6 +4,8 @@ import { createClient } from "@/lib/db/supabase/server";
 import { GenerationTrigger } from "./GenerationTrigger";
 import { CreativeEditor } from "./CreativeEditor";
 import { Badge } from "@/components/ui/badge";
+import { BRAND_KIT_COLUMNS, readBrandKit } from "@/lib/brand/kit";
+import { angleById } from "@/lib/orchestration/angles";
 
 export default async function CreativeProjectPage({
   params,
@@ -23,6 +25,14 @@ export default async function CreativeProjectPage({
     notFound();
   }
 
+  const { data: kitRow } = await supabase
+    .from("brand_kits")
+    .select(BRAND_KIT_COLUMNS)
+    .eq("user_id", project.user_id)
+    .maybeSingle();
+  const brandKit = readBrandKit(kitRow);
+  const angle = angleById(project.angle);
+
   const product = project.products as unknown as { id: string; name: string } | null;
 
   return (
@@ -37,13 +47,14 @@ export default async function CreativeProjectPage({
           <h1 className="text-2xl font-semibold">Creative project</h1>
           {project.concept && <Badge variant="secondary">{project.concept.replace("_", " ")}</Badge>}
           {project.density && <Badge variant="outline">{project.density}</Badge>}
+          {angle && <Badge variant="outline">{angle.label}</Badge>}
         </div>
       </div>
 
       <GenerationTrigger projectId={projectId} hasSchema={Boolean(project.design_schema)} />
 
       {project.design_schema ? (
-        <CreativeEditor key={JSON.stringify(project.design_schema)} projectId={projectId} initialSchema={project.design_schema} />
+        <CreativeEditor key={JSON.stringify(project.design_schema)} projectId={projectId} initialSchema={project.design_schema} brandKit={brandKit} />
       ) : (
         <p className="text-sm text-muted-foreground">
           No creative generated yet. Click "Generate creative" above to get started.

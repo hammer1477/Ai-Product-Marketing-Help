@@ -5,6 +5,7 @@ import { composePosterSchema, templateContentScore, type PosterInput } from "./t
 import { normalizeBlocks } from "./blocks/types";
 import { chooseTemplate } from "./templates/registry";
 import type { Fact } from "./factSheet";
+import type { BrandLogo } from "../brand/kit";
 
 export type ComposeInput = {
   content: CreativeContent;
@@ -19,6 +20,7 @@ export type ComposeInput = {
   /** Short name for display type; defaults to the product name. */
   displayName?: string;
   facts?: Fact[];
+  logo?: BrandLogo;
 };
 
 /** Normalised blocks plus the poster input, before a template is chosen. */
@@ -43,6 +45,7 @@ export function posterInputFor(input: ComposeInput): PosterInput {
     productAspectRatio: input.productAspectRatio,
     productName: input.displayName ?? content.productName,
     facts: input.facts,
+    logo: input.logo,
   };
 }
 
@@ -52,7 +55,13 @@ export function posterInputFor(input: ComposeInput): PosterInput {
  */
 export function composeDesignSchema(
   input: ComposeInput,
-  choice: { category: string; objective: string | null; recent: string[]; preferred?: string[] } = {
+  choice: {
+    category: string;
+    objective: string | null;
+    recent: string[];
+    preferred?: string[];
+    slice?: { index: number; of: number };
+  } = {
     category: "",
     objective: null,
     recent: [],
@@ -68,6 +77,7 @@ export function composeDesignSchema(
       concept: input.decision.concept,
       recent: choice.recent,
       preferred: choice.preferred,
+      slice: choice.slice,
       score: (template) => templateContentScore(poster, template),
     }).id;
 

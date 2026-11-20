@@ -12,13 +12,16 @@ import { UnusedFacts } from "@/components/creative/UnusedFacts";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { saveDesignSchema } from "./actions";
+import type { BrandKit } from "@/lib/brand/kit";
 
 export function CreativeEditor({
   projectId,
   initialSchema,
+  brandKit = null,
 }: {
   projectId: string;
   initialSchema: DesignSchema;
+  brandKit?: BrandKit | null;
 }) {
   const initialComposition = useMemo(() => readComposition(initialSchema), [initialSchema]);
 
@@ -72,7 +75,7 @@ export function CreativeEditor({
               <TabsTrigger value="content">Content</TabsTrigger>
             </TabsList>
             <TabsContent value="design" className="pt-3">
-              <StylePanel schema={initialSchema} composition={composition} onChange={setComposition} />
+              <StylePanel schema={initialSchema} composition={composition} onChange={setComposition} brandKit={brandKit} />
             </TabsContent>
             <TabsContent value="content" className="flex flex-col gap-5 pt-3">
               <UnusedFacts

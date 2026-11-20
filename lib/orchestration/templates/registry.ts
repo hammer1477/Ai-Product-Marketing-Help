@@ -108,6 +108,12 @@ export type ChooseInput = {
   preferred?: string[];
   /** Injectable for tests; defaults to Math.random. */
   random?: () => number;
+  /**
+   * Restrict the choice to every `of`-th template starting at `index`.
+   * Campaign siblings generate in parallel and can't see each other's
+   * picks; disjoint slices guarantee they never land on the same design.
+   */
+  slice?: { index: number; of: number };
 };
 
 /**
@@ -132,7 +138,11 @@ export function chooseTemplate(input: ChooseInput): TemplateDef {
   // Avoid everything recent, but never so much that the pool runs dry.
   const memory = Math.min(input.recent.length, TEMPLATES.length - 6);
   const avoid = new Set(input.recent.slice(0, memory));
-  let pool = TEMPLATES.filter((t) => !avoid.has(t.id));
+  const sliced = input.slice && input.slice.of > 1
+    ? TEMPLATES.filter((_, i) => i % input.slice!.of === input.slice!.index % input.slice!.of)
+    : TEMPLATES;
+  let pool = sliced.filter((t) => !avoid.has(t.id));
+  if (pool.length === 0) pool = [...sliced];
 
   const scores = new Map(pool.map((t) => [t.id, input.score(t)]));
   const best = Math.max(...scores.values());

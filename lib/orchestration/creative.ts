@@ -2,6 +2,8 @@ import type { ImageAnalysisResult, TextGenerationProvider } from "../ai/provider
 import { creativeSchemaWithBrief, TEMPLATE_CATALOGUE } from "./designBrief";
 import { EXTRACTION_RULES } from "./factSheet";
 import type { CreativeBrief, CreativeContent } from "./types";
+import type { BrandKit } from "../brand/kit";
+import type { CopyAngle } from "./angles";
 
 export type CreativeHistory = {
   templates: string[];
@@ -27,6 +29,10 @@ export function generateCreative(args: {
   analysis: ImageAnalysisResult | null;
   image?: string;
   history: CreativeHistory;
+  /** The seller's brand: name, tagline and how it talks. */
+  brand?: BrandKit | null;
+  /** A campaign variant's assigned direction. */
+  angle?: CopyAngle;
 }) {
   const { provider, brief, analysis, history } = args;
 
@@ -87,6 +93,29 @@ export function generateCreative(args: {
             : null,
         }),
       },
+      ...(args.brand && (args.brand.brandName || args.brand.voice || args.brand.tagline)
+        ? [
+            {
+              role: "user" as const,
+              content:
+                "BRAND GUIDELINES — follow them. " +
+                (args.brand.brandName ? `Brand name: "${args.brand.brandName}" (use it as the badge or display name where it fits). ` : "") +
+                (args.brand.tagline ? `Brand tagline: "${args.brand.tagline}" (you may use it, verbatim, as a subheadline). ` : "") +
+                (args.brand.voice ? `Brand voice — write every line in it: ${args.brand.voice}. ` : "") +
+                (args.brand.colors ? "The brand palette is fixed by the brand, so the colours you choose will be overridden; still write the scene to suit it. " : ""),
+            },
+          ]
+        : []),
+      ...(args.angle
+        ? [
+            {
+              role: "user" as const,
+              content:
+                `This ad is one variant in an A/B campaign. Its assigned angle is "${args.angle.label}": ${args.angle.brief} ` +
+                "Commit fully to this angle — the other variants cover the other angles.",
+            },
+          ]
+        : []),
       ...(history.templates.length > 0 || history.moods.length > 0
         ? [
             {

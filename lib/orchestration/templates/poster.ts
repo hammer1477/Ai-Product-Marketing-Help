@@ -6,6 +6,8 @@ import { paint } from "./theme";
 import { templateFor, type TemplateDef } from "./registry";
 import type { Fact } from "../factSheet";
 import { formatDef, reframeLayers } from "../formats";
+import { placeLogo } from "../logo";
+import type { BrandLogo } from "../../brand/kit";
 
 export type PosterInput = {
   blocks: Block[];
@@ -21,6 +23,10 @@ export type PosterInput = {
   productName?: string;
   /** The extracted fact sheet, kept so the editor can offer unused facts. */
   facts?: Fact[];
+  /** Brand logo, stamped into the emptiest corner. */
+  logo?: BrandLogo;
+  /** Keep the logo on the composition but don't draw it. */
+  logoHidden?: boolean;
 };
 
 /** A short display word for decorative type. */
@@ -81,7 +87,11 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
   const built = build(input, template);
   const { placed, palette } = built;
   const format = formatDef(input.style.format);
-  const layers = reframeLayers(built.layers, format.id);
+  const reframed = reframeLayers(built.layers, format.id);
+  const layers =
+    input.logo && !input.logoHidden
+      ? [...reframed, ...placeLogo(reframed, format, input.logo, palette.ground)]
+      : reframed;
 
   // A template that doesn't draw the scene still has to carry it, or
   // switching to a template that does would find nothing to draw.
@@ -109,6 +119,8 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
         productAspectRatio: input.productAspectRatio,
         productName: input.productName,
         facts: input.facts,
+        logo: input.logo,
+        logoHidden: input.logoHidden,
         sceneUrl: sceneDrawn ? undefined : input.backgroundImageUrl,
       },
     },
