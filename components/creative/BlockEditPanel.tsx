@@ -1,17 +1,18 @@
 "use client";
 
+import { ArrowDown, ArrowUp, Plus } from "lucide-react";
 import type { Block, SpecItem } from "@/lib/orchestration/blocks/types";
+import { ICON_KEYS, type IconName } from "@/lib/design-schema/iconKeys";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 // Edits the composition rather than the rendered layers.
 //
-// The previous panel read text layers back out of the finished design,
-// which meant it could only guess what each one was. Spec values showed up
-// as "Selling point", spec labels and the price didn't show up at all, and
-// nothing linked a label to its value. Here every field is named by the
-// block it belongs to, because the block is what's being edited.
+// Every field is named by the block it belongs to, because the block is
+// what's being edited. The user can add to every list, add whole sections
+// the AI left out, reorder them and remove them — the poster re-lays itself
+// out around whatever they decide.
 
 const BLOCK_TITLES: Record<Block["type"], string> = {
   badge: "Badge",
@@ -28,15 +29,38 @@ const BLOCK_TITLES: Record<Block["type"], string> = {
   divider: "Divider",
 };
 
+/** Sections the user can add, with what each is for and a starting point. */
+const ADDABLE: Array<{ type: Block["type"]; hint: string; make: (price?: string) => Block }> = [
+  { type: "badge", hint: "A small tag: brand, 'New', 'Handmade'", make: () => ({ type: "badge", text: "New" }) },
+  { type: "subheadline", hint: "One line that completes the headline", make: () => ({ type: "subheadline", text: "" }) },
+  { type: "description", hint: "A sentence or two of detail", make: () => ({ type: "description", text: "" }) },
+  { type: "featureList", hint: "Benefits with icons", make: () => ({ type: "featureList", items: [""], icons: ["check"] }) },
+  { type: "specGrid", hint: "Name / value specifications", make: () => ({ type: "specGrid", items: [{ label: "", value: "" }] }) },
+  { type: "statRow", hint: "2–3 big numbers that impress", make: () => ({ type: "statRow", items: [{ label: "", value: "" }] }) },
+  { type: "priceBlock", hint: "Your price, and a 'was' price", make: (price) => ({ type: "priceBlock", value: price ?? "" }) },
+  { type: "rating", hint: "Stars and a review count", make: () => ({ type: "rating", stars: 5, caption: "" }) },
+  { type: "trustStrip", hint: "Short reassurances: delivery, returns", make: () => ({ type: "trustStrip", items: [""] }) },
+  { type: "divider", hint: "A thin line between sections", make: () => ({ type: "divider" }) },
+];
+
+/** How many items each list holds before the design gets crowded. */
+const LIST_LIMITS: Partial<Record<Block["type"], number>> = { featureList: 6, specGrid: 8, statRow: 4, trustStrip: 4 };
+
 export function BlockEditPanel({
   blocks,
   hiddenTypes = [],
   onChange,
+  productPrice,
+  placedCounts = {},
 }: {
   blocks: Block[];
   /** Block types the current template had no room for. */
   hiddenTypes?: Block["type"][];
+  /** Items each list actually shows in the current template. */
+  placedCounts?: Partial<Record<Block["type"], number>>;
   onChange: (next: Block[]) => void;
+  /** The product's price, to start a new price section with. */
+  productPrice?: string;
 }) {
   function updateBlock(index: number, next: Block) {
     onChange(blocks.map((block, i) => (i === index ? next : block)));
@@ -45,6 +69,24 @@ export function BlockEditPanel({
   function removeBlock(index: number) {
     onChange(blocks.filter((_, i) => i !== index));
   }
+
+  function moveBlock(index: number, by: -1 | 1) {
+    const to = index + by;
+    if (to < 0 || to >= blocks.length) return;
+    const next = [...blocks];
+    [next[index], next[to]] = [next[to], next[index]];
+    onChange(next);
+  }
+
+  function addBlock(make: () => Block) {
+    // New sections go just above the button, where they read naturally.
+    const ctaAt = blocks.findIndex((b) => b.type === "cta");
+    const at = ctaAt < 0 ? blocks.length : ctaAt;
+    onChange([...blocks.slice(0, at), make(), ...blocks.slice(at)]);
+  }
+
+  const present = new Set(blocks.map((b) => b.type));
+  const addable = ADDABLE.filter((a) => a.type === "divider" || !present.has(a.type));
 
   return (
     <div className="flex flex-col gap-5">
@@ -57,46 +99,100 @@ export function BlockEditPanel({
             <h3 className="text-sm font-semibold">
               {BLOCK_TITLES[block.type]}
               {hiddenTypes.includes(block.type) && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  Not shown in this template
-                </span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Not shown in this template</span>
               )}
             </h3>
-            {/* The headline and button are structural — a poster without
-                either isn't a smaller poster, it's a broken one. */}
-            {block.type !== "headline" && block.type !== "cta" && (
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => removeBlock(index)}
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                onClick={() => moveBlock(index, -1)}
+                disabled={index === 0}
+                className="h-7 px-1.5 text-muted-foreground"
+                aria-label={`Move ${BLOCK_TITLES[block.type]} up`}
               >
-                Remove
+                <ArrowUp className="size-3.5" />
               </Button>
-            )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => moveBlock(index, 1)}
+                disabled={index === blocks.length - 1}
+                className="h-7 px-1.5 text-muted-foreground"
+                aria-label={`Move ${BLOCK_TITLES[block.type]} down`}
+              >
+                <ArrowDown className="size-3.5" />
+              </Button>
+              {/* The headline and button are structural — a poster without
+                  either isn't a smaller poster, it's a broken one. */}
+              {block.type !== "headline" && block.type !== "cta" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeBlock(index)}
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
           </header>
 
-          <BlockFields
-            block={block}
-            index={index}
-            onChange={(next) => updateBlock(index, next)}
-          />
+          <BlockFields block={block} index={index} onChange={(next) => updateBlock(index, next)} />
+          <TrimNotice block={block} shown={placedCounts[block.type]} hidden={hiddenTypes.includes(block.type)} />
         </section>
       ))}
+
+      {addable.length > 0 && (
+        <section className="flex flex-col gap-2.5 rounded-lg border border-dashed p-4">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Plus className="size-4" /> Add a section
+          </h3>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {addable.map((a) => (
+              <button
+                key={a.type}
+                type="button"
+                onClick={() => addBlock(() => a.make(productPrice))}
+                className="rounded-md border px-2.5 py-2 text-left transition hover:bg-muted"
+              >
+                <span className="block text-xs font-semibold">{BLOCK_TITLES[a.type]}</span>
+                <span className="block text-[11px] text-muted-foreground">{a.hint}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
-function BlockFields({
-  block,
-  index,
-  onChange,
-}: {
-  block: Block;
-  index: number;
-  onChange: (next: Block) => void;
-}) {
+/** Says when a list has more items than this design shows. */
+function TrimNotice({ block, shown, hidden }: { block: Block; shown?: number; hidden: boolean }) {
+  if (hidden || shown === undefined || !("items" in block)) return null;
+  const filled = (block.items as unknown[]).filter((item) =>
+    typeof item === "string" ? item.trim() : (item as SpecItem).value?.trim(),
+  ).length;
+  if (shown >= filled) return null;
+  return (
+    <p className="rounded-md bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-300">
+      This design shows {shown} of {filled}. The rest are kept — pick a roomier template in Design, or put your
+      favourites first.
+    </p>
+  );
+}
+
+function AddItemButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button variant="outline" size="sm" onClick={onClick} className="h-8 w-fit gap-1 text-xs">
+      <Plus className="size-3.5" /> {label}
+    </Button>
+  );
+}
+
+function BlockFields({ block, index, onChange }: { block: Block; index: number; onChange: (next: Block) => void }) {
   const id = (suffix: string) => `block-${index}-${suffix}`;
+  const limit = LIST_LIMITS[block.type] ?? Infinity;
 
   switch (block.type) {
     case "badge":
@@ -110,10 +206,73 @@ function BlockFields({
           label={block.type === "cta" ? "Button label" : BLOCK_TITLES[block.type]}
           value={block.text}
           onChange={(text) => onChange({ ...block, text })}
+          placeholder={block.type === "subheadline" ? "e.g. Handmade, ready to hang" : undefined}
         />
       );
 
     case "featureList":
+      return (
+        <div className="flex flex-col gap-3">
+          {block.items.map((item, i) => (
+            <div key={i} className="flex items-end gap-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={id(`icon-${i}`)} className="sr-only">
+                  Feature {i + 1} icon
+                </Label>
+                <select
+                  id={id(`icon-${i}`)}
+                  value={block.icons?.[i] ?? "check"}
+                  onChange={(e) => {
+                    const icons = block.items.map((_, j) => block.icons?.[j] ?? "check") as IconName[];
+                    icons[i] = e.target.value as IconName;
+                    onChange({ ...block, icons });
+                  }}
+                  className="h-9 rounded-md border border-input bg-transparent px-1.5 text-xs"
+                  title="Icon"
+                >
+                  {ICON_KEYS.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <Field
+                  id={id(`item-${i}`)}
+                  label={`Feature ${i + 1}`}
+                  value={item}
+                  placeholder="e.g. Hand-painted wood"
+                  onChange={(value) => onChange({ ...block, items: block.items.map((x, j) => (j === i ? value : x)) })}
+                  onRemove={
+                    block.items.length > 1
+                      ? () =>
+                          onChange({
+                            ...block,
+                            items: block.items.filter((_, j) => j !== i),
+                            icons: block.icons?.filter((_, j) => j !== i),
+                          })
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
+          ))}
+          {block.items.length < limit && (
+            <AddItemButton
+              label="Add feature"
+              onClick={() =>
+                onChange({
+                  ...block,
+                  items: [...block.items, ""],
+                  icons: [...block.items.map((_, j) => block.icons?.[j] ?? ("check" as IconName)), "check"],
+                })
+              }
+            />
+          )}
+        </div>
+      );
+
     case "trustStrip":
       return (
         <div className="flex flex-col gap-3">
@@ -121,30 +280,16 @@ function BlockFields({
             <Field
               key={i}
               id={id(`item-${i}`)}
-              label={`${block.type === "featureList" ? "Feature" : "Item"} ${i + 1}`}
+              label={`Item ${i + 1}`}
               value={item}
-              onChange={(value) =>
-                onChange({
-                  ...block,
-                  items: block.items.map((existing, j) => (j === i ? value : existing)),
-                })
-              }
-              onRemove={
-                block.items.length > 1
-                  ? () =>
-                      onChange(
-                        block.type === "featureList"
-                          ? {
-                              ...block,
-                              items: block.items.filter((_, j) => j !== i),
-                              icons: block.icons?.filter((_, j) => j !== i),
-                            }
-                          : { ...block, items: block.items.filter((_, j) => j !== i) },
-                      )
-                  : undefined
-              }
+              placeholder="e.g. Ships in 2 days"
+              onChange={(value) => onChange({ ...block, items: block.items.map((x, j) => (j === i ? value : x)) })}
+              onRemove={block.items.length > 1 ? () => onChange({ ...block, items: block.items.filter((_, j) => j !== i) }) : undefined}
             />
           ))}
+          {block.items.length < limit && (
+            <AddItemButton label="Add reassurance" onClick={() => onChange({ ...block, items: [...block.items, ""] })} />
+          )}
         </div>
       );
 
@@ -157,47 +302,33 @@ function BlockFields({
               key={i}
               id={id(`spec-${i}`)}
               item={item}
-              // A spec's label is half its meaning — "51 mm" on its own
-              // says nothing, which is exactly what the old panel showed.
+              // A spec's label is half its meaning — "51 mm" on its own says nothing.
               labelCaption={block.type === "specGrid" ? `Spec ${i + 1} name` : `Figure ${i + 1} caption`}
               valueCaption={block.type === "specGrid" ? `Spec ${i + 1} value` : `Figure ${i + 1}`}
-              onChange={(next) =>
-                onChange({
-                  ...block,
-                  items: block.items.map((existing, j) => (j === i ? next : existing)),
-                })
-              }
-              onRemove={
-                block.items.length > 1
-                  ? () => onChange({ ...block, items: block.items.filter((_, j) => j !== i) })
-                  : undefined
-              }
+              onChange={(next) => onChange({ ...block, items: block.items.map((x, j) => (j === i ? next : x)) })}
+              onRemove={block.items.length > 1 ? () => onChange({ ...block, items: block.items.filter((_, j) => j !== i) }) : undefined}
             />
           ))}
+          {block.items.length < limit && (
+            <AddItemButton
+              label={block.type === "specGrid" ? "Add spec" : "Add figure"}
+              onClick={() => onChange({ ...block, items: [...block.items, { label: "", value: "" }] })}
+            />
+          )}
         </div>
       );
 
     case "priceBlock":
       return (
         <div className="flex flex-col gap-3">
-          <Field
-            id={id("price")}
-            label="Price"
-            value={block.value}
-            onChange={(value) => onChange({ ...block, value })}
-          />
+          <Field id={id("price")} label="Price" value={block.value} placeholder="e.g. 450 EGP" onChange={(value) => onChange({ ...block, value })} />
           <Field
             id={id("compare")}
             label="Was (struck through)"
             value={block.compareAt ?? ""}
             onChange={(compareAt) => onChange({ ...block, compareAt: compareAt || undefined })}
           />
-          <Field
-            id={id("note")}
-            label="Note"
-            value={block.note ?? ""}
-            onChange={(note) => onChange({ ...block, note: note || undefined })}
-          />
+          <Field id={id("note")} label="Note" value={block.note ?? ""} onChange={(note) => onChange({ ...block, note: note || undefined })} />
         </div>
       );
 
@@ -212,18 +343,14 @@ function BlockFields({
               min={1}
               max={5}
               value={block.stars}
-              onChange={(e) =>
-                onChange({
-                  ...block,
-                  stars: Math.max(1, Math.min(5, Number(e.target.value) || 1)),
-                })
-              }
+              onChange={(e) => onChange({ ...block, stars: Math.max(1, Math.min(5, Number(e.target.value) || 1)) })}
             />
           </div>
           <Field
             id={id("caption")}
             label="Caption"
             value={block.caption}
+            placeholder="e.g. 4.9 · 120 reviews"
             onChange={(caption) => onChange({ ...block, caption })}
           />
         </div>
@@ -240,18 +367,20 @@ function Field({
   value,
   onChange,
   onRemove,
+  placeholder,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   onRemove?: () => void;
+  placeholder?: string;
 }) {
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
       <div className="flex gap-2">
-        <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} className="flex-1" />
+        <Input id={id} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="flex-1" />
         {onRemove && (
           <Button
             variant="ghost"
@@ -287,19 +416,11 @@ function SpecFields({
     <div className="flex items-end gap-2">
       <div className="flex flex-1 flex-col gap-2">
         <Label htmlFor={`${id}-label`}>{labelCaption}</Label>
-        <Input
-          id={`${id}-label`}
-          value={item.label}
-          onChange={(e) => onChange({ ...item, label: e.target.value })}
-        />
+        <Input id={`${id}-label`} value={item.label} onChange={(e) => onChange({ ...item, label: e.target.value })} />
       </div>
       <div className="flex flex-1 flex-col gap-2">
         <Label htmlFor={`${id}-value`}>{valueCaption}</Label>
-        <Input
-          id={`${id}-value`}
-          value={item.value}
-          onChange={(e) => onChange({ ...item, value: e.target.value })}
-        />
+        <Input id={`${id}-value`} value={item.value} onChange={(e) => onChange({ ...item, value: e.target.value })} />
       </div>
       {onRemove && (
         <Button

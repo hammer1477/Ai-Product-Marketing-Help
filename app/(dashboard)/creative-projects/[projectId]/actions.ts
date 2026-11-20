@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/supabase/server";
 import type { DesignSchema } from "@/lib/design-schema/types";
 import { validateDesignSchema } from "@/lib/design-schema/validate";
@@ -18,6 +17,8 @@ export async function saveDesignSchema(projectId: string, schema: DesignSchema) 
     throw new Error(error.message);
   }
 
-  revalidatePath(`/creative-projects/${projectId}`);
+  // No revalidatePath: the editor already holds what was saved, and a
+  // refresh would remount it — wiping undo history mid-session. Pages that
+  // list this project read it fresh on their next visit.
   return { issues };
 }

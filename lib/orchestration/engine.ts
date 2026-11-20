@@ -275,7 +275,7 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
 
   await supabase
     .from("creative_projects")
-    .update({ concept: decision.concept, density: decision.density, design_schema: schema })
+    .update({ concept: decision.concept, density: decision.density, design_schema: schema, preview_path: null })
     .eq("id", project.id);
 
   return { generatedImageId: generatedImage.id };

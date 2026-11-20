@@ -114,6 +114,11 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
         // user switches to a roomier one.
         blocks: input.blocks,
         placedTypes: placed.map((block) => block.type),
+        // How many items of each list made it on — templates trim lists to
+        // fit, and the editor says so rather than letting additions vanish.
+        placedCounts: Object.fromEntries(
+          placed.flatMap((block) => ("items" in block ? [[block.type, block.items.length]] : [])),
+        ),
         style: { ...input.style, templateId: template.id },
         cutoutApplied: input.cutoutApplied,
         productAspectRatio: input.productAspectRatio,

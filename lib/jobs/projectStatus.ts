@@ -24,7 +24,7 @@ export async function loadProjectCards(
 ): Promise<ProjectCard[]> {
   let query = supabase
     .from("creative_projects")
-    .select("id, angle, created_at, variant_index, campaign_id")
+    .select("id, angle, created_at, variant_index, campaign_id, preview_path, preview_width, preview_height")
     .order("created_at", { ascending: false });
   if (filter.productId) query = query.eq("product_id", filter.productId);
   if (filter.campaignId) query = query.eq("campaign_id", filter.campaignId).order("variant_index", { ascending: true });
@@ -57,6 +57,10 @@ export async function loadProjectCards(
   return sorted.map((p) => {
     const job = latestJob.get(p.id);
     const img = latestImage.get(p.id);
+    // The user's saved edit, when there is one, is the ad as it is now.
+    const preview = p.preview_path
+      ? { url: supabase.storage.from("generated-images").getPublicUrl(p.preview_path).data.publicUrl, width: p.preview_width, height: p.preview_height }
+      : null;
     return {
       id: p.id,
       angle: p.angle,
@@ -64,9 +68,9 @@ export async function loadProjectCards(
       createdAt: p.created_at,
       status: (job?.status as ProjectCard["status"]) ?? "draft",
       error: job?.error_message ?? null,
-      imageUrl: img ? supabase.storage.from("generated-images").getPublicUrl(img.storage_path).data.publicUrl : null,
-      width: img?.width ?? null,
-      height: img?.height ?? null,
+      imageUrl: preview?.url ?? (img ? supabase.storage.from("generated-images").getPublicUrl(img.storage_path).data.publicUrl : null),
+      width: preview?.width ?? img?.width ?? null,
+      height: preview?.height ?? img?.height ?? null,
     };
   });
 }

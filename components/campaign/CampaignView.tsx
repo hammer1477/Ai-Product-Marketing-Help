@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Download, Lightbulb, Pencil, Target, Trophy } from "lucide-react";
+import { Download, Lightbulb, Palette, Pencil, Target, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { angleById } from "@/lib/orchestration/angles";
 import { AD_FORMATS } from "@/lib/orchestration/formats";
 import { META_CTA_LABELS, PLACEMENT_LABELS, type CampaignAdPlan, type CampaignPlan } from "@/lib/campaign/plan";
@@ -47,13 +48,24 @@ function Overview({ plan, cards }: { plan: CampaignPlan; cards: ProjectCard[] })
         <p className="mt-4 max-w-3xl text-background/80">{st.summary}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {cards.map((c) =>
-          c.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={c.id} src={c.imageUrl} alt={`${angleLabel(c.angle ?? "")} ad`} className="w-full rounded-lg border" />
-          ) : null,
-        )}
+      <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {cards.map((c) =>
+            c.imageUrl ? (
+              <Link key={c.id} href={`/creative-projects/${c.id}`} className="group relative block overflow-hidden rounded-lg border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={c.imageUrl} alt={`${angleLabel(c.angle ?? "")} ad`} className="w-full transition group-hover:opacity-90" />
+                <span className="absolute inset-x-2 bottom-2 flex items-center justify-center gap-1 rounded-md bg-background/90 py-1 text-xs font-medium opacity-0 transition group-hover:opacity-100">
+                  <Palette className="size-3" /> Customize
+                </span>
+              </Link>
+            ) : null,
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          These are your ads, not ours. Open any one to change the words, specs, colours, fonts or layout — we&apos;ll
+          suggest improvements as you go.
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -120,6 +132,9 @@ function AdPlanCard({ ad, index, card }: { ad: CampaignAdPlan; index: number; ca
           ) : (
             <div className="aspect-square rounded-lg border bg-muted" />
           )}
+          <Button render={<Link href={`/creative-projects/${ad.projectId}`} />} nativeButton={false} className="w-full gap-1.5">
+            <Palette className="size-4" /> Customize this ad
+          </Button>
           <div>
             <p className="mb-1.5 text-xs text-muted-foreground">Download</p>
             <div className="grid grid-cols-2 gap-1.5">

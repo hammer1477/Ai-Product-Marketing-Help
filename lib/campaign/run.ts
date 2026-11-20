@@ -170,7 +170,7 @@ export async function runCampaignGeneration(jobId: string): Promise<{ campaignId
     if (insErr) throw new Error(`Failed to save ad: ${insErr.message}`);
     await supabase
       .from("creative_projects")
-      .update({ concept: decision.concept, density: decision.density, design_schema: schema })
+      .update({ concept: decision.concept, density: decision.density, design_schema: schema, preview_path: null })
       .eq("id", project.id);
   }
 

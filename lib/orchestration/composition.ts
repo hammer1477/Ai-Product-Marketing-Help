@@ -23,6 +23,8 @@ export type PosterComposition = {
   productName?: string;
   /** Block types the current template actually drew. */
   placedTypes?: BlockType[];
+  /** Items each list block showed, when the template trimmed it to fit. */
+  placedCounts?: Partial<Record<BlockType, number>>;
   /** The scene, when the current template doesn't draw it as a layer. */
   sceneUrl?: string;
   /** Everything extraction found — the editor offers the unused ones. */
@@ -54,6 +56,8 @@ export function readComposition(schema: DesignSchema): PosterComposition | null 
         : 1,
     productName: typeof candidate.productName === "string" ? candidate.productName : undefined,
     placedTypes: Array.isArray(candidate.placedTypes) ? candidate.placedTypes : undefined,
+    placedCounts:
+      candidate.placedCounts && typeof candidate.placedCounts === "object" ? candidate.placedCounts : undefined,
     sceneUrl: typeof candidate.sceneUrl === "string" ? candidate.sceneUrl : undefined,
     facts: Array.isArray(candidate.facts) ? candidate.facts : undefined,
     logo: readLogo(candidate.logo),
@@ -98,7 +102,7 @@ export function recomposePoster(schema: DesignSchema, composition: PosterComposi
   if (!productImageUrl) return schema;
 
   return composePosterSchema({
-    blocks: composition.blocks,
+    blocks: pruneBlocks(composition.blocks),
     productImageUrl,
     backgroundImageUrl,
     density: schema.meta.density,
@@ -121,4 +125,40 @@ export function schemaInFormat(schema: DesignSchema, format: AdFormat): DesignSc
   const composition = readComposition(schema);
   if (!composition || (composition.style.format ?? "square") === format) return schema;
   return recomposePoster(schema, { ...composition, style: { ...composition.style, format } });
+}
+
+/**
+ * Drops what the user hasn't filled in yet — a just-added blank feature, an
+ * empty subheadline — so half-finished edits never draw as empty rows.
+ * The headline and button stay even when empty: they're structural.
+ */
+export function pruneBlocks(blocks: Block[]): Block[] {
+  const filled = (s: string | undefined) => Boolean(s && s.trim());
+  return blocks.flatMap((block): Block[] => {
+    switch (block.type) {
+      case "badge":
+      case "subheadline":
+      case "description":
+        return filled(block.text) ? [block] : [];
+      case "featureList": {
+        const keep = block.items.map((item, i) => ({ item, icon: block.icons?.[i] })).filter((x) => filled(x.item));
+        return keep.length ? [{ ...block, items: keep.map((x) => x.item), icons: block.icons ? keep.map((x) => x.icon ?? "check") : undefined }] : [];
+      }
+      case "trustStrip": {
+        const items = block.items.filter(filled);
+        return items.length ? [{ ...block, items }] : [];
+      }
+      case "specGrid":
+      case "statRow": {
+        const items = block.items.filter((it) => filled(it.value));
+        return items.length ? [{ ...block, items }] : [];
+      }
+      case "priceBlock":
+        return filled(block.value) ? [block] : [];
+      case "rating":
+        return [block];
+      default:
+        return [block];
+    }
+  });
 }
