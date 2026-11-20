@@ -1,6 +1,9 @@
 import type { ImageGenerationProvider } from "../types";
 
-const BASE_URL = "https://image.pollinations.ai/prompt";
+/** Keyless "classic" API: rate-limited per IP and watermarked. */
+const CLASSIC_URL = "https://image.pollinations.ai/prompt";
+/** Keyed API: no per-IP limit, no watermark. Ignores keys on the classic URL. */
+const KEYED_URL = "https://gen.pollinations.ai/image";
 const REQUEST_TIMEOUT_MS = 30_000;
 /** Free tier: one image per ~45 s per IP. Wait out that many rate-limit replies. */
 const MAX_RATE_LIMIT_RETRIES = 3;
@@ -37,11 +40,12 @@ export class PollinationsImageGenerationProvider implements ImageGenerationProvi
     // background every time. A random seed per call is what makes a second
     // generation actually look like a second attempt.
     const seed = Math.floor(Math.random() * 1_000_000_000);
-    const url =
-      `${BASE_URL}/${encodeURIComponent(args.prompt)}` +
-      `?width=${args.width}&height=${args.height}&nologo=true&model=flux&seed=${seed}`;
-    // An API key (enter.pollinations.ai) lifts the free tier's rate limit.
+    // An API key (enter.pollinations.ai) lifts the free tier's rate limit —
+    // but only on the keyed endpoint; the classic one ignores it.
     const key = process.env.POLLINATIONS_API_KEY;
+    const url =
+      `${key ? KEYED_URL : CLASSIC_URL}/${encodeURIComponent(args.prompt)}` +
+      `?width=${args.width}&height=${args.height}&nologo=true&model=flux&seed=${seed}`;
     const headers: Record<string, string> = key ? { authorization: `Bearer ${key}` } : {};
 
     for (let attempt = 0; ; attempt++) {

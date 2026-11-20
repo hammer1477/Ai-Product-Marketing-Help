@@ -51,7 +51,12 @@ export default async function CreativeProjectPage({
         </div>
       </div>
 
-      <GenerationTrigger projectId={projectId} hasSchema={Boolean(project.design_schema)} />
+      <GenerationTrigger
+        projectId={projectId}
+        hasSchema={Boolean(project.design_schema)}
+        brandSwatch={brandKit?.colors ? [brandKit.colors.ink, brandKit.colors.accent] : null}
+        initialColorSource={project.color_source}
+      />
 
       {project.design_schema ? (
         <CreativeEditor key={JSON.stringify(project.design_schema)} projectId={projectId} initialSchema={project.design_schema} brandKit={brandKit} />

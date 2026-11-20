@@ -13,7 +13,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await request.json().catch(() => ({}))) as { angles?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { angles?: unknown; colorSource?: unknown };
+  const colorSource = body.colorSource === "brand" || body.colorSource === "product" ? body.colorSource : null;
   const known = new Set(COPY_ANGLES.map((a) => a.id));
   const angles = Array.isArray(body.angles)
     ? [...new Set(body.angles.filter((a): a is string => typeof a === "string" && known.has(a)))]
@@ -35,6 +36,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
   });
   if (error || !campaignId) {
     return NextResponse.json({ error: error?.message ?? "Couldn't start the campaign" }, { status: 400 });
+  }
+
+  // Before dispatch, so every worker sees the choice.
+  if (colorSource) {
+    await supabase.from("creative_projects").update({ color_source: colorSource }).eq("campaign_id", campaignId);
   }
 
   const { data: jobs } = await supabase

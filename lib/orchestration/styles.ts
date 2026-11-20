@@ -183,7 +183,17 @@ export type ResolvedStyle = StylePreset & {
   copyAngle?: string;
   /** Canvas size. Absent means square, which every design before formats was. */
   format?: AdFormat;
+  /** Whose palette the design wears. Absent on designs from before the choice existed. */
+  colorSource?: ColorSource;
+  /**
+   * The palette the art director drew from the product photo, kept even
+   * while brand colours are on — so switching back is always possible.
+   */
+  productColors?: PaletteColors;
 };
+
+export type ColorSource = "brand" | "product";
+export type PaletteColors = { ink: string; accent: string; text: string; muted: string };
 
 export type CtaStyle = "pill" | "rect" | "brutal" | "outline" | "underline";
 

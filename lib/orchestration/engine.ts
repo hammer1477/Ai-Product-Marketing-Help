@@ -16,7 +16,7 @@ import { normalizeFactSheet, type FactSheet } from "./factSheet";
 import { normalizeDesignBrief } from "./designBrief";
 import { generateCreative } from "./creative";
 import { toModelImage } from "../images/modelImage";
-import { applyBrandStyle, BRAND_KIT_COLUMNS, readBrandKit } from "../brand/kit";
+import { applyBrandFonts, applyBrandStyle, BRAND_KIT_COLUMNS, readBrandKit } from "../brand/kit";
 import { angleById } from "./angles";
 
 const EXPORT_SCALE = 2;
@@ -52,7 +52,7 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
 
   const { data: project, error: projectError } = await supabase
     .from("creative_projects")
-    .select("id, product_id, design_schema, angle, variant_index, campaign_id")
+    .select("id, product_id, design_schema, angle, variant_index, campaign_id, color_source")
     .eq("id", job.creative_project_id)
     .single();
   if (projectError || !project) throw new Error(`Creative project not found: ${job.creative_project_id}`);
@@ -159,9 +159,21 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
 
   const factSheet = normalizeFactSheet(content.factSheet as Partial<FactSheet> | undefined, brief);
   const designBrief = normalizeDesignBrief(content.designBrief);
+  // The art director's palette, drawn from the product photo. It's always
+  // recorded; the brand kit's colours cover it only when this ad asked for
+  // them (the default when the kit has colours).
+  const artDirected = resolveStyle(preset, content.artDirection);
+  const productColors = {
+    ink: artDirected.ink,
+    accent: artDirected.accent,
+    text: artDirected.textPrimary,
+    muted: artDirected.textMuted,
+  };
+  const useBrandColors = Boolean(brand?.colors) && project.color_source !== "product";
   const style: ResolvedStyle = {
-    // The brand kit's palette and fonts win over the art director's.
-    ...applyBrandStyle(resolveStyle(preset, content.artDirection), brand),
+    ...(useBrandColors ? applyBrandStyle(artDirected, brand) : applyBrandFonts(artDirected, brand)),
+    productColors,
+    colorSource: useBrandColors ? "brand" : "product",
     accent2: designBrief.secondaryAccent,
     // Recorded on the style so the next regeneration can steer away from it.
     copyAngle: designBrief.copyAngle,

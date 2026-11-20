@@ -9,8 +9,19 @@ import { GENERATION_COST_CREDITS } from "@/lib/credits/pricing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { ColorSourcePicker, type ColorSourceChoice } from "@/components/brand/ColorSourcePicker";
 
-export function CampaignLauncher({ productId, disabled }: { productId: string; disabled?: boolean }) {
+export function CampaignLauncher({
+  productId,
+  disabled,
+  brandSwatch,
+}: {
+  productId: string;
+  disabled?: boolean;
+  /** The brand kit's [background, accent], when it has colours. */
+  brandSwatch?: [string, string] | null;
+}) {
+  const [colorSource, setColorSource] = useState<ColorSourceChoice>("brand");
   const router = useRouter();
   const [angles, setAngles] = useState<string[]>(DEFAULT_CAMPAIGN_ANGLES);
   const [busy, setBusy] = useState(false);
@@ -28,7 +39,7 @@ export function CampaignLauncher({ productId, disabled }: { productId: string; d
     const res = await fetch(`/api/products/${productId}/campaign`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ angles }),
+      body: JSON.stringify({ angles, colorSource: brandSwatch ? colorSource : undefined }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -73,6 +84,12 @@ export function CampaignLauncher({ productId, disabled }: { productId: string; d
             );
           })}
         </div>
+        {brandSwatch && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">Colours</span>
+            <ColorSourcePicker value={colorSource} onChange={setColorSource} brandSwatch={brandSwatch} />
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={start} disabled={disabled || busy || angles.length < 2}>
             {busy ? "Starting…" : `Generate ${angles.length} ads (${cost} credits)`}

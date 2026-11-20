@@ -37,6 +37,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
     );
   }
 
+  // Brand or product colours, when the caller chose. Saved on the project
+  // so regenerations keep it.
+  const body = (await request.json().catch(() => ({}))) as { colorSource?: unknown };
+  if (body.colorSource === "brand" || body.colorSource === "product") {
+    await supabase.from("creative_projects").update({ color_source: body.colorSource }).eq("id", projectId);
+  }
+
   // p_user_id comes from the authenticated session, never the request body
   // — reserve_credits must never trust a client-supplied user id.
   // Cast is required because the Supabase client isn't generated against a

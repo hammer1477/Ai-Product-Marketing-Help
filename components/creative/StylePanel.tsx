@@ -3,7 +3,13 @@
 import { memo, useDeferredValue, useMemo } from "react";
 import Link from "next/link";
 import { Shuffle, RotateCcw, Check, Stamp } from "lucide-react";
-import { applyBrandStyle, brandApplied, kitHasLook, type BrandKit } from "@/lib/brand/kit";
+import {
+  applyBrandFonts,
+  applyBrandStyle,
+  applyProductColors,
+  currentColorSource,
+  type BrandKit,
+} from "@/lib/brand/kit";
 import type { DesignSchema } from "@/lib/design-schema/types";
 import { BODY_FONTS, FONT_FAMILIES, isFontFamily, type FontFamily } from "@/lib/design-schema/fontRegistry";
 import { recomposePoster, type PosterComposition } from "@/lib/orchestration/composition";
@@ -365,21 +371,24 @@ function BrandSection({
         <Stamp className="size-3.5" />
         <h3 className="text-sm font-semibold">Brand{kit.brandName ? ` · ${kit.brandName}` : ""}</h3>
       </header>
+      {kit.colors && (
+        <ColorSourceSwitch
+          current={currentColorSource(composition.style, kit)}
+          brandSwatch={[kit.colors.ink, kit.colors.accent]}
+          productSwatch={(() => {
+            const p = composition.style.productColors;
+            return p ? [p.ink, p.accent] : null;
+          })()}
+          onBrand={() => onChange({ ...composition, style: applyBrandStyle(composition.style, kit) })}
+          onProduct={() => onChange({ ...composition, style: applyBrandFonts(applyProductColors(composition.style), kit) })}
+        />
+      )}
       <div className="flex flex-wrap gap-2">
-        {kitHasLook(kit) &&
-          (brandApplied(composition.style, kit) ? (
-            <span className="flex items-center gap-1.5 px-1 text-xs font-medium text-emerald-600">
-              <Check className="size-3.5" /> Brand colours &amp; fonts on
-            </span>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onChange({ ...composition, style: applyBrandStyle(composition.style, kit) })}
-            >
-              Apply brand colours &amp; fonts
-            </Button>
-          ))}
+        {!kit.colors && (kit.headlineFont || kit.bodyFont) && (
+          <Button variant="outline" size="sm" onClick={() => onChange({ ...composition, style: applyBrandFonts(composition.style, kit) })}>
+            Apply brand fonts
+          </Button>
+        )}
         {kit.logo && !logo && (
           <Button variant="outline" size="sm" onClick={() => onChange({ ...composition, logo: kit.logo, logoHidden: false })}>
             Add logo
@@ -402,5 +411,64 @@ function BrandSection({
         )}
       </div>
     </section>
+  );
+}
+
+function ColorSourceSwitch({
+  current,
+  brandSwatch,
+  productSwatch,
+  onBrand,
+  onProduct,
+}: {
+  current: "brand" | "product" | "custom";
+  brandSwatch: [string, string];
+  productSwatch: [string, string] | null;
+  onBrand: () => void;
+  onProduct: () => void;
+}) {
+  const options = [
+    { id: "brand" as const, label: "Brand colours", hint: "Your kit, exactly", swatch: brandSwatch, onClick: onBrand },
+    { id: "product" as const, label: "Product colours", hint: "Drawn from the photo", swatch: productSwatch, onClick: onProduct },
+  ];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Colours">
+        {options.map((o) => {
+          const on = current === o.id;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={o.onClick}
+              className={cn(
+                "flex items-center gap-2.5 rounded-lg border p-2 text-left transition",
+                on ? "border-foreground bg-foreground/5 ring-1 ring-foreground" : "hover:bg-muted",
+              )}
+            >
+              <span className="flex h-7 w-9 shrink-0 overflow-hidden rounded border">
+                {o.swatch ? (
+                  <>
+                    <span className="flex-1" style={{ background: o.swatch[0] }} />
+                    <span className="flex-1" style={{ background: o.swatch[1] }} />
+                  </>
+                ) : (
+                  <span className="flex-1 bg-[conic-gradient(#f87171,#facc15,#4ade80,#60a5fa,#c084fc,#f87171)]" />
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold">{o.label}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">{o.hint}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {current === "custom" && (
+        <p className="text-[11px] text-muted-foreground">Using custom colours from the picker below.</p>
+      )}
+    </div>
   );
 }

@@ -6,10 +6,22 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GENERATION_COST_CREDITS } from "@/lib/credits/pricing";
 import { formatCredits } from "@/lib/credits/format";
+import { ColorSourcePicker, type ColorSourceChoice } from "@/components/brand/ColorSourcePicker";
 
 type JobStatus = "idle" | "pending" | "processing" | "completed" | "failed" | "cancelled";
 
-export function GenerationTrigger({ projectId, hasSchema }: { projectId: string; hasSchema: boolean }) {
+export function GenerationTrigger({
+  projectId,
+  hasSchema,
+  brandSwatch,
+  initialColorSource,
+}: {
+  projectId: string;
+  hasSchema: boolean;
+  brandSwatch?: [string, string] | null;
+  initialColorSource?: ColorSourceChoice | null;
+}) {
+  const [colorSource, setColorSource] = useState<ColorSourceChoice>(initialColorSource ?? "brand");
   const router = useRouter();
   const [status, setStatus] = useState<JobStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +37,11 @@ export function GenerationTrigger({ projectId, hasSchema }: { projectId: string;
     setStatus("pending");
     setError(null);
 
-    const res = await fetch(`/api/creative-projects/${projectId}/generate`, { method: "POST" });
+    const res = await fetch(`/api/creative-projects/${projectId}/generate`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ colorSource: brandSwatch ? colorSource : undefined }),
+    });
     const body = await res.json();
 
     if (!res.ok) {
@@ -64,13 +80,16 @@ export function GenerationTrigger({ projectId, hasSchema }: { projectId: string;
 
   return (
     <div className="flex flex-col gap-2">
-      <Button onClick={handleGenerate} disabled={isBusy}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={handleGenerate} disabled={isBusy}>
         {isBusy
           ? "Generating..."
           : hasSchema
             ? `Regenerate (${formatCredits(GENERATION_COST_CREDITS)} credits)`
             : `Generate creative (${formatCredits(GENERATION_COST_CREDITS)} credits)`}
-      </Button>
+        </Button>
+        {brandSwatch && <ColorSourcePicker value={colorSource} onChange={setColorSource} brandSwatch={brandSwatch} />}
+      </div>
       {error &&
         (/insufficient credits/i.test(error) ? (
           <p className="text-sm text-destructive">

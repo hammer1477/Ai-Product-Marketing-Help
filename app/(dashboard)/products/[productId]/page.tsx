@@ -14,6 +14,7 @@ import { AutoRefresh } from "@/components/jobs/AutoRefresh";
 import { isWorking, loadProjectCards, splitFailures } from "@/lib/jobs/projectStatus";
 import { angleById } from "@/lib/orchestration/angles";
 import { FailureNotices } from "@/components/jobs/FailureNotices";
+import { BRAND_KIT_COLUMNS, readBrandKit } from "@/lib/brand/kit";
 
 type ImageAnalysis = {
   suggestedCategory: string;
@@ -54,10 +55,13 @@ export default async function ProductDetailPage({
     primaryImageUrl = signed?.signedUrl ?? null;
   }
 
-  const [allCards, { count: shotCount }] = await Promise.all([
+  const [allCards, { count: shotCount }, { data: kitRow }] = await Promise.all([
     loadProjectCards(supabase, { productId }),
     supabase.from("photoshoot_images").select("id", { count: "exact", head: true }).eq("product_id", productId),
+    supabase.from("brand_kits").select(BRAND_KIT_COLUMNS).eq("user_id", product.user_id).maybeSingle(),
   ]);
+  const kitColors = readBrandKit(kitRow)?.colors;
+  const brandSwatch: [string, string] | null = kitColors ? [kitColors.ink, kitColors.accent] : null;
   const { visible: cards, failures } = splitFailures(allCards, (c) => `${angleById(c.angle)?.label ?? "An"} ad`);
   const anyWorking = cards.some((card) => isWorking(card.status));
 
@@ -105,7 +109,7 @@ export default async function ProductDetailPage({
         </section>
       )}
 
-      <CampaignLauncher productId={product.id} disabled={!product.category_confirmed} />
+      <CampaignLauncher productId={product.id} disabled={!product.category_confirmed} brandSwatch={brandSwatch} />
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {primaryImageUrl && (

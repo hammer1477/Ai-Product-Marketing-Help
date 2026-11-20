@@ -1,6 +1,6 @@
 import { isFontFamily, type FontFamily } from "../design-schema/fontRegistry";
 import { isHex, mix, WHITE } from "../orchestration/color";
-import type { ResolvedStyle } from "../orchestration/styles";
+import type { PaletteColors, ResolvedStyle } from "../orchestration/styles";
 
 // A brand kit: the parts of a brand that should look and sound the same in
 // every ad. Saved once on /brand, applied by the engine to every new
@@ -94,6 +94,9 @@ export function applyBrandStyle(style: ResolvedStyle, kit: BrandKit | null): Res
   if (kit.colors) {
     next = {
       ...next,
+      // Remember the product's own palette before covering it.
+      productColors: style.productColors ?? baseColors(style),
+      colorSource: "brand",
       ink: kit.colors.ink,
       accent: kit.colors.accent,
       textPrimary: kit.colors.text,
@@ -136,3 +139,41 @@ export function brandApplied(style: ResolvedStyle, kit: BrandKit | null): boolea
     (!kit.bodyFont || style.fontOverrides?.body === kit.bodyFont);
   return colorsOk && fontsOk;
 }
+
+function baseColors(style: ResolvedStyle): PaletteColors {
+  return { ink: style.ink, accent: style.accent, text: style.textPrimary, muted: style.textMuted };
+}
+
+/** Brand fonts (and nothing else) — for ads wearing the product's colours. */
+export function applyBrandFonts(style: ResolvedStyle, kit: BrandKit | null): ResolvedStyle {
+  return kit ? applyBrandStyle(style, { ...kit, colors: undefined }) : style;
+}
+
+/**
+ * Back to the palette the art director drew from the product photo. For
+ * older designs that never recorded it, the style's base colours are it
+ * (as long as brand colours were never applied), so nothing is lost.
+ */
+export function applyProductColors(style: ResolvedStyle): ResolvedStyle {
+  const p = style.productColors ?? baseColors(style);
+  return {
+    ...style,
+    productColors: p,
+    colorSource: "product",
+    ink: p.ink,
+    accent: p.accent,
+    textPrimary: p.text,
+    textMuted: p.muted,
+    panel: mix(p.ink, WHITE, 0.07),
+    colorOverrides: undefined,
+  };
+}
+
+/** Which palette a design is wearing right now. */
+export function currentColorSource(style: ResolvedStyle, kit: BrandKit | null): ColorSourceState {
+  if (kit?.colors && brandApplied({ ...style, fontOverrides: undefined }, { colors: kit.colors })) return "brand";
+  if (style.colorSource === "product" || !style.colorOverrides) return "product";
+  return "custom";
+}
+
+export type ColorSourceState = "brand" | "product" | "custom";
