@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/supabase/server";
 import { formatForPlatform } from "@/lib/orchestration/formats";
 import { sceneById } from "@/lib/photoshoot/scenes";
+import type { SceneIdea } from "@/lib/photoshoot/suggest";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AutoRefresh } from "@/components/jobs/AutoRefresh";
 import { FailureNotices } from "@/components/jobs/FailureNotices";
@@ -18,7 +19,7 @@ export default async function ProductPhotoshootPage({ params }: { params: Promis
   const { productId } = await params;
   const supabase = await createClient();
 
-  const { data: product } = await supabase.from("products").select("id, name, target_platform").eq("id", productId).single();
+  const { data: product } = await supabase.from("products").select("id, name, target_platform, scene_suggestions").eq("id", productId).single();
   if (!product) notFound();
 
   const since = recentFailureCutoff();
@@ -39,12 +40,12 @@ export default async function ProductPhotoshootPage({ params }: { params: Promis
   ]);
 
   const pending: PendingShot[] = (jobs ?? []).map((job) => {
-    const p = (job.params ?? {}) as { scene?: string; prompt?: string };
+    const p = (job.params ?? {}) as { scene?: string; prompt?: string; label?: string };
     return {
       id: job.id,
       status: job.status,
       error: job.error_message,
-      scene: sceneById(p.scene)?.label ?? p.prompt?.slice(0, 40) ?? "Custom",
+      scene: sceneById(p.scene)?.label ?? p.label ?? p.prompt?.slice(0, 40) ?? "Custom",
     };
   });
   const gallery = (shots ?? []).map((s) => ({
@@ -78,7 +79,11 @@ export default async function ProductPhotoshootPage({ params }: { params: Promis
           <CardDescription>Each shot generates separately, about a minute each.</CardDescription>
         </CardHeader>
         <CardContent>
-          <PhotoshootStudio productId={product.id} defaultFormat={formatForPlatform(product.target_platform)} />
+          <PhotoshootStudio
+            productId={product.id}
+            defaultFormat={formatForPlatform(product.target_platform)}
+            initialIdeas={(product.scene_suggestions as SceneIdea[] | null) ?? []}
+          />
         </CardContent>
       </Card>
       <section className="flex flex-col gap-3">

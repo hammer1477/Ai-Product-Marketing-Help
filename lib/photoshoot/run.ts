@@ -11,6 +11,8 @@ export type PhotoshootParams = {
   /** Preset id, or "custom" with `prompt`. */
   scene: string;
   prompt?: string;
+  /** Display name for a custom or AI-suggested scene. */
+  label?: string;
   format?: string;
 };
 
@@ -32,7 +34,7 @@ export async function runPhotoshootShot(jobId: string): Promise<{ imageId: strin
   const preset = sceneById(params.scene);
   const sceneText = preset?.prompt ?? params.prompt?.trim();
   if (!sceneText) throw new Error("Photoshoot shot has no scene");
-  const label = preset?.label ?? (params.prompt ?? "Custom").slice(0, 80);
+  const label = preset?.label ?? (params.label?.trim() || params.prompt || "Custom").slice(0, 80);
   const format = formatDef(params.format);
 
   const { data: primary } = await supabase

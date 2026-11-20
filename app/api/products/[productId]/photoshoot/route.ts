@@ -13,14 +13,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await request.json().catch(() => ({}))) as { scenes?: unknown; custom?: unknown; format?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { scenes?: unknown; custom?: unknown; format?: unknown; ideas?: unknown };
   const format = AD_FORMATS.some((f) => f.id === body.format) ? (body.format as string) : "square";
   const presets = Array.isArray(body.scenes)
     ? [...new Set(body.scenes.filter((s): s is string => typeof s === "string" && Boolean(sceneById(s))))]
     : [];
   const custom = typeof body.custom === "string" ? body.custom.trim().slice(0, 300) : "";
+  // AI-suggested scenes the user picked: a title and the set brief.
+  const ideas = Array.isArray(body.ideas)
+    ? body.ideas
+        .filter((i): i is { title: string; prompt: string } => typeof i?.title === "string" && typeof i?.prompt === "string" && i.prompt.trim().length > 0)
+        .map((i) => ({ scene: "custom", prompt: i.prompt.trim().slice(0, 700), label: i.title.trim().slice(0, 60), format }))
+    : [];
 
   const shots = [
+    ...ideas,
     ...presets.map((scene) => ({ scene, format })),
     ...(custom ? [{ scene: "custom", prompt: custom, format }] : []),
   ];
