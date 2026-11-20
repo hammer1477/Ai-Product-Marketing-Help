@@ -6,6 +6,7 @@ import { getCreditBalance } from "@/lib/credits/getBalance";
 import { CreditBalanceWidget } from "@/components/dashboard/CreditBalanceWidget";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { BrandMark } from "@/components/theme/BrandMark";
+import { Backdrop } from "@/components/dashboard/Backdrop";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Toaster } from "@/components/ui/sonner";
 import { getProfile, greetingName, hasUnlimitedCredits } from "@/lib/profile/getProfile";
@@ -32,7 +33,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const owner = profile.role === "owner";
 
   return (
-    <div className="relative min-h-screen bg-background">
+    <div className="relative isolate min-h-screen bg-background">
+      <Backdrop />
       {/* A soft wash of the brand colours behind the header. */}
       <div
         aria-hidden

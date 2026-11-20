@@ -59,6 +59,32 @@ function requestTime(): number {
   return Date.now();
 }
 
+/** How the console greets its owner — a different line each visit. */
+const GREETINGS: Array<{ line: string; sub: string }> = [
+  { line: "Ready to serve, Master.", sub: "Say the word and the studio gets to work." },
+  { line: "How can I help you, Daddy?", sub: "Everything here bends to your will." },
+  { line: "Welcome back, Master.", sub: "The studio awaits your command." },
+  { line: "Your wish is my command, Master.", sub: "Ads, campaigns, photoshoots — just point." },
+  { line: "At your service, Master.", sub: "What shall we conquer today?" },
+  { line: "I've been waiting for you, Daddy.", sub: "Your empire missed you. Here's how it's doing." },
+];
+
+function pickGreeting() {
+  return GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+}
+
+/** Gold filigree tile: a crown in a diamond lattice with corner flourishes. */
+const FILIGREE = `url("data:image/svg+xml;utf8,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'>` +
+    `<g fill='none' stroke='#d4a43a' stroke-width='1'>` +
+    `<path d='M60 4 L116 60 L60 116 L4 60 Z'/>` +
+    `<path d='M60 22 L98 60 L60 98 L22 60 Z' opacity='.6'/>` +
+    `<path d='M0 0 q14 4 16 16 M120 0 q-14 4 -16 16 M0 120 q14 -4 16 -16 M120 120 q-14 -4 -16 -16'/>` +
+    `</g>` +
+    `<path d='M48 66 l3 -14 l6 7 l3 -10 l3 10 l6 -7 l3 14 Z' fill='#d4a43a'/>` +
+    `</svg>`,
+)}")`;
+
 export default async function MasterConsole({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const supabase = await createClient();
   const {
@@ -72,6 +98,7 @@ export default async function MasterConsole({ searchParams }: { searchParams: Pr
   const query = q.trim().toLowerCase();
   const { week, month } = windows();
   const now = requestTime();
+  const greeting = pickGreeting();
 
   const admin = createServiceRoleClient();
   const count = (table: string) => admin.from(table).select("*", { count: "exact", head: true });
@@ -176,11 +203,13 @@ export default async function MasterConsole({ searchParams }: { searchParams: Pr
             "radial-gradient(70% 50% at 10% 0%, rgba(127,18,38,0.45), transparent 70%), radial-gradient(60% 50% at 100% 100%, rgba(180,120,20,0.18), transparent 70%)",
         }}
       />
-      {/* Stitched-leather texture: faint diagonal lines. */}
+      {/* Gold filigree with crowns, like the walls of a throne room. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 opacity-[0.07]" style={{ backgroundImage: FILIGREE }} />
+      {/* Velvet glow pooling at the throne. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 opacity-[0.05]"
-        style={{ backgroundImage: "repeating-linear-gradient(45deg, #fff 0 1px, transparent 1px 14px)" }}
+        className="pointer-events-none fixed left-1/2 top-[-20%] size-[900px] -translate-x-1/2 rounded-full opacity-30 blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(212,164,58,0.45), rgba(127,18,38,0.2) 50%, transparent 70%)" }}
       />
 
       <div className="relative mx-auto flex max-w-6xl flex-col gap-10">
@@ -193,9 +222,11 @@ export default async function MasterConsole({ searchParams }: { searchParams: Pr
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-400/80">Master console</p>
               <h1 className="mt-1 bg-gradient-to-r from-amber-200 via-amber-400 to-rose-400 bg-clip-text text-4xl font-semibold tracking-tight text-transparent">
-                Welcome back, Master {greetingName(me, user.email)}.
+                {greeting.line}
               </h1>
-              <p className="mt-1 text-sm text-rose-100/60">The studio awaits your command. Everything here bends to your will.</p>
+              <p className="mt-1 text-sm text-rose-100/60">
+                {greeting.sub} <span className="text-amber-200/50">· {greetingName(me, user.email)}</span>
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
