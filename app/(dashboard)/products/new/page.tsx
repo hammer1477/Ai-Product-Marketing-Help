@@ -9,7 +9,7 @@ export default function NewProductPage() {
           <CardTitle>Add a product</CardTitle>
           <CardDescription>
             Upload a photo and basic details. AI will suggest a category from the photo, but you always
-            confirm or correct it before it's used in any generated creative.
+            confirm or correct it before it&apos;s used in any generated creative.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/db/supabase/server";
 import { getProfile, greetingName } from "@/lib/profile/getProfile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RoyalWelcome, tierOf } from "@/components/royal/Royal";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -19,8 +20,11 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false })
     .limit(5);
 
+  const tier = profile ? tierOf(profile.role) : null;
+
   return (
     <div className="flex flex-col gap-8">
+      {tier && name && <RoyalWelcome tier={tier} name={name} />}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>

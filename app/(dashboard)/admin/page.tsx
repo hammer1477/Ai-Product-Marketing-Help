@@ -19,6 +19,7 @@ import { greetingName } from "@/lib/profile/getProfile";
 import { formatCredits } from "@/lib/credits/format";
 import { formatPrice } from "@/lib/credits/packs";
 import { Panel, goldLink } from "@/components/admin/ui";
+import { RoyalCrown } from "@/components/royal/Royal";
 import { cn } from "@/lib/utils";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -117,6 +118,7 @@ export default async function MasterOverview() {
     { icon: Coins, label: "Purchases", value: (purchases?.length ?? 0).toLocaleString("en-US"), note: "credit packs sold" },
   ];
 
+  const family = everyone.filter((p) => p.role === "family");
   const newest = [...everyone].sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 6);
 
   return (
@@ -253,6 +255,34 @@ export default async function MasterOverview() {
           </ul>
         </Panel>
       </div>
+
+      <Panel
+        title={
+          <>
+            <RoyalCrown tier="family" className="size-4" /> Royal family
+          </>
+        }
+        action={<span className="text-xs text-rose-100/50">Unlimited, on the house. Raise anyone from Subjects.</span>}
+      >
+        {family.length === 0 ? (
+          <p className="text-sm text-rose-100/50">No one has been raised to the family yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {family.map((p) => (
+              <Link
+                key={p.id}
+                href={`/admin/users/${p.id}`}
+                className="flex items-center gap-2.5 rounded-full border border-[#e9a99b]/40 bg-[#e9a99b]/10 py-1.5 pl-1.5 pr-4 text-sm transition hover:bg-[#e9a99b]/20"
+              >
+                <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#fff6f1] via-[#f2b8a9] to-[#c97b6d] text-xs font-semibold uppercase text-white">
+                  {p.name.charAt(0)}
+                </span>
+                <span className="text-[#fde7dc]">{p.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }

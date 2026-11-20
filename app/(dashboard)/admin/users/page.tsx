@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Crown, FolderOpen, Users } from "lucide-react";
+import { FolderOpen, Users } from "lucide-react";
 import { admin, directory, requireOwner } from "@/lib/admin/data";
 import { hasUnlimitedCredits } from "@/lib/profile/getProfile";
 import { formatCredits } from "@/lib/credits/format";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageTitle, Panel, shortDate } from "@/components/admin/ui";
 import { CreditsForm, RoleForm } from "../UserRowActions";
+import { RoyalCrown, tierOf } from "@/components/royal/Royal";
 
 function tally(rows: { user_id: string }[] | null): Map<string, number> {
   const m = new Map<string, number>();
@@ -88,7 +89,7 @@ export default async function MasterSubjects({ searchParams }: { searchParams: P
                   <tr key={p.id} className="border-b border-white/5 align-top last:border-0">
                     <td className="py-3 pr-4">
                       <Link href={`/admin/users/${p.id}`} className="flex items-center gap-2 font-medium text-amber-50 hover:underline">
-                        {p.role === "owner" && <Crown className="size-3.5 text-amber-400" />}
+                        {tierOf(p.role) && <RoyalCrown tier={tierOf(p.role)!} className="size-3.5" />}
                         {p.name}
                         {p.id === me.id && <Badge className="bg-amber-500/20 text-amber-200">You, Master</Badge>}
                       </Link>

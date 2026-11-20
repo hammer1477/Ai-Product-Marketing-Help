@@ -4,6 +4,7 @@ import { getProfile, greetingName, hasUnlimitedCredits } from "@/lib/profile/get
 import { getCreditBalance } from "@/lib/credits/getBalance";
 import { formatCredits } from "@/lib/credits/format";
 import { Badge } from "@/components/ui/badge";
+import { RoyalChip, tierOf } from "@/components/royal/Royal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "./ProfileForm";
 
@@ -31,7 +32,7 @@ export default async function ProfilePage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{name}</h1>
-            {profile.role !== "user" && <Badge className="capitalize">{profile.role}</Badge>}
+            {tierOf(profile.role) ? <RoyalChip tier={tierOf(profile.role)!} /> : profile.role !== "user" && <Badge className="capitalize">{profile.role}</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>

@@ -136,7 +136,9 @@ export default async function CreditsPage({
         <Card>
           <CardContent className="flex items-center gap-3 py-2 text-sm">
             <Sparkles className="size-4" />
-            Your account has unlimited credits — nothing to buy.
+            {profile.role === "family"
+              ? "You're royal family — everything is on the house, unlimited, forever. Nothing to buy."
+              : "You're the Master — unlimited credits, nothing to buy."}
           </CardContent>
         </Card>
       ) : (

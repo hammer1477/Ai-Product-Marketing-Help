@@ -10,6 +10,7 @@ import { Backdrop } from "@/components/dashboard/Backdrop";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Toaster } from "@/components/ui/sonner";
 import { getProfile, greetingName, hasUnlimitedCredits } from "@/lib/profile/getProfile";
+import { RoyalChip, RoyalCrown, tierOf } from "@/components/royal/Royal";
 
 const NAV = [
   { href: "/dashboard", label: "Home" },
@@ -31,6 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const [{ balance, reserved }, profile] = await Promise.all([getCreditBalance(user.id), getProfile(user.id)]);
   const owner = profile.role === "owner";
+  const tier = tierOf(profile.role);
 
   return (
     <div className="relative isolate min-h-screen bg-background">
@@ -41,7 +43,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         className="pointer-events-none absolute inset-x-0 top-0 h-64 opacity-60 dark:opacity-40"
         style={{
           background:
-            "radial-gradient(60% 100% at 15% 0%, color-mix(in oklab, var(--brand-1) 22%, transparent), transparent), radial-gradient(50% 90% at 85% 0%, color-mix(in oklab, var(--brand-2) 16%, transparent), transparent)",
+            tier === "family"
+              ? "radial-gradient(60% 100% at 15% 0%, rgba(233,169,155,0.28), transparent), radial-gradient(50% 90% at 85% 0%, rgba(253,231,220,0.22), transparent)"
+              : "radial-gradient(60% 100% at 15% 0%, color-mix(in oklab, var(--brand-1) 22%, transparent), transparent), radial-gradient(50% 90% at 85% 0%, color-mix(in oklab, var(--brand-2) 16%, transparent), transparent)",
         }}
       />
       <header className="sticky top-0 z-30 border-b bg-background/75 backdrop-blur-xl">
@@ -60,6 +64,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 {item.label}
               </Link>
             ))}
+            {tier === "family" && (
+              <Link href="/dashboard" className="ml-1">
+                <RoyalChip tier="family" />
+              </Link>
+            )}
             {owner && (
               <Link
                 href="/admin"
@@ -71,11 +80,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </nav>
           <div className="flex shrink-0 items-center gap-2.5">
             <Link href="/credits" aria-label="Credits">
-              <CreditBalanceWidget balance={balance} reserved={reserved} unlimited={hasUnlimitedCredits(profile.role)} />
+              <CreditBalanceWidget balance={balance} reserved={reserved} unlimited={hasUnlimitedCredits(profile.role)} tier={tier} />
             </Link>
             <ThemeToggle />
             <Link href="/profile" className="hidden text-sm font-medium underline-offset-4 hover:underline md:inline">
-              {owner && <Crown className="mr-1 inline size-3.5 -translate-y-px text-amber-500" />}
+              {tier && <RoyalCrown tier={tier} className="mr-1 inline size-3.5 -translate-y-px" />}
               {greetingName(profile, user.email)}
             </Link>
             <SignOutButton />
