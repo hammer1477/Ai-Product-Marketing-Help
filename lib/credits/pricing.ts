@@ -6,3 +6,10 @@ export const GENERATION_COST_CREDITS = 5;
 
 /** One product photoshoot shot. Mirrors job_cost('photoshoot') in SQL. */
 export const PHOTOSHOOT_COST_CREDITS = 3;
+
+/** Agency campaign: a strategy fee plus a price per ad. Mirrors job_cost() in SQL. */
+export const CAMPAIGN_STRATEGY_CREDITS = 10;
+export const CAMPAIGN_AD_CREDITS = 5;
+export function campaignCost(ads: number): number {
+  return CAMPAIGN_STRATEGY_CREDITS + CAMPAIGN_AD_CREDITS * ads;
+}

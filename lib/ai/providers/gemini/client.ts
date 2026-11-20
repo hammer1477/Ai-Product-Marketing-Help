@@ -1,9 +1,19 @@
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-// Calls now carry the product photo and return long structured output (a
-// full fact sheet), which can run past 30s on a busy day.
-const REQUEST_TIMEOUT_MS = 45_000;
-const MAX_RETRIES = 2;
-const RETRYABLE_STATUS = new Set([429, 503]);
+// Calls carry the product photo and return long structured output — a full
+// campaign plan is several thousand tokens — which can run past 45s.
+const REQUEST_TIMEOUT_MS = 90_000;
+const MAX_RETRIES = 3;
+const RETRYABLE_STATUS = new Set([429, 500, 503]);
+/** Backoff before retry n (ms): overload spikes last seconds, not milliseconds. */
+const BACKOFF_MS = [2_000, 5_000, 10_000];
+
+/**
+ * When a model stays overloaded ("high demand" 503s), the next model up
+ * usually isn't. One attempt on it beats refunding the user.
+ */
+const FALLBACK_MODEL: Record<string, string> = {
+  "gemini-flash-lite-latest": "gemini-flash-latest",
+};
 
 function getApiKey(): string {
   const key = process.env.GEMINI_API_KEY;
@@ -16,6 +26,19 @@ function sleep(ms: number) {
 }
 
 export async function callGemini(model: string, body: unknown): Promise<any> {
+  try {
+    return await callModel(model, body);
+  } catch (err) {
+    const fallback = FALLBACK_MODEL[model];
+    if (fallback && err instanceof Error && /\((429|500|503)\)/.test(err.message)) {
+      console.warn(`Gemini ${model} unavailable, falling back to ${fallback}`);
+      return callModel(fallback, body);
+    }
+    throw err;
+  }
+}
+
+async function callModel(model: string, body: unknown): Promise<any> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -35,21 +58,23 @@ export async function callGemini(model: string, body: unknown): Promise<any> {
         const text = await res.text();
         if (RETRYABLE_STATUS.has(res.status) && attempt < MAX_RETRIES) {
           lastError = new Error(`Gemini API error (${res.status}) for model ${model}: ${text}`);
-          await sleep(1000 * 2 ** attempt);
+          await sleep(BACKOFF_MS[attempt] + Math.random() * 1000);
           continue;
         }
-        throw new Error(`Gemini API error (${res.status}) for model ${model}: ${text}`);
+        // Not retryable (bad request, auth): fail now rather than retry below.
+        throw Object.assign(new Error(`Gemini API error (${res.status}) for model ${model}: ${text}`), { final: true });
       }
 
       return res.json();
     } catch (err) {
       clearTimeout(timeout);
+      if ((err as { final?: boolean }).final) throw err;
       const isAbort = err instanceof Error && err.name === "AbortError";
       lastError = isAbort
         ? new Error(`Gemini request timed out after ${REQUEST_TIMEOUT_MS}ms for model ${model}`)
         : (err as Error);
       if (attempt < MAX_RETRIES) {
-        await sleep(1000 * 2 ** attempt);
+        await sleep(BACKOFF_MS[attempt] + Math.random() * 1000);
         continue;
       }
     }

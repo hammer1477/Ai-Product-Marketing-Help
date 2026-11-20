@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type ProjectCard = {
   id: string;
   angle: string | null;
+  campaignId: string | null;
   createdAt: string;
   status: "pending" | "processing" | "completed" | "failed" | "cancelled" | "draft";
   error: string | null;
@@ -23,7 +24,7 @@ export async function loadProjectCards(
 ): Promise<ProjectCard[]> {
   let query = supabase
     .from("creative_projects")
-    .select("id, angle, created_at, variant_index")
+    .select("id, angle, created_at, variant_index, campaign_id")
     .order("created_at", { ascending: false });
   if (filter.productId) query = query.eq("product_id", filter.productId);
   if (filter.campaignId) query = query.eq("campaign_id", filter.campaignId).order("variant_index", { ascending: true });
@@ -59,6 +60,7 @@ export async function loadProjectCards(
     return {
       id: p.id,
       angle: p.angle,
+      campaignId: p.campaign_id,
       createdAt: p.created_at,
       status: (job?.status as ProjectCard["status"]) ?? "draft",
       error: job?.error_message ?? null,

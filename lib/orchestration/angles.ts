@@ -26,7 +26,8 @@ export const COPY_ANGLES: CopyAngle[] = [
     brief:
       "Lead with the price or offer and a reason to act now. Put the priceBlock and badge up front " +
       "and make the CTA urgent. If no price or offer is on the fact sheet, lead with value for money " +
-      "instead — never invent a discount.",
+      "and a direct call to act instead — never invent a discount, stock level, popularity ('viral', " +
+      "'bestseller') or deadline to create urgency.",
   },
   {
     id: "proof",

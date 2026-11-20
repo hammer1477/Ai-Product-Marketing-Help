@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/supabase/server";
 import { renderSchemaToPng } from "@/lib/design-schema/render/renderPng";
 import { renderSchemaToSvg } from "@/lib/design-schema/render/renderSvg";
+import { schemaInFormat } from "@/lib/orchestration/composition";
+import { AD_FORMATS, type AdFormat } from "@/lib/orchestration/formats";
 
 /**
  * Raster scales offered. 2x is the web/social default; 4x puts a 1080
@@ -39,13 +41,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ proj
 
   const url = new URL(request.url);
   const format = url.searchParams.get("format") === "svg" ? "svg" : "png";
+  // ?size=story etc. re-lays the design out in another placement's size.
+  const sizeParam = url.searchParams.get("size");
+  const size = AD_FORMATS.find((f) => f.id === sizeParam)?.id as AdFormat | undefined;
+  const schema = size ? schemaInFormat(project.design_schema, size) : project.design_schema;
+  const suffix = size ? `-${size}` : "";
 
   if (format === "svg") {
-    const svg = await renderSchemaToSvg(project.design_schema);
+    const svg = await renderSchemaToSvg(schema);
     return new NextResponse(svg, {
       headers: {
         "content-type": "image/svg+xml",
-        "content-disposition": `attachment; filename="creative-${projectId}.svg"`,
+        "content-disposition": `attachment; filename="creative-${projectId}${suffix}.svg"`,
       },
     });
   }
@@ -59,12 +66,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ proj
       ? Math.min(requestedScale, MAX_SCALE)
       : DEFAULT_SCALE;
 
-  const png = await renderSchemaToPng(project.design_schema, { scale });
+  const png = await renderSchemaToPng(schema, { scale });
 
   return new NextResponse(new Uint8Array(png), {
     headers: {
       "content-type": "image/png",
-      "content-disposition": `attachment; filename="creative-${projectId}@${scale}x.png"`,
+      "content-disposition": `attachment; filename="creative-${projectId}${suffix}@${scale}x.png"`,
     },
   });
 }

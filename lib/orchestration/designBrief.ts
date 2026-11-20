@@ -30,7 +30,7 @@ export const TEMPLATE_CATALOGUE = TEMPLATES.map(
   (t) => `${t.id}: ${t.name} — ${t.blurb} (${t.scheme}; suits ${t.tags.join(", ")})`,
 ).join("\n");
 
-const DESIGN_BRIEF_SCHEMA = {
+export const DESIGN_BRIEF_SCHEMA = {
   type: "object",
   description: "Your brief to the designer who will lay out the poster.",
   properties: {

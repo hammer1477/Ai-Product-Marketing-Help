@@ -44,7 +44,10 @@ export function generateCreative(args: {
       "STEP 1 - EXTRACT into factSheet. " +
       EXTRACTION_RULES +
       " Everything after this step may use ONLY facts on your fact sheet — never invent " +
-      "specifications, certifications, prices, ratings or claims. " +
+      "specifications, certifications, prices, ratings or claims. Unless the seller's own fields state " +
+      "it, never say or imply on any block or badge: bestseller, best-selling, viral, trending, popular, " +
+      "in stock, back in stock, limited stock, selling fast, fast/free shipping or delivery, guarantees, " +
+      "warranties, discounts or sale prices. " +
       "STEP 2 - FIND THE IDEA. From the primary benefit, emotional hook and differentiators, " +
       "decide the single idea this ad sells, and write a headline that lands it — specific to " +
       "this product, never a generic line that could sell anything. " +

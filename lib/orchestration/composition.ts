@@ -5,6 +5,7 @@ import type { Block, BlockType } from "./blocks/types";
 import { composePosterSchema } from "./templates/poster";
 import type { Fact } from "./factSheet";
 import type { BrandLogo } from "../brand/kit";
+import type { AdFormat } from "./formats";
 
 // Lets a saved design be re-laid-out instead of only patched.
 //
@@ -109,4 +110,15 @@ export function recomposePoster(schema: DesignSchema, composition: PosterComposi
     logo: composition.logo,
     logoHidden: composition.logoHidden,
   });
+}
+
+/**
+ * The same design in another size. Re-laid-out from its composition, so a
+ * story is a real reframe of the ad, not a crop. Designs saved before
+ * compositions existed come back unchanged.
+ */
+export function schemaInFormat(schema: DesignSchema, format: AdFormat): DesignSchema {
+  const composition = readComposition(schema);
+  if (!composition || (composition.style.format ?? "square") === format) return schema;
+  return recomposePoster(schema, { ...composition, style: { ...composition.style, format } });
 }

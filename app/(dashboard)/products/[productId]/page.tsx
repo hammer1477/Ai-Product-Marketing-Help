@@ -7,7 +7,7 @@ import { AnalysisReviewCard } from "@/components/products/AnalysisReviewCard";
 import { CreateCreativeProjectButton } from "./CreateCreativeProjectButton";
 import { CampaignLauncher } from "./CampaignLauncher";
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Camera, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AdCard } from "@/components/creative/AdCard";
 import { AutoRefresh } from "@/components/jobs/AutoRefresh";
@@ -55,15 +55,34 @@ export default async function ProductDetailPage({
     primaryImageUrl = signed?.signedUrl ?? null;
   }
 
-  const [allCards, { count: shotCount }, { data: kitRow }] = await Promise.all([
+  const [allCards, { count: shotCount }, { data: kitRow }, { data: campaignRows }] = await Promise.all([
     loadProjectCards(supabase, { productId }),
     supabase.from("photoshoot_images").select("id", { count: "exact", head: true }).eq("product_id", productId),
     supabase.from("brand_kits").select(BRAND_KIT_COLUMNS).eq("user_id", product.user_id).maybeSingle(),
+    supabase
+      .from("campaigns")
+      .select("id, created_at, plan, job_id, generation_jobs!campaigns_job_id_fkey(status)")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false }),
   ]);
   const kitColors = readBrandKit(kitRow)?.colors;
   const brandSwatch: [string, string] | null = kitColors ? [kitColors.ink, kitColors.accent] : null;
-  const { visible: cards, failures } = splitFailures(allCards, (c) => `${angleById(c.angle)?.label ?? "An"} ad`);
-  const anyWorking = cards.some((card) => isWorking(card.status));
+  const { visible, failures } = splitFailures(allCards, (c) => `${angleById(c.angle)?.label ?? "An"} ad`);
+  // A campaign's ads live on its campaign page until they're designed.
+  const cards = visible.filter((c) => !c.campaignId || c.imageUrl);
+  const campaigns = (campaignRows ?? []).map((c) => {
+    const job = c.generation_jobs as unknown as { status: string } | null;
+    const plan = c.plan as { strategy?: { bigIdea?: string }; ads?: unknown[] } | null;
+    return {
+      id: c.id,
+      createdAt: c.created_at,
+      status: plan ? "ready" : job && (job.status === "pending" || job.status === "processing") ? "running" : job?.status === "failed" ? "failed" : "legacy",
+      bigIdea: plan?.strategy?.bigIdea,
+      adCount: plan?.ads?.length ?? allCards.filter((card) => card.campaignId === c.id).length,
+      thumbs: allCards.filter((card) => card.campaignId === c.id && card.imageUrl).slice(0, 4),
+    };
+  });
+  const anyWorking = cards.some((card) => isWorking(card.status)) || campaigns.some((c) => c.status === "running");
 
   const analysis = primaryImage?.ai_analysis as ImageAnalysis | null;
   const needsReview = primaryImage && !primaryImage.analysis_approved_at;
@@ -96,6 +115,36 @@ export default async function ProductDetailPage({
           suggestedCategory={analysis.suggestedCategory}
           confidence={primaryImage.ai_analysis_confidence}
         />
+      )}
+
+      {campaigns.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Campaigns</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {campaigns.map((c) => (
+              <Link key={c.id} href={`/campaigns/${c.id}`} className="flex gap-4 rounded-xl border p-3 transition hover:bg-muted/50">
+                <div className="grid w-28 shrink-0 grid-cols-2 gap-1">
+                  {c.thumbs.length > 0
+                    ? c.thumbs.map((t) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={t.id} src={t.imageUrl!} alt="" className="aspect-square w-full rounded object-cover" />
+                      ))
+                    : Array.from({ length: 4 }, (_, i) => <div key={i} className="aspect-square rounded bg-muted" />)}
+                </div>
+                <div className="min-w-0 py-1">
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {c.status === "running" ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+                    {c.status === "running" ? "Building…" : c.status === "failed" ? "Failed — refunded" : `${c.adCount} ads`}
+                    {" · "}
+                    {new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </p>
+                  <p className="mt-1 line-clamp-2 font-medium">{c.bigIdea ?? (c.status === "running" ? "Your campaign team is at work" : "Campaign pack")}</p>
+                  {c.status === "ready" && <p className="mt-1 text-xs text-muted-foreground">Strategy · ads in every size · copy · playbook</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       {cards.length > 0 && (

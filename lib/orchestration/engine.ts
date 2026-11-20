@@ -18,6 +18,7 @@ import { generateCreative } from "./creative";
 import { toModelImage } from "../images/modelImage";
 import { applyBrandFonts, applyBrandStyle, BRAND_KIT_COLUMNS, readBrandKit } from "../brand/kit";
 import { angleById } from "./angles";
+import { claimScrubber, dropEmptyBlocks, sellerText } from "./claims";
 
 const EXPORT_SCALE = 2;
 
@@ -155,7 +156,17 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
     angle,
   });
 
-  const [{ data: content }, productAssets] = await Promise.all([contentPromise, productAssetsPromise]);
+  const [{ data: written }, productAssets] = await Promise.all([contentPromise, productAssetsPromise]);
+  // Strip unbackable claims ("viral", "in stock") the prompt didn't stop.
+  const scrub = claimScrubber(sellerText(brief));
+  const content = {
+    ...written,
+    headline: scrub.text(written.headline ?? ""),
+    description: scrub.text(written.description ?? ""),
+    sellingPoints: scrub.deep(written.sellingPoints ?? []),
+    badgeLabel: written.badgeLabel ? scrub.text(written.badgeLabel) || undefined : undefined,
+    blocks: dropEmptyBlocks(scrub.deep(written.blocks) as { type?: string; text?: unknown }[]) as typeof written.blocks,
+  };
 
   const factSheet = normalizeFactSheet(content.factSheet as Partial<FactSheet> | undefined, brief);
   const designBrief = normalizeDesignBrief(content.designBrief);
