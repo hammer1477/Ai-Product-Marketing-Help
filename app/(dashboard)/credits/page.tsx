@@ -59,6 +59,8 @@ function describe(txn: Txn): { label: string; delta: string; muted?: boolean } |
       return { label: "Credit pack purchase", delta: `+${n.toLocaleString("en-US")}` };
     case "grant":
       return { label: "Free credits", delta: `+${n.toLocaleString("en-US")}` };
+    case "gift":
+      return { label: "A gift from the Master", delta: `+${n.toLocaleString("en-US")}` };
     case "adjust":
       return { label: "Adjustment", delta: `${n > 0 ? "+" : ""}${n.toLocaleString("en-US")}` };
     case "reserve": {
@@ -143,6 +145,11 @@ export default async function CreditsPage({
         </Card>
       ) : (
         <section className="flex flex-col gap-3">
+          {profile.role === "friend" && (
+            <p className="rounded-lg border border-slate-400/40 bg-slate-200/30 px-4 py-3 text-sm dark:bg-slate-300/10">
+              You&apos;re a friend of the Master — your 10,000 free credits were a gift. Top up below any time.
+            </p>
+          )}
           {!enabled && (
             <p className="text-sm text-muted-foreground">Purchasing is coming soon — packs are shown for reference.</p>
           )}

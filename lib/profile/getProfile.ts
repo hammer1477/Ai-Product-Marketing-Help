@@ -6,7 +6,7 @@ export type Profile = {
   role: Role;
 };
 
-export const ROLES = ["user", "family", "owner"] as const;
+export const ROLES = ["user", "friend", "family", "owner"] as const;
 export type Role = (typeof ROLES)[number];
 
 export function isRole(value: unknown): value is Role {

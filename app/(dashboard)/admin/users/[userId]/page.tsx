@@ -12,6 +12,7 @@ const TX_LABEL: Record<string, string> = {
   purchase: "Bought a credit pack",
   grant: "Free credits",
   adjust: "Adjusted by you",
+  gift: "Friend's gift",
 };
 
 export default async function SubjectFile({ params }: { params: Promise<{ userId: string }> }) {

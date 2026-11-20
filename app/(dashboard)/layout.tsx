@@ -45,7 +45,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           background:
             tier === "family"
               ? "radial-gradient(60% 100% at 15% 0%, rgba(233,169,155,0.28), transparent), radial-gradient(50% 90% at 85% 0%, rgba(253,231,220,0.22), transparent)"
-              : "radial-gradient(60% 100% at 15% 0%, color-mix(in oklab, var(--brand-1) 22%, transparent), transparent), radial-gradient(50% 90% at 85% 0%, color-mix(in oklab, var(--brand-2) 16%, transparent), transparent)",
+              : tier === "friend"
+                ? "radial-gradient(60% 100% at 15% 0%, rgba(203,213,225,0.3), transparent), radial-gradient(50% 90% at 85% 0%, rgba(241,245,249,0.2), transparent)"
+                : "radial-gradient(60% 100% at 15% 0%, color-mix(in oklab, var(--brand-1) 22%, transparent), transparent), radial-gradient(50% 90% at 85% 0%, color-mix(in oklab, var(--brand-2) 16%, transparent), transparent)",
         }}
       />
       <header className="sticky top-0 z-30 border-b bg-background/75 backdrop-blur-xl">
@@ -64,9 +66,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 {item.label}
               </Link>
             ))}
-            {tier === "family" && (
+            {(tier === "family" || tier === "friend") && (
               <Link href="/dashboard" className="ml-1">
-                <RoyalChip tier="family" />
+                <RoyalChip tier={tier} />
               </Link>
             )}
             {owner && (

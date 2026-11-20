@@ -13,3 +13,6 @@ export const CAMPAIGN_AD_CREDITS = 5;
 export function campaignCost(ads: number): number {
   return CAMPAIGN_STRATEGY_CREDITS + CAMPAIGN_AD_CREDITS * ads;
 }
+
+/** One-time gift when someone is made a Friend of the Master. */
+export const FRIEND_GIFT_CREDITS = 10_000;

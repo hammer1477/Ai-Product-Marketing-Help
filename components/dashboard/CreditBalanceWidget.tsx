@@ -36,7 +36,12 @@ export function CreditBalanceWidget({
   // Number() guards against bigint/numeric columns, which Supabase can return as strings.
   const spendable = Number(balance) - Number(reserved);
   return (
-    <Badge variant="secondary" className="gap-1 font-normal">
+    <Badge
+      variant="secondary"
+      className={cn("gap-1 font-normal", tier === "friend" && "border border-slate-400/50 bg-slate-200/40 dark:bg-slate-300/10")}
+      title={tier === "friend" ? "Friend of the Master" : undefined}
+    >
+      {tier === "friend" && <RoyalCrown tier="friend" className="size-3" />}
       <span className="font-semibold" title={`${spendable.toLocaleString("en-US")} credits`}>
         {formatCredits(spendable)}
       </span>

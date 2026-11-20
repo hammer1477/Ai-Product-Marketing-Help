@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createServiceRoleClient } from "@/lib/db/supabase/server";
 import { getProfile, isRole } from "@/lib/profile/getProfile";
+import { FRIEND_GIFT_CREDITS } from "@/lib/credits/pricing";
 
 export type AdminActionState = { error?: string; success?: string };
 
@@ -53,9 +54,26 @@ export async function setRole(_prev: AdminActionState, formData: FormData): Prom
     return { error: "You can't remove your own owner role — you'd lock yourself out." };
   }
 
-  const { error } = await createServiceRoleClient().from("profiles").update({ role }).eq("id", userId);
+  const admin = createServiceRoleClient();
+  const { error } = await admin.from("profiles").update({ role }).eq("id", userId);
   if (error) return { error: error.message };
 
+  // Friends get their gift the first time they're made a friend — never
+  // twice, however often their rank changes (the database enforces it).
+  let gifted = false;
+  if (role === "friend") {
+    const { data, error: giftError } = await admin.rpc("grant_friend_gift", { p_user_id: userId, p_amount: FRIEND_GIFT_CREDITS });
+    if (giftError) return { error: `Rank changed, but the gift failed: ${giftError.message}` };
+    gifted = data === true;
+  }
+
   revalidatePath("/admin", "layout");
-  return { success: "Role updated." };
+  return {
+    success:
+      role === "friend"
+        ? gifted
+          ? `Made a friend — ${FRIEND_GIFT_CREDITS.toLocaleString("en-US")} credits gifted.`
+          : "Made a friend (their gift was already given before)."
+        : "Role updated.",
+  };
 }

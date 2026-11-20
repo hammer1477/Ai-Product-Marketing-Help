@@ -37,6 +37,7 @@ export function RoleForm({ userId, role, isSelf }: { userId: string; role: Role;
           className="h-8 rounded-md border bg-background px-2 text-sm disabled:opacity-60"
         >
           <option value="user">Client</option>
+          <option value="friend">Friend (10,000 free credits)</option>
           <option value="family">Family (unlimited)</option>
           <option value="owner">Owner (unlimited + admin)</option>
         </select>

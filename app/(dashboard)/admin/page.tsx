@@ -119,6 +119,7 @@ export default async function MasterOverview() {
   ];
 
   const family = everyone.filter((p) => p.role === "family");
+  const friends = everyone.filter((p) => p.role === "friend");
   const newest = [...everyone].sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 6);
 
   return (
@@ -278,6 +279,34 @@ export default async function MasterOverview() {
                   {p.name.charAt(0)}
                 </span>
                 <span className="text-[#fde7dc]">{p.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      <Panel
+        title={
+          <>
+            <RoyalCrown tier="friend" className="size-4" /> Friends of the Master
+          </>
+        }
+        action={<span className="text-xs text-rose-100/50">10,000 credits gifted once. Raise anyone from Subjects.</span>}
+      >
+        {friends.length === 0 ? (
+          <p className="text-sm text-rose-100/50">No friends named yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {friends.map((p) => (
+              <Link
+                key={p.id}
+                href={`/admin/users/${p.id}`}
+                className="flex items-center gap-2.5 rounded-full border border-slate-400/30 bg-slate-300/10 py-1.5 pl-1.5 pr-4 text-sm transition hover:bg-slate-300/20"
+              >
+                <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-white via-slate-300 to-slate-500 text-xs font-semibold uppercase text-slate-800">
+                  {p.name.charAt(0)}
+                </span>
+                <span className="text-slate-100">{p.name}</span>
               </Link>
             ))}
           </div>
