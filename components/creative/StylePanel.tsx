@@ -57,7 +57,7 @@ export function StylePanel({
   const style = composition.style;
   const current = templateFor(style);
   const palette = useMemo(() => paletteFor(style), [style]);
-  // Thumbnails lag a beat behind edits so 25 live posters never block typing.
+  // Thumbnails lag a beat behind edits so a gallery of live posters never blocks typing.
   const galleryComposition = useDeferredValue(composition);
 
   function setStyle(patch: Partial<ResolvedStyle>) {

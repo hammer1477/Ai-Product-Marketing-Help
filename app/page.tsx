@@ -27,6 +27,10 @@ import { CAMPAIGN_AD_CREDITS, CAMPAIGN_STRATEGY_CREDITS, GENERATION_COST_CREDITS
 import { BrandMark } from "@/components/theme/BrandMark";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { cn } from "@/lib/utils";
+import { TEMPLATES } from "@/lib/orchestration/templates/registry";
+
+/** Counted from the live catalogue, so it never goes stale — and it keeps growing. */
+const TEMPLATE_COUNT = `${TEMPLATES.length}+`;
 
 const SIGNUP_CREDITS = 20;
 
@@ -221,7 +225,7 @@ export default async function Home() {
             <Heading
               eyebrow="Ads in a minute"
               title="Different products. Genuinely different designs."
-              body="28 designer templates — from bold posters to spec sheets that hold every fact. Every one of these came straight out of the studio."
+              body={`${TEMPLATE_COUNT} designer templates and growing — new ones land regularly, from bold posters to spec sheets that hold every fact. Every one of these came straight out of the studio.`}
             />
             <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-4">
               {[
@@ -378,7 +382,7 @@ export default async function Home() {
               icon={Palette}
               title="You're the boss of every pixel"
               body="We design it — you make it yours. Change words, specs and features, add whole sections, swap colours, fonts, layouts and text size. Undo anything."
-              points={["Edit & add specs, features, prices", "28 templates, 4 sizes, 3 text sizes", "Smart suggestions as you go", "Undo / redo, always"]}
+              points={["Edit & add specs, features, prices", `${TEMPLATE_COUNT} templates (and growing), 4 sizes`, "Smart suggestions as you go", "Undo / redo, always"]}
               extraIcon={Undo2}
             />
             <Feature
