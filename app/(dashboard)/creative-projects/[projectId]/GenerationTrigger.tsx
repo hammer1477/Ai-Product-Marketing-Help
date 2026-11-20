@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GENERATION_COST_CREDITS } from "@/lib/credits/pricing";
@@ -70,7 +71,18 @@ export function GenerationTrigger({ projectId, hasSchema }: { projectId: string;
             ? `Regenerate (${formatCredits(GENERATION_COST_CREDITS)} credits)`
             : `Generate creative (${formatCredits(GENERATION_COST_CREDITS)} credits)`}
       </Button>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error &&
+        (/insufficient credits/i.test(error) ? (
+          <p className="text-sm text-destructive">
+            You&apos;re out of credits.{" "}
+            <Link href="/credits" className="font-medium underline underline-offset-4">
+              Buy more
+            </Link>{" "}
+            to keep generating.
+          </p>
+        ) : (
+          <p className="text-sm text-destructive">{error}</p>
+        ))}
     </div>
   );
 }

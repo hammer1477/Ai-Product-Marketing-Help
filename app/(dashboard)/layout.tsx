@@ -32,6 +32,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/products" className="text-sm text-muted-foreground hover:text-foreground">
               Products
             </Link>
+            <Link href="/credits" className="text-sm text-muted-foreground hover:text-foreground">
+              Credits
+            </Link>
             {profile.role === "owner" && (
               <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
                 Admin
@@ -39,7 +42,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             )}
           </nav>
           <div className="flex items-center gap-3">
-            <CreditBalanceWidget balance={balance} reserved={reserved} unlimited={hasUnlimitedCredits(profile.role)} />
+            <Link href="/credits" aria-label="Credits">
+              <CreditBalanceWidget balance={balance} reserved={reserved} unlimited={hasUnlimitedCredits(profile.role)} />
+            </Link>
             <Link href="/profile" className="text-sm font-medium hover:underline underline-offset-4">
               {greetingName(profile, user.email)}
             </Link>

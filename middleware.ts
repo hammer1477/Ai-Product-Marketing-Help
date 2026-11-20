@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/auth/callback"];
-const PROTECTED_PREFIXES = ["/dashboard", "/products", "/creative-projects", "/profile", "/admin"];
+const PROTECTED_PREFIXES = ["/dashboard", "/products", "/creative-projects", "/profile", "/admin", "/credits"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
