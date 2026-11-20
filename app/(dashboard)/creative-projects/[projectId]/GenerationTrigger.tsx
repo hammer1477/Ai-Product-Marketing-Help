@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GENERATION_COST_CREDITS } from "@/lib/credits/pricing";
+import { formatCredits } from "@/lib/credits/format";
 
 type JobStatus = "idle" | "pending" | "processing" | "completed" | "failed" | "cancelled";
 
@@ -66,8 +67,8 @@ export function GenerationTrigger({ projectId, hasSchema }: { projectId: string;
         {isBusy
           ? "Generating..."
           : hasSchema
-            ? `Regenerate (${GENERATION_COST_CREDITS} credits)`
-            : `Generate creative (${GENERATION_COST_CREDITS} credits)`}
+            ? `Regenerate (${formatCredits(GENERATION_COST_CREDITS)} credits)`
+            : `Generate creative (${formatCredits(GENERATION_COST_CREDITS)} credits)`}
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
