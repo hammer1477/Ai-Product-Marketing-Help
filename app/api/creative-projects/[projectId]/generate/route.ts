@@ -1,4 +1,5 @@
-import { NextResponse, after } from "next/server";
+import { NextResponse } from "next/server";
+import { dispatchJobs } from "@/lib/jobs/dispatch";
 import { createClient } from "@/lib/db/supabase/server";
 import { GENERATION_COST_CREDITS } from "@/lib/credits/pricing";
 
@@ -52,22 +53,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
     return NextResponse.json({ error: reserveError?.message ?? "Failed to reserve credits" }, { status: 400 });
   }
 
-  const origin = new URL(request.url).origin;
-
-  // Fire-and-forget: kick off the worker immediately but don't make the
-  // client wait on it. `after()` keeps the function alive long enough to
-  // dispatch the request even after the response below is sent. The cron
-  // sweep in /api/jobs/poll catches this job if this call is ever dropped.
-  after(() => {
-    fetch(`${origin}/api/jobs/run`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${process.env.CRON_SECRET}`,
-      },
-      body: JSON.stringify({ jobId: job.id }),
-    }).catch((err) => console.error("Failed to dispatch job worker:", err));
-  });
+  dispatchJobs(new URL(request.url).origin, [job.id]);
 
   return NextResponse.json({ jobId: job.id });
 }

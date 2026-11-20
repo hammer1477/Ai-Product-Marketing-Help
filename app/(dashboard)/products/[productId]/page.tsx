@@ -5,6 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { AnalysisReviewCard } from "@/components/products/AnalysisReviewCard";
 import { CreateCreativeProjectButton } from "./CreateCreativeProjectButton";
+import { CampaignLauncher } from "./CampaignLauncher";
+import Link from "next/link";
+import { Camera } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AdCard } from "@/components/creative/AdCard";
+import { AutoRefresh } from "@/components/jobs/AutoRefresh";
+import { isWorking, loadProjectCards } from "@/lib/jobs/projectStatus";
 
 type ImageAnalysis = {
   suggestedCategory: string;
@@ -45,12 +52,19 @@ export default async function ProductDetailPage({
     primaryImageUrl = signed?.signedUrl ?? null;
   }
 
+  const [cards, { count: shotCount }] = await Promise.all([
+    loadProjectCards(supabase, { productId }),
+    supabase.from("photoshoot_images").select("id", { count: "exact", head: true }).eq("product_id", productId),
+  ]);
+  const anyWorking = cards.some((card) => isWorking(card.status));
+
   const analysis = primaryImage?.ai_analysis as ImageAnalysis | null;
   const needsReview = primaryImage && !primaryImage.analysis_approved_at;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      <AutoRefresh active={anyWorking} />
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{product.name || "Untitled product"}</h1>
           <div className="mt-1 flex items-center gap-2">
@@ -58,7 +72,12 @@ export default async function ProductDetailPage({
             {product.category_confirmed && <Badge variant="outline">Confirmed</Badge>}
           </div>
         </div>
-        <CreateCreativeProjectButton productId={product.id} disabled={!product.category_confirmed} />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" render={<Link href={`/products/${product.id}/photoshoot`} />} nativeButton={false} className="gap-1.5">
+            <Camera className="size-4" /> Photoshoot{shotCount ? ` (${shotCount})` : ""}
+          </Button>
+          <CreateCreativeProjectButton productId={product.id} disabled={!product.category_confirmed} />
+        </div>
       </div>
 
       {needsReview && analysis && (
@@ -70,6 +89,19 @@ export default async function ProductDetailPage({
           confidence={primaryImage.ai_analysis_confidence}
         />
       )}
+
+      {cards.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Your ads</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {cards.map((card) => (
+              <AdCard key={card.id} card={card} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <CampaignLauncher productId={product.id} disabled={!product.category_confirmed} />
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {primaryImageUrl && (

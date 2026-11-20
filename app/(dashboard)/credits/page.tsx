@@ -43,7 +43,14 @@ async function noticeForReturn(sessionId: string, userId: string): Promise<Notic
   }
 }
 
-type Txn = { id: string; type: string; amount: number; status: string; created_at: string };
+type Txn = {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  generation_jobs: { kind: string } | null;
+};
 
 function describe(txn: Txn): { label: string; delta: string; muted?: boolean } | null {
   const n = Number(txn.amount);
@@ -54,10 +61,12 @@ function describe(txn: Txn): { label: string; delta: string; muted?: boolean } |
       return { label: "Free credits", delta: `+${n.toLocaleString("en-US")}` };
     case "adjust":
       return { label: "Adjustment", delta: `${n > 0 ? "+" : ""}${n.toLocaleString("en-US")}` };
-    case "reserve":
-      if (txn.status === "refunded") return { label: "Generation failed — refunded", delta: "0", muted: true };
-      if (txn.status === "pending") return { label: "Generation in progress", delta: `−${n.toLocaleString("en-US")}`, muted: true };
-      return { label: "Ad generation", delta: `−${n.toLocaleString("en-US")}` };
+    case "reserve": {
+      const what = txn.generation_jobs?.kind === "photoshoot" ? "Photoshoot shot" : "Ad generation";
+      if (txn.status === "refunded") return { label: `${what} failed — refunded`, delta: "0", muted: true };
+      if (txn.status === "pending") return { label: `${what} in progress`, delta: `−${n.toLocaleString("en-US")}`, muted: true };
+      return { label: what, delta: `−${n.toLocaleString("en-US")}` };
+    }
     default:
       return null;
   }
@@ -86,7 +95,7 @@ export default async function CreditsPage({
     getProfile(user.id),
     supabase
       .from("credit_transactions")
-      .select("id, type, amount, status, created_at")
+      .select("id, type, amount, status, created_at, generation_jobs(kind)")
       .order("created_at", { ascending: false })
       .limit(25),
   ]);
@@ -178,7 +187,7 @@ export default async function CreditsPage({
             <p className="text-sm text-muted-foreground">Nothing yet.</p>
           ) : (
             <ul className="divide-y">
-              {(txns as Txn[]).map((txn) => {
+              {(txns as unknown as Txn[]).map((txn) => {
                 const row = describe(txn);
                 if (!row) return null;
                 return (

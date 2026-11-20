@@ -57,7 +57,7 @@ export default async function CreativeProjectPage({
         <CreativeEditor key={JSON.stringify(project.design_schema)} projectId={projectId} initialSchema={project.design_schema} brandKit={brandKit} />
       ) : (
         <p className="text-sm text-muted-foreground">
-          No creative generated yet. Click "Generate creative" above to get started.
+          No creative generated yet. Click &ldquo;Generate creative&rdquo; above to get started.
         </p>
       )}
     </div>
