@@ -37,7 +37,7 @@ export async function adjustCredits(_prev: AdminActionState, formData: FormData)
   });
   if (error) return { error: error.message };
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return { success: `Balance is now ${Number(data).toLocaleString("en-US")}.` };
 }
 
@@ -56,6 +56,6 @@ export async function setRole(_prev: AdminActionState, formData: FormData): Prom
   const { error } = await createServiceRoleClient().from("profiles").update({ role }).eq("id", userId);
   if (error) return { error: error.message };
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return { success: "Role updated." };
 }
