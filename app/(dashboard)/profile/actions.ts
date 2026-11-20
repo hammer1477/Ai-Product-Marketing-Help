@@ -72,7 +72,11 @@ export async function changePassword(_prev: ChangePasswordState, formData: FormD
   });
   const { error: wrong } = await verifier.auth.signInWithPassword({ email: user.email, password: current });
   if (wrong) return { error: "Your current password isn't right." };
-  await verifier.auth.signOut();
+  // End only the throwaway check session. signOut() defaults to "global",
+  // which revokes every session the user has — including the one this
+  // request is running under, so updateUser below failed with "Auth
+  // session missing".
+  await verifier.auth.signOut({ scope: "local" });
 
   const { error } = await supabase.auth.updateUser({ password: next });
   if (error) return { error: error.message };
