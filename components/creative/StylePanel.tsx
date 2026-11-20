@@ -7,6 +7,7 @@ import { BODY_FONTS, FONT_FAMILIES, isFontFamily, type FontFamily } from "@/lib/
 import { recomposePoster, type PosterComposition } from "@/lib/orchestration/composition";
 import { PALETTES, type ColorOverrides, type ResolvedStyle } from "@/lib/orchestration/styles";
 import { TEMPLATES, templateFor } from "@/lib/orchestration/templates/registry";
+import { AD_FORMATS, formatDef } from "@/lib/orchestration/formats";
 import { paletteFor } from "@/lib/orchestration/templates/poster";
 import { mix, WHITE } from "@/lib/orchestration/color";
 import { DesignCanvasPreview } from "@/components/creative/DesignCanvasPreview";
@@ -69,6 +70,46 @@ export function StylePanel({
 
   return (
     <div className="flex flex-col gap-6">
+      <section className="flex flex-col gap-3">
+        <header>
+          <h3 className="text-sm font-semibold">Size</h3>
+          <p className="text-xs text-muted-foreground">
+            Same design, reframed for each placement. Copy and product stay put; the background grows.
+          </p>
+        </header>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Ad size">
+          {AD_FORMATS.map((f) => {
+            const selected = formatDef(style.format).id === f.id;
+            const box = 28;
+            const w = f.width >= f.height ? box : Math.round((box * f.width) / f.height);
+            const h = f.height >= f.width ? box : Math.round((box * f.height) / f.width);
+            return (
+              <button
+                key={f.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setStyle({ format: f.id })}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg border p-2 text-left transition",
+                  selected ? "border-foreground bg-foreground/5 ring-1 ring-foreground" : "hover:bg-muted",
+                )}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center">
+                  <span className="rounded-[3px] border-2 border-current opacity-70" style={{ width: w, height: h }} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold">
+                    {f.label} <span className="font-normal text-muted-foreground">{f.ratio}</span>
+                  </span>
+                  <span className="block truncate text-[11px] text-muted-foreground">{f.usage}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="flex flex-col gap-3">
         <header className="flex items-end justify-between gap-2">
           <div>

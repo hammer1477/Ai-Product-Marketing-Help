@@ -10,11 +10,17 @@ import { renderSchemaToSatoriTree } from "@/lib/design-schema/render/satoriTree"
 // rendered twice: here as real DOM/CSS, there as a Satori SVG -> PNG.
 export function DesignCanvasPreview({
   schema,
-  maxWidth = 520,
+  maxWidth: maxWidthProp = 520,
+  maxHeight,
 }: {
   schema: DesignSchema;
   maxWidth?: number;
+  /** Caps tall formats (a 9:16 story) so they don't run off the screen. */
+  maxHeight?: number;
 }) {
+  const maxWidth = maxHeight
+    ? Math.min(maxWidthProp, (maxHeight * schema.canvas.width) / schema.canvas.height)
+    : maxWidthProp;
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
 
@@ -42,7 +48,7 @@ export function DesignCanvasPreview({
       // `overflow-hidden` also stops that 1080px child from forcing the
       // grid column wider than its share.
       style={{ aspectRatio: `${schema.canvas.width} / ${schema.canvas.height}`, maxWidth }}
-      className="relative w-full overflow-hidden rounded-lg border bg-muted"
+      className="relative mx-auto w-full overflow-hidden rounded-lg border bg-muted"
     >
       <div
         style={{

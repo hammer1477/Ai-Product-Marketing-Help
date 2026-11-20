@@ -1,3 +1,4 @@
+import type { AdFormat } from "./formats";
 import type { FontFamily } from "../design-schema/fontRegistry";
 import { contrastRatio, isHex, luminance, mix, WHITE } from "./color";
 import type { ArtDirection, LayoutVariant } from "./types";
@@ -180,6 +181,8 @@ export type ResolvedStyle = StylePreset & {
   fontOverrides?: FontOverrides;
   /** The copy's angle, recorded so regenerations try a different one. */
   copyAngle?: string;
+  /** Canvas size. Absent means square, which every design before formats was. */
+  format?: AdFormat;
 };
 
 export type CtaStyle = "pill" | "rect" | "brutal" | "outline" | "underline";

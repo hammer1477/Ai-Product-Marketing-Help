@@ -62,7 +62,7 @@ export function CreativeEditor({
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
       <FontFaces />
       <div className="min-w-0 lg:sticky lg:top-6">
-        <DesignCanvasPreview schema={schema} />
+        <DesignCanvasPreview schema={schema} maxHeight={680} />
       </div>
       <div className="flex min-w-0 flex-col gap-4">
         {composition ? (

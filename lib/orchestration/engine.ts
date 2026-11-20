@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "../db/supabase/server";
+import { AD_FORMATS, formatForPlatform, type AdFormat } from "./formats";
 import { renderSchemaToPng } from "../design-schema/render/renderPng";
 import { hasBlockingErrors, validateDesignSchema } from "../design-schema/validate";
 import { getImageProvider, getTextProvider } from "../ai/providers/factory";
@@ -145,6 +146,9 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
     accent2: designBrief.secondaryAccent,
     // Recorded on the style so the next regeneration can steer away from it.
     copyAngle: designBrief.copyAngle,
+    // A regeneration keeps the size the user picked; a first run takes it
+    // from the product's target platform.
+    format: formatOf(project.design_schema) ?? formatForPlatform(brief.targetPlatform),
   };
 
   // Background generation has to wait for the art direction, since the
@@ -245,6 +249,12 @@ function templateIdOf(schema: unknown): string | undefined {
  * newest first. The project's current saved design counts too — a user who
  * switched templates in the editor shouldn't be handed that one again.
  */
+function formatOf(schema: unknown): AdFormat | undefined {
+  const meta = (schema as { meta?: { composition?: { style?: { format?: unknown } } } } | null)?.meta;
+  const format = meta?.composition?.style?.format;
+  return AD_FORMATS.some((f) => f.id === format) ? (format as AdFormat) : undefined;
+}
+
 async function readProjectHistory(
   supabase: ReturnType<typeof createServiceRoleClient>,
   creativeProjectId: string,

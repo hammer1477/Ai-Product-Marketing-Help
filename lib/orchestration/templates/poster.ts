@@ -5,6 +5,7 @@ import { contentScore, type TemplateCtx } from "./kit";
 import { paint } from "./theme";
 import { templateFor, type TemplateDef } from "./registry";
 import type { Fact } from "../factSheet";
+import { formatDef, reframeLayers } from "../formats";
 
 export type PosterInput = {
   blocks: Block[];
@@ -77,7 +78,10 @@ export function templateContentScore(input: PosterInput, template: TemplateDef):
 // geometry only; they never know what content they're holding.
 export function composePosterSchema(input: PosterInput): DesignSchema {
   const template = templateFor(input.style);
-  const { layers, placed, palette } = build(input, template);
+  const built = build(input, template);
+  const { placed, palette } = built;
+  const format = formatDef(input.style.format);
+  const layers = reframeLayers(built.layers, format.id);
 
   // A template that doesn't draw the scene still has to carry it, or
   // switching to a template that does would find nothing to draw.
@@ -86,10 +90,10 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
   return {
     schemaVersion: 1,
     canvas: {
-      width: 1080,
-      height: 1080,
+      width: format.width,
+      height: format.height,
       backgroundColor: palette.ground,
-      aspectRatioPreset: "instagram-square",
+      aspectRatioPreset: format.preset,
     },
     meta: {
       density: input.density,

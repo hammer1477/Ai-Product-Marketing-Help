@@ -5,6 +5,7 @@
 //   npx tsx scripts/preview-designs.ts --only=bento,receipt
 //   npx tsx scripts/preview-designs.ts --palette="Noir Gold"
 //   npx tsx scripts/preview-designs.ts --background  (real generated scenes)
+//   npx tsx scripts/preview-designs.ts --format=story (portrait | story | landscape)
 //
 // Output lands in scripts/preview-output/ (gitignored).
 import { mkdir, writeFile } from "node:fs/promises";
@@ -15,6 +16,7 @@ import { renderSchemaToPng } from "../lib/design-schema/render/renderPng";
 import { removeProductBackdrop, trimTransparentEdges } from "../lib/images/cutout";
 import type { ArtDirection, CreativeContent } from "../lib/orchestration/types";
 import { TEMPLATES } from "../lib/orchestration/templates/registry";
+import { formatDef } from "../lib/orchestration/formats";
 
 const OUT_DIR = path.join(process.cwd(), "scripts/preview-output");
 const USE_BACKGROUND = process.argv.includes("--background");
@@ -138,6 +140,9 @@ async function main() {
       : direction,
   );
 
+  const format = formatDef(process.argv.find((arg) => arg.startsWith("--format="))?.slice(9));
+  const tileW = format.width >= format.height ? 360 : Math.round((360 * format.width) / format.height);
+  const tileH = format.height >= format.width ? 360 : Math.round((360 * format.height) / format.width);
   const tiles: Buffer[] = [];
   for (const template of TEMPLATES) {
     if (only && !only.split(",").includes(template.id)) continue;
@@ -147,13 +152,13 @@ async function main() {
       cutoutApplied: cut.cutoutApplied,
       productAspectRatio: aspectRatio,
       decision: { concept: "graphic_poster", density: "detailed" },
-      style: { ...style, templateId: template.id },
+      style: { ...style, templateId: template.id, format: format.id },
       backgroundImageUrl: background,
     });
 
     const png = await renderSchemaToPng(schema, { scale: 1 });
     await writeFile(path.join(OUT_DIR, `${template.id}.png`), png);
-    tiles.push(await sharp(png).resize(360, 360).png().toBuffer());
+    tiles.push(await sharp(png).resize(tileW, tileH).png().toBuffer());
     console.log(`  ${template.id.padEnd(18)} ${String(png.length).padStart(8)} bytes`);
   }
 
@@ -161,9 +166,9 @@ async function main() {
   const cols = 5;
   const rows = Math.ceil(tiles.length / cols);
   const sheet = await sharp({
-    create: { width: cols * 370 + 10, height: rows * 370 + 10, channels: 3, background: "#222" },
+    create: { width: cols * (tileW + 10) + 10, height: rows * (tileH + 10) + 10, channels: 3, background: "#222" },
   })
-    .composite(tiles.map((input, i) => ({ input, left: 10 + (i % cols) * 370, top: 10 + Math.floor(i / cols) * 370 })))
+    .composite(tiles.map((input, i) => ({ input, left: 10 + (i % cols) * (tileW + 10), top: 10 + Math.floor(i / cols) * (tileH + 10) })))
     .png()
     .toBuffer();
   await writeFile(path.join(OUT_DIR, "_sheet.png"), sheet);

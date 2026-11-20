@@ -175,6 +175,7 @@ export function renderSchemaToSatoriTree(schema: DesignSchema) {
         backgroundColor: schema.canvas.backgroundColor,
         position: "relative",
         display: "flex",
+        overflow: "hidden",
       }}
     >
       {sortedLayers.map(renderLayer)}
