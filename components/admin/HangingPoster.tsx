@@ -34,17 +34,23 @@ export function HangingPoster({
   if (variant === "feature") {
     // No frame: the picture itself, large, with a soft glow and a big line beneath.
     return (
-      <figure className={cn("relative shrink-0", className)}>
-        <div aria-hidden className="absolute inset-6 rounded-[2rem] bg-gradient-to-br from-rose-500/40 via-fuchsia-600/30 to-amber-500/30 blur-3xl" />
+      <figure className={cn("group relative shrink-0", className)}>
+        <div
+          aria-hidden
+          className="absolute inset-4 rounded-[2rem] bg-gradient-to-br from-rose-500/45 via-fuchsia-600/35 to-amber-500/35 blur-3xl transition-opacity duration-500 group-hover:opacity-100 sm:opacity-80"
+        />
         {/* eslint-disable-next-line @next/next/no-img-element -- served by our own route, no optimisation needed */}
         <img
           src={src}
           alt={alt}
           onError={() => setMissing(true)}
-          className={cn("relative block w-full rounded-3xl object-cover shadow-[0_30px_60px_-20px_rgba(0,0,0,0.95)]", imgClassName)}
+          className={cn(
+            "relative block w-full rounded-3xl object-cover shadow-[0_30px_60px_-20px_rgba(0,0,0,0.95)] ring-1 ring-white/10 transition duration-500 group-hover:-translate-y-1 group-hover:shadow-[0_40px_70px_-20px_rgba(225,29,72,0.55)]",
+            imgClassName,
+          )}
         />
         {caption && (
-          <figcaption className="relative mt-5 text-center text-2xl font-semibold tracking-tight sm:text-3xl">
+          <figcaption className="relative mt-4 text-center text-xl font-semibold tracking-tight sm:text-2xl">
             <span className="bg-gradient-to-r from-amber-200 via-rose-300 to-fuchsia-300 bg-clip-text text-transparent">{caption}</span>{" "}
             <span className="inline-block animate-bounce [animation-duration:2s]">😈</span>
             <span className="inline-block animate-pulse">❤️</span>

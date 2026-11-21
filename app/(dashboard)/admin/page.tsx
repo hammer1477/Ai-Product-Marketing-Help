@@ -206,6 +206,14 @@ export default async function MasterOverview() {
           );
         })}
       </section>
+      {/* The centrepiece, between the posters right under the stats. */}
+      <HangingPoster
+        src="/api/admin/poster/fourth"
+        variant="feature"
+        caption={`Ready to serve, ${honorific.pet}`}
+        className="mx-auto w-full max-w-sm 2xl:max-w-md"
+        imgClassName="h-auto"
+      />
       </div>
       {/* Left wall: the polaroid with a second one leaning the other way beneath it. */}
       <div className="flex w-full max-w-72 flex-col gap-10 justify-self-end xl:order-1 xl:justify-self-auto">
@@ -225,15 +233,6 @@ export default async function MasterOverview() {
         imgClassName="h-auto"
       />
       </div>
-
-      {/* The centrepiece: bigger than the posters, no frame, with its own line. */}
-      <HangingPoster
-        src="/api/admin/poster/fourth"
-        variant="feature"
-        caption={`Ready to serve, ${honorific.pet}`}
-        className="mx-auto w-full max-w-xl"
-        imgClassName="h-auto"
-      />
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Panel
