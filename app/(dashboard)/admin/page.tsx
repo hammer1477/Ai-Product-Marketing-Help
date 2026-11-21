@@ -146,6 +146,9 @@ export default async function MasterOverview() {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Top of the console: greeting and stats, with the big poster hanging beside them. */}
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="flex min-w-0 flex-col gap-8">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex items-center gap-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl sm:size-16 border border-amber-400/40 bg-gradient-to-br from-amber-300 via-amber-500 to-rose-700 text-black shadow-[0_0_40px_-6px_rgba(245,158,11,0.6)]">
@@ -205,6 +208,13 @@ export default async function MasterOverview() {
           );
         })}
       </section>
+      </div>
+      <HangingPoster
+        src="/api/admin/poster/big"
+        className="mx-auto w-full max-w-xs lg:w-72 xl:w-80"
+        imgClassName="aspect-[9/16]"
+      />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Panel
@@ -284,8 +294,6 @@ export default async function MasterOverview() {
         </Panel>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_auto]">
-      <div className="flex min-w-0 flex-col gap-6">
       <Panel
         title={
           <>
@@ -341,13 +349,6 @@ export default async function MasterOverview() {
           </div>
         )}
       </Panel>
-      </div>
-      <HangingPoster
-        src="/api/admin/poster/big"
-        className="mx-auto w-full max-w-sm lg:w-96"
-        imgClassName="aspect-[9/16]"
-      />
-      </div>
     </div>
   );
 }
