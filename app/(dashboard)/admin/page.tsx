@@ -146,9 +146,10 @@ export default async function MasterOverview() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Top of the console: greeting and stats, with the big poster hanging beside them. */}
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
-      <div className="flex min-w-0 flex-col gap-8">
+      {/* Top of the console: greeting and stats between the two hanging posters
+          on wide screens; below that width the posters hang side by side under them. */}
+      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 xl:grid-cols-[15rem_minmax(0,1fr)_18rem]">
+      <div className="col-span-2 flex min-w-0 flex-col gap-8 xl:order-2 xl:col-span-1">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex items-center gap-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl sm:size-16 border border-amber-400/40 bg-gradient-to-br from-amber-300 via-amber-500 to-rose-700 text-black shadow-[0_0_40px_-6px_rgba(245,158,11,0.6)]">
@@ -163,7 +164,6 @@ export default async function MasterOverview() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-5">
         <div className="flex flex-wrap gap-2">
           {machinery.map((m) => (
             <span
@@ -178,8 +178,6 @@ export default async function MasterOverview() {
               {m.name}
             </span>
           ))}
-        </div>
-        <HangingPoster src="/api/admin/poster/small" className="hidden w-28 sm:block lg:w-36" />
         </div>
       </header>
 
@@ -210,8 +208,12 @@ export default async function MasterOverview() {
       </section>
       </div>
       <HangingPoster
+        src="/api/admin/poster/small"
+        className="w-full max-w-60 justify-self-end xl:order-1 xl:justify-self-auto"
+      />
+      <HangingPoster
         src="/api/admin/poster/big"
-        className="mx-auto w-full max-w-xs lg:w-72 xl:w-80"
+        className="w-full max-w-72 justify-self-start xl:order-3 xl:justify-self-auto"
         imgClassName="aspect-[9/16]"
       />
       </div>
