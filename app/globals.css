@@ -165,6 +165,13 @@
 @utility animate-float {
   animation: float-slow 9s ease-in-out infinite;
 }
+@keyframes sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(2deg); }
+}
+@utility animate-sway {
+  animation: sway 6s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .animate-float { animation: none; }
+  .animate-float, .animate-sway { animation: none; }
 }

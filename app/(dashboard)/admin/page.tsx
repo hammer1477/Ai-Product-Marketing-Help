@@ -20,7 +20,7 @@ import { formatCredits } from "@/lib/credits/format";
 import { formatPrice } from "@/lib/credits/packs";
 import { Panel, goldLink } from "@/components/admin/ui";
 import { RoyalCrown } from "@/components/royal/Royal";
-import { GothSticker } from "@/components/admin/GothSticker";
+import { HangingPoster } from "@/components/admin/HangingPoster";
 import { cn } from "@/lib/utils";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -176,7 +176,7 @@ export default async function MasterOverview() {
             </span>
           ))}
         </div>
-        <GothSticker className="hidden w-24 sm:block lg:w-28" />
+        <HangingPoster src="/console-poster.jpg" className="hidden w-28 sm:block lg:w-36" />
         </div>
       </header>
 
