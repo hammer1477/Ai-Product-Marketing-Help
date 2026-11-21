@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
   // so without this every generation and export would fail on missing fonts.
   outputFileTracingIncludes: {
     "/api/**/*": ["./public/fonts/**/*"],
+    // The Master console's owner-only posters (app/api/admin/poster).
+    "/api/admin/poster/*": ["./private/posters/**/*"],
   },
   // Server Actions default to a 1MB body limit, far too small for a real
   // product photo upload (ProductUploadForm posts the file directly via a

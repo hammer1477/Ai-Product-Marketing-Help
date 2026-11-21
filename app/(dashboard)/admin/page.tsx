@@ -176,7 +176,7 @@ export default async function MasterOverview() {
             </span>
           ))}
         </div>
-        <HangingPoster src="/console-poster.jpg" className="hidden w-28 sm:block lg:w-36" />
+        <HangingPoster src="/api/admin/poster/small" className="hidden w-28 sm:block lg:w-36" />
         </div>
       </header>
 
@@ -284,6 +284,8 @@ export default async function MasterOverview() {
         </Panel>
       </div>
 
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_auto]">
+      <div className="flex min-w-0 flex-col gap-6">
       <Panel
         title={
           <>
@@ -339,6 +341,13 @@ export default async function MasterOverview() {
           </div>
         )}
       </Panel>
+      </div>
+      <HangingPoster
+        src="/api/admin/poster/big"
+        className="mx-auto w-full max-w-sm lg:w-96"
+        imgClassName="aspect-[9/16]"
+      />
+      </div>
     </div>
   );
 }

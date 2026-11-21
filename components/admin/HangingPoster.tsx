@@ -7,7 +7,18 @@ import { cn } from "@/lib/utils";
  * A poster hanging from a nail on a string, swaying gently. Shows the image
  * at `src` (a file in /public); renders nothing until that file exists.
  */
-export function HangingPoster({ src, alt = "", className }: { src: string; alt?: string; className?: string }) {
+export function HangingPoster({
+  src,
+  alt = "",
+  className,
+  imgClassName = "aspect-square",
+}: {
+  src: string;
+  alt?: string;
+  className?: string;
+  /** Sizing of the picture inside the frame; square by default. */
+  imgClassName?: string;
+}) {
   const [missing, setMissing] = useState(false);
   if (missing) return null;
 
@@ -22,7 +33,7 @@ export function HangingPoster({ src, alt = "", className }: { src: string; alt?:
         </svg>
         <div className="relative rounded-sm border border-white/10 bg-zinc-950 p-1.5 shadow-[0_18px_40px_-12px_rgba(0,0,0,0.9),0_0_30px_-10px_rgba(168,85,247,0.5)]">
           {/* eslint-disable-next-line @next/next/no-img-element -- a fixed local file, no optimisation needed */}
-          <img src={src} alt={alt} onError={() => setMissing(true)} className="block aspect-square w-full object-cover" />
+          <img src={src} alt={alt} onError={() => setMissing(true)} className={cn("block w-full object-cover", imgClassName)} />
           {/* pins on the top corners */}
           <span className="absolute left-1.5 top-1.5 size-1.5 rounded-full bg-zinc-300" />
           <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-zinc-300" />
