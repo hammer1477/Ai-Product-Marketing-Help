@@ -9,7 +9,7 @@ import { getProfile } from "@/lib/profile/getProfile";
  * the URL. Drop a file named `<slot>.<ext>` in private/posters (e.g.
  * small.jpg, big.gif); animated GIF/WebP play as-is.
  */
-const SLOTS = new Set(["small", "big"]);
+const SLOTS = new Set(["small", "big", "third"]);
 const TYPES: Record<string, string> = {
   gif: "image/gif",
   webp: "image/webp",

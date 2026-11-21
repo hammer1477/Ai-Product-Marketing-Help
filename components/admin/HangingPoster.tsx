@@ -15,7 +15,10 @@ export function HangingPoster({
   imgClassName = "aspect-square",
   variant = "hanging",
   caption = "stay wicked",
+  tilt = "right",
 }: {
+  /** Which way a polaroid leans. */
+  tilt?: "left" | "right";
   src: string;
   alt?: string;
   className?: string;
@@ -31,7 +34,12 @@ export function HangingPoster({
   if (variant === "polaroid") {
     return (
       <div className={cn("relative shrink-0 pt-4", className)}>
-        <figure className="relative rotate-3 bg-[#f4f1ea] p-3 pb-0 shadow-[0_20px_45px_-14px_rgba(0,0,0,0.9),0_0_30px_-12px_rgba(244,63,94,0.45)] transition duration-500 hover:rotate-0 hover:scale-[1.02]">
+        <figure
+          className={cn(
+            "relative bg-[#f4f1ea] p-3 pb-0 shadow-[0_20px_45px_-14px_rgba(0,0,0,0.9),0_0_30px_-12px_rgba(244,63,94,0.45)] transition duration-500 hover:rotate-0 hover:scale-[1.02]",
+            tilt === "left" ? "-rotate-3" : "rotate-3",
+          )}
+        >
           {/* a strip of black lace tape holding it to the wall */}
           <span
             aria-hidden
