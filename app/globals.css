@@ -172,16 +172,6 @@
 @utility animate-sway {
   animation: sway 6s ease-in-out infinite;
 }
-@keyframes candle {
-  0%, 100% { opacity: 0.55; transform: scale(1); }
-  20% { opacity: 0.8; }
-  40% { opacity: 0.5; transform: scale(1.03); }
-  65% { opacity: 0.9; }
-  80% { opacity: 0.6; transform: scale(0.98); }
-}
-@utility animate-candle {
-  animation: candle 4s ease-in-out infinite;
-}
 @media (prefers-reduced-motion: reduce) {
-  .animate-float, .animate-sway, .animate-candle { animation: none; }
+  .animate-float, .animate-sway { animation: none; }
 }

@@ -73,31 +73,13 @@ function pickGreeting(gender: Gender | null, h: Honorific) {
   return { line: g.line(h), sub: g.sub };
 }
 
-/** The chapel arch's caption — a different surprise each visit. */
-const ARCH_CAPTIONS = [
-  "devotion",
-  "nocturne",
-  "memento mori",
-  "sanctum",
-  "sin & silk",
-  "unholy grace",
-  "candlelit",
-  "eternal night",
-  "velvet ruin",
-  "midnight mass",
-  "hallowed",
-  "dark divine",
-];
-
 const KIND: Record<string, string> = { creative: "Ad", campaign: "Campaign", photoshoot: "Photo" };
 
 export default async function MasterOverview() {
   const me = await requireOwner();
   const { now, week, month } = clock();
   const honorific = honorificFor(me.profile.gender);
-  const greeting = pickGreeting(me.profile.gender, honorific);
-  const archCaption = ARCH_CAPTIONS[Math.floor(Math.random() * ARCH_CAPTIONS.length)];
-  const a = admin();
+  const greeting = pickGreeting(me.profile.gender, honorific);  const a = admin();
   const count = (table: string) => a.from(table).select("*", { count: "exact", head: true });
 
   const [
@@ -237,12 +219,21 @@ export default async function MasterOverview() {
           imgClassName="h-auto"
         />
       </div>
-      {/* Right wall: the big hanging poster with a gilded chapel arch beneath it. */}
-      <div className="flex w-full max-w-72 flex-col gap-10 justify-self-start xl:order-3 xl:justify-self-auto">
-        <HangingPoster src="/api/admin/poster/big" className="w-full" imgClassName="h-auto" />
-        <HangingPoster src="/api/admin/poster/fourth" variant="arch" caption={archCaption} className="w-full" imgClassName="h-auto" />
+      <HangingPoster
+        src="/api/admin/poster/big"
+        className="w-full max-w-72 justify-self-start xl:order-3 xl:justify-self-auto"
+        imgClassName="h-auto"
+      />
       </div>
-      </div>
+
+      {/* The centrepiece: bigger than the posters, no frame, with its own line. */}
+      <HangingPoster
+        src="/api/admin/poster/fourth"
+        variant="feature"
+        caption={`Ready to serve, ${honorific.pet}`}
+        className="mx-auto w-full max-w-xl"
+        imgClassName="h-auto"
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Panel
