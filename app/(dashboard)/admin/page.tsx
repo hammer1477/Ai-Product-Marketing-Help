@@ -207,13 +207,14 @@ export default async function MasterOverview() {
         })}
       </section>
       {/* The centrepiece pair, between the posters right under the stats. */}
-      <div className="mx-auto grid w-full max-w-3xl items-center gap-8 sm:grid-cols-[3fr_2fr]">
+      {/* Flex, not grid, so a lone picture (the other not added yet) stays centred. */}
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center justify-center gap-8 sm:flex-row">
         <HangingPoster
           src="/api/admin/poster/fourth"
           variant="feature"
           caption={`Ready to serve, ${honorific.pet}`}
           emoji={["😈", "❤️"]}
-          className="w-full"
+          className="w-full max-w-sm sm:w-3/5 sm:max-w-none"
           imgClassName="h-auto"
         />
         <HangingPoster
@@ -222,7 +223,7 @@ export default async function MasterOverview() {
           caption="Always yours"
           emoji={["🖤", "🥀"]}
           glow="violet"
-          className="mx-auto w-full max-w-xs sm:max-w-none"
+          className="w-full max-w-xs sm:w-2/5 sm:max-w-none"
           imgClassName="h-auto"
         />
       </div>
