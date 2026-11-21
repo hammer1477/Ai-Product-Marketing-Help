@@ -15,7 +15,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { admin, directory, requireOwner } from "@/lib/admin/data";
-import { greetingName, honorificFor, type Honorific } from "@/lib/profile/getProfile";
+import { greetingName, honorificFor, type Gender, type Honorific } from "@/lib/profile/getProfile";
 import { formatCredits } from "@/lib/credits/format";
 import { formatPrice } from "@/lib/credits/packs";
 import { Panel, goldLink } from "@/components/admin/ui";
@@ -39,20 +39,36 @@ function ago(iso: string, now: number): string {
 }
 
 /**
- * How the console greets its owner — a different line each visit. A Master
- * is Master and Daddy; a Mistress is Mistress and Mommy.
+ * How the console greets its owner — a surprise line each visit, picked from
+ * the set that suits the owner's gender (set on their profile).
  */
-const GREETINGS: Array<{ line: (h: Honorific) => string; sub: string }> = [
+const SHARED: Array<{ line: (h: Honorific) => string; sub: string }> = [
   { line: (h) => `Ready to serve, ${h.title}.`, sub: "Say the word and the studio gets to work." },
-  { line: (h) => `How can I help you, ${h.pet}?`, sub: "Everything here bends to your will." },
   { line: (h) => `Welcome back, ${h.title}.`, sub: "The studio awaits your command." },
   { line: (h) => `Your wish is my command, ${h.title}.`, sub: "Ads, campaigns, photoshoots — just point." },
   { line: (h) => `At your service, ${h.title}.`, sub: "What shall we conquer today?" },
-  { line: (h) => `I've been waiting for you, ${h.pet}.`, sub: "Your empire missed you. Here's how it's doing." },
 ];
 
-function pickGreeting(h: Honorific) {
-  const g = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+const GREETINGS: Record<Gender, Array<{ line: (h: Honorific) => string; sub: string }>> = {
+  male: [
+    ...SHARED,
+    { line: (h) => `How can I help you, ${h.pet}?`, sub: "Everything here bends to your will." },
+    { line: (h) => `I've been waiting for you, ${h.pet}.`, sub: "Your empire missed you. Here's how it's doing." },
+    { line: (h) => `The throne is warm, ${h.title}.`, sub: "Your kingdom has been busy while you were away." },
+    { line: (h) => `All hail the king, ${h.title}.`, sub: "The numbers are in, and they look good on you." },
+  ],
+  female: [
+    ...SHARED,
+    { line: (h) => `How can I help you, ${h.pet}?`, sub: "Everything here bends to your will." },
+    { line: (h) => `I've been waiting for you, ${h.pet}.`, sub: "Your empire missed you. Here's how it's doing." },
+    { line: (h) => `Your Majesty returns, ${h.title}.`, sub: "The queendom kept itself polished for you." },
+    { line: (h) => `All hail the queen, ${h.title}.`, sub: "The numbers are in, and they look good on you." },
+  ],
+};
+
+function pickGreeting(gender: Gender | null, h: Honorific) {
+  const set = GREETINGS[gender ?? "male"];
+  const g = set[Math.floor(Math.random() * set.length)];
   return { line: g.line(h), sub: g.sub };
 }
 
@@ -62,7 +78,7 @@ export default async function MasterOverview() {
   const me = await requireOwner();
   const { now, week, month } = clock();
   const honorific = honorificFor(me.profile.gender);
-  const greeting = pickGreeting(honorific);
+  const greeting = pickGreeting(me.profile.gender, honorific);
   const a = admin();
   const count = (table: string) => a.from(table).select("*", { count: "exact", head: true });
 

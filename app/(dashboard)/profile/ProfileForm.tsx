@@ -25,7 +25,6 @@ export function ProfileForm({
 }: {
   username: string;
   displayName: string;
-  /** Set only for the owner, who picks how the studio addresses them. */
   gender: "male" | "female" | null;
 }) {
   const [state, formAction] = useActionState(updateProfile, initialState);
@@ -49,28 +48,23 @@ export function ProfileForm({
         <Label htmlFor="displayName">Full name</Label>
         <Input id="displayName" name="displayName" defaultValue={displayName} autoComplete="name" />
       </div>
-      {gender && (
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-medium">How the studio addresses you</legend>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {[
-              { value: "male", label: "Master", note: "“Welcome back, Master.” · “Daddy”" },
-              { value: "female", label: "Mistress", note: "“Welcome back, Mistress.” · “Mommy”" },
-            ].map((o) => (
-              <label
-                key={o.value}
-                className="flex cursor-pointer items-start gap-2.5 rounded-lg border p-3 text-sm transition has-[:checked]:border-amber-500/60 has-[:checked]:bg-amber-500/10"
-              >
-                <input type="radio" name="gender" value={o.value} defaultChecked={gender === o.value} className="mt-0.5 accent-amber-500" />
-                <span>
-                  <span className="block font-medium">{o.label}</span>
-                  <span className="block text-xs text-muted-foreground">{o.note}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      )}
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-sm font-medium">Gender</legend>
+        <div className="grid grid-cols-2 gap-2 sm:max-w-xs">
+          {[
+            { value: "male", label: "Male" },
+            { value: "female", label: "Female" },
+          ].map((o) => (
+            <label
+              key={o.value}
+              className="flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+            >
+              <input type="radio" name="gender" value={o.value} defaultChecked={gender === o.value} />
+              {o.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       {state.success && <p className="text-sm text-emerald-600">Profile saved.</p>}
       <div>

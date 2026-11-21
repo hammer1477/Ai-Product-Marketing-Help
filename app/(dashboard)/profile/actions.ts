@@ -29,7 +29,6 @@ export async function updateProfile(
     username: username || null,
     display_name: displayName,
   };
-  // Master or Mistress — only the owner's form sends it.
   const gender = formData.get("gender");
   if (gender === "male" || gender === "female") update.gender = gender;
 

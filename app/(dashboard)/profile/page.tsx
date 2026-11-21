@@ -65,8 +65,7 @@ export default async function ProfilePage() {
           <ProfileForm
             username={profile.username ?? ""}
             displayName={profile.displayName ?? ""}
-            // Only the owner chooses between Master and Mistress.
-            gender={profile.role === "owner" ? (profile.gender ?? "male") : null}
+            gender={profile.gender}
           />
         </CardContent>
       </Card>

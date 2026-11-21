@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
@@ -26,7 +27,7 @@ export default function SignupPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName } },
+      options: { data: { display_name: displayName, gender } },
     });
 
     setLoading(false);
@@ -80,6 +81,20 @@ export default function SignupPage() {
             autoComplete="name"
           />
         </div>
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-medium">Gender</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {(["male", "female"] as const).map((g) => (
+              <label
+                key={g}
+                className="flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm capitalize transition has-[:checked]:border-foreground has-[:checked]:bg-muted"
+              >
+                <input type="radio" name="gender" value={g} required checked={gender === g} onChange={() => setGender(g)} />
+                {g}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div className="flex flex-col gap-2">
           <Label htmlFor="email">Email</Label>
           <Input
