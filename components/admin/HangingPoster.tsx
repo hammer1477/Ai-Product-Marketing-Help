@@ -24,12 +24,36 @@ export function HangingPoster({
   className?: string;
   /** Sizing of the picture inside the frame; square by default. */
   imgClassName?: string;
-  variant?: "hanging" | "polaroid";
+  variant?: "hanging" | "polaroid" | "arch";
   /** Handwritten line under a polaroid. */
   caption?: string;
 }) {
   const [missing, setMissing] = useState(false);
   if (missing) return null;
+
+  if (variant === "arch") {
+    // A gothic chapel window: gilded arched frame, candlelight flickering behind it.
+    return (
+      <div className={cn("relative shrink-0 pt-4", className)}>
+        <div aria-hidden className="animate-candle absolute inset-x-6 -bottom-2 top-10 rounded-t-full bg-amber-500/30 blur-2xl" />
+        <div className="relative rounded-t-full bg-gradient-to-b from-amber-200 via-amber-600 to-amber-900 p-[3px] shadow-[0_24px_50px_-16px_rgba(0,0,0,0.95)]">
+          <div className="rounded-t-full bg-gradient-to-b from-zinc-900 to-black p-2.5">
+            <div className="overflow-hidden rounded-t-full ring-1 ring-amber-400/40">
+              {/* eslint-disable-next-line @next/next/no-img-element -- served by our own route, no optimisation needed */}
+              <img src={src} alt={alt} onError={() => setMissing(true)} className={cn("block w-full object-cover", imgClassName)} />
+            </div>
+            {caption && (
+              <p className="pt-2.5 text-center font-serif text-xs uppercase tracking-[0.35em] text-amber-200/80">
+                ✠ {caption} ✠
+              </p>
+            )}
+          </div>
+        </div>
+        {/* a small gilded keystone at the top of the arch */}
+        <span aria-hidden className="absolute left-1/2 top-2.5 size-4 -translate-x-1/2 rotate-45 border border-amber-200/70 bg-gradient-to-br from-amber-200 to-amber-700 shadow" />
+      </div>
+    );
+  }
 
   if (variant === "polaroid") {
     return (

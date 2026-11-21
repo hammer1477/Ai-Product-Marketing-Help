@@ -220,11 +220,11 @@ export default async function MasterOverview() {
           imgClassName="h-auto"
         />
       </div>
-      <HangingPoster
-        src="/api/admin/poster/big"
-        className="w-full max-w-72 justify-self-start xl:order-3 xl:justify-self-auto"
-        imgClassName="h-auto"
-      />
+      {/* Right wall: the big hanging poster with a gilded chapel arch beneath it. */}
+      <div className="flex w-full max-w-72 flex-col gap-10 justify-self-start xl:order-3 xl:justify-self-auto">
+        <HangingPoster src="/api/admin/poster/big" className="w-full" imgClassName="h-auto" />
+        <HangingPoster src="/api/admin/poster/fourth" variant="arch" caption="devotion" className="w-full" imgClassName="h-auto" />
+      </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
