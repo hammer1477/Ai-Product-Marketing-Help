@@ -190,13 +190,14 @@ export default async function MasterOverview() {
         <Panel
           title="Latest orders carried out"
           icon={Activity}
+          className="min-w-0"
           action={
             <Link href="/admin/generations" className={cn(goldLink, "text-xs")}>
               See all generations →
             </Link>
           }
         >
-          <ol className="flex flex-col divide-y divide-white/5">
+          <ol className="-mr-2 flex max-h-96 flex-col divide-y divide-white/5 overflow-y-auto overscroll-contain pr-2">
             {(recentJobs ?? []).map((j) => {
               const who = people.get(j.user_id);
               return (
@@ -239,6 +240,7 @@ export default async function MasterOverview() {
         <Panel
           title="Newest subjects"
           icon={Users}
+          className="min-w-0"
           action={
             <Link href="/admin/users" className={cn(goldLink, "text-xs")}>
               Manage all →
