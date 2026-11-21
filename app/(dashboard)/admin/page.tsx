@@ -206,27 +206,33 @@ export default async function MasterOverview() {
           );
         })}
       </section>
-      {/* The centrepiece, between the posters right under the stats. */}
-      <HangingPoster
-        src="/api/admin/poster/fourth"
-        variant="feature"
-        caption={`Ready to serve, ${honorific.pet}`}
-        className="mx-auto w-full max-w-sm 2xl:max-w-md"
-        imgClassName="h-auto"
-      />
-      </div>
-      {/* Left wall: the polaroid with a second one leaning the other way beneath it. */}
-      <div className="flex w-full max-w-72 flex-col gap-10 justify-self-end xl:order-1 xl:justify-self-auto">
-        <HangingPoster src="/api/admin/poster/small" variant="polaroid" className="w-full" imgClassName="h-auto" />
+      {/* The centrepiece pair, between the posters right under the stats. */}
+      <div className="mx-auto grid w-full max-w-3xl items-center gap-8 sm:grid-cols-[3fr_2fr]">
         <HangingPoster
-          src="/api/admin/poster/third"
-          variant="polaroid"
-          tilt="left"
-          caption="all yours"
+          src="/api/admin/poster/fourth"
+          variant="feature"
+          caption={`Ready to serve, ${honorific.pet}`}
+          emoji={["😈", "❤️"]}
           className="w-full"
           imgClassName="h-auto"
         />
+        <HangingPoster
+          src="/api/admin/poster/fifth"
+          variant="feature"
+          caption="Always yours"
+          emoji={["🖤", "🥀"]}
+          glow="violet"
+          className="mx-auto w-full max-w-xs sm:max-w-none"
+          imgClassName="h-auto"
+        />
       </div>
+      </div>
+      <HangingPoster
+        src="/api/admin/poster/small"
+        variant="polaroid"
+        className="w-full max-w-72 justify-self-end xl:order-1 xl:justify-self-auto"
+        imgClassName="h-auto"
+      />
       <HangingPoster
         src="/api/admin/poster/big"
         className="w-full max-w-72 justify-self-start xl:order-3 xl:justify-self-auto"
