@@ -5,7 +5,7 @@ import { getCreditBalance } from "@/lib/credits/getBalance";
 import { formatCredits } from "@/lib/credits/format";
 import { GENERATION_COST_CREDITS } from "@/lib/credits/pricing";
 import { CREDIT_PACKS, formatPrice, generationsIn } from "@/lib/credits/packs";
-import { getProfile, hasUnlimitedCredits } from "@/lib/profile/getProfile";
+import { getMasterHonorific, getProfile, hasUnlimitedCredits, honorificFor, type Honorific } from "@/lib/profile/getProfile";
 import { fulfillCheckoutSession, getStripe, paymentsEnabled } from "@/lib/payments/stripe";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ type Txn = {
   generation_jobs: { kind: string } | null;
 };
 
-function describe(txn: Txn): { label: string; delta: string; muted?: boolean } | null {
+function describe(txn: Txn, h: Honorific): { label: string; delta: string; muted?: boolean } | null {
   const n = Number(txn.amount);
   switch (txn.type) {
     case "purchase":
@@ -60,7 +60,7 @@ function describe(txn: Txn): { label: string; delta: string; muted?: boolean } |
     case "grant":
       return { label: "Free credits", delta: `+${n.toLocaleString("en-US")}` };
     case "gift":
-      return { label: "A gift from the Master", delta: `+${n.toLocaleString("en-US")}` };
+      return { label: `A gift from the ${h.title}`, delta: `+${n.toLocaleString("en-US")}` };
     case "adjust":
       return { label: "Adjustment", delta: `${n > 0 ? "+" : ""}${n.toLocaleString("en-US")}` };
     case "reserve": {
@@ -102,6 +102,8 @@ export default async function CreditsPage({
       .limit(25),
   ]);
   const unlimited = hasUnlimitedCredits(profile.role);
+  // The owner's own honorific; anyone else sees the owner's.
+  const honorific = profile.role === "owner" ? honorificFor(profile.gender) : await getMasterHonorific();
   const spendable = Number(balance) - Number(reserved);
   const enabled = paymentsEnabled();
 
@@ -140,14 +142,14 @@ export default async function CreditsPage({
             <Sparkles className="size-4" />
             {profile.role === "family"
               ? "You're royal family — everything is on the house, unlimited, forever. Nothing to buy."
-              : "You're the Master — unlimited credits, nothing to buy."}
+              : `You're the ${honorific.title} — unlimited credits, nothing to buy.`}
           </CardContent>
         </Card>
       ) : (
         <section className="flex flex-col gap-3">
           {profile.role === "friend" && (
             <p className="rounded-lg border border-slate-400/40 bg-slate-200/30 px-4 py-3 text-sm dark:bg-slate-300/10">
-              You&apos;re a friend of the Master — your 10,000 free credits were a gift. Top up below any time.
+              You&apos;re a friend of the {honorific.title} — your 10,000 free credits were a gift. Top up below any time.
             </p>
           )}
           {!enabled && (
@@ -197,7 +199,7 @@ export default async function CreditsPage({
           ) : (
             <ul className="divide-y">
               {(txns as unknown as Txn[]).map((txn) => {
-                const row = describe(txn);
+                const row = describe(txn, honorific);
                 if (!row) return null;
                 return (
                   <li key={txn.id} className="flex items-center justify-between gap-4 py-2.5 text-sm">

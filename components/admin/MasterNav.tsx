@@ -12,12 +12,12 @@ const TABS = [
   { href: "/admin/products", label: "Products", icon: Package },
 ];
 
-export function MasterNav() {
+export function MasterNav({ title = "Master" }: { title?: string }) {
   const path = usePathname();
   return (
     <nav className="flex flex-wrap items-center gap-2">
       <span className="mr-2 flex items-center gap-2 text-sm font-semibold text-amber-300">
-        <Crown className="size-4" /> Master console
+        <Crown className="size-4" /> {title} console
       </span>
       {TABS.map((t) => {
         const on = t.exact ? path === t.href : path.startsWith(t.href);

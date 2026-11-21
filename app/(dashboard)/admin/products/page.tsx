@@ -46,7 +46,7 @@ export default async function MasterProducts({ searchParams }: { searchParams: P
         icon={Package}
         action={
           <form className="flex gap-2" action="/admin/products">
-            <Input name="q" defaultValue={q} placeholder="Product, category or owner…" className="w-60 border-amber-500/20 bg-black/40" />
+            <Input name="q" defaultValue={q} placeholder="Product, category or owner…" className="w-full border-amber-500/20 bg-black/40 sm:w-60" />
             <Button type="submit" variant="outline" className="border-amber-500/30 text-amber-200 hover:bg-amber-500/10">
               Search
             </Button>

@@ -150,6 +150,14 @@
     0 18px 50px -20px color-mix(in oklab, var(--brand-2) 55%, transparent);
 }
 
+/* Scrollable rows (the phone nav) without a visible scrollbar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @keyframes float-slow {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
   50% { transform: translate3d(0, -18px, 0) scale(1.04); }

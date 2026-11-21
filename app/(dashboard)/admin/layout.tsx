@@ -1,4 +1,5 @@
 import { requireOwner } from "@/lib/admin/data";
+import { honorificFor } from "@/lib/profile/getProfile";
 import { MasterNav } from "@/components/admin/MasterNav";
 import { MasterPosters } from "@/components/admin/MasterPosters";
 
@@ -17,10 +18,11 @@ const FILIGREE = `url("data:image/svg+xml;utf8,${encodeURIComponent(
 // The master's realm: every console page is owner-only (404 for anyone
 // else), always dark, oxblood and gold, with the tabs across the top.
 export default async function MasterLayout({ children }: { children: React.ReactNode }) {
-  await requireOwner();
+  const me = await requireOwner();
+  const { title } = honorificFor(me.profile.gender);
   return (
     // `dark` forces the dark tokens in here whatever the site theme is.
-    <div className="dark -mx-4 -my-8 min-h-[calc(100vh-57px)] bg-[#0d0608] px-4 py-8 text-foreground">
+    <div className="dark -mx-4 -my-8 min-h-[calc(100dvh-3.5rem)] bg-[#0d0608] px-4 py-8 text-foreground">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0"
@@ -32,7 +34,7 @@ export default async function MasterLayout({ children }: { children: React.React
       <div aria-hidden className="pointer-events-none fixed inset-0 opacity-[0.07]" style={{ backgroundImage: FILIGREE }} />
       <MasterPosters />
       <div className="relative mx-auto flex max-w-6xl flex-col gap-8">
-        <MasterNav />
+        <MasterNav title={title} />
         {children}
         <p className="text-center text-xs uppercase tracking-[0.25em] text-amber-200/30">At your command, always.</p>
       </div>

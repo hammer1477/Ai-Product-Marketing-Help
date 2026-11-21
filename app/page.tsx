@@ -101,9 +101,9 @@ export default async function Home() {
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold">
             <BrandMark />
-            AI Advertising Studio
+            <span className="hidden whitespace-nowrap sm:inline">AI Advertising Studio</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
             {[
@@ -117,10 +117,10 @@ export default async function Home() {
               </a>
             ))}
             <ThemeToggle />
-            <Link href="/login" className="rounded-full px-3 py-1.5 text-sm font-medium hover:bg-muted">
+            <Link href="/login" className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium hover:bg-muted">
               Log in
             </Link>
-            <Link href="/signup" className="rounded-full bg-brand px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+            <Link href="/signup" className="whitespace-nowrap rounded-full bg-brand px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
               Start free
             </Link>
           </nav>
@@ -133,18 +133,18 @@ export default async function Home() {
           <Glow className="-top-40 left-[-10%] size-[620px]" color="var(--brand-1)" />
           <Glow className="top-10 right-[-12%] size-[560px]" color="var(--brand-2)" delay />
           <Glow className="top-[380px] left-[35%] size-[420px]" color="var(--brand-3)" />
-          <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pb-20 pt-16 md:pt-24 lg:grid-cols-[1.1fr_1fr]">
+          <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-12 sm:gap-14 sm:pb-20 sm:pt-16 md:pt-24 lg:grid-cols-[1.1fr_1fr]">
             <div className="flex flex-col items-start gap-7">
               <span className="inline-flex items-center gap-2 rounded-full border bg-background/60 px-3 py-1 text-xs font-medium backdrop-blur">
                 <Sparkles className="size-3.5 text-[var(--brand-2)]" />
                 {SIGNUP_CREDITS} free credits · no card needed
               </span>
-              <h1 className="text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+              <h1 className="text-[2.6rem] font-semibold leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">
                 Your whole creative team,
                 <br />
                 <span className="text-brand">from one photo.</span>
               </h1>
-              <p className="max-w-xl text-lg text-muted-foreground">
+              <p className="max-w-xl text-base text-muted-foreground sm:text-lg">
                 Upload a product photo. An AI analyst, creative director, strategist and photographer turn it into
                 scroll-stopping ads, full Instagram & Facebook campaigns and studio-grade photoshoots — in about a
                 minute.
@@ -169,11 +169,12 @@ export default async function Home() {
               </ul>
             </div>
 
-            <div className="relative mx-auto h-[520px] w-full max-w-[540px]">
+            {/* Scales with the column, so phones get the same composition, smaller. */}
+            <div className="relative mx-auto aspect-[27/26] w-full max-w-[540px]">
               <FloatCard className="left-0 top-6 w-[52%] -rotate-6" src="/showcase/coffee.webp" w={1080} h={1080} alt="Coffee ad" priority />
               <FloatCard className="right-0 top-0 w-[44%] rotate-6" src="/showcase/buds-story.webp" w={1080} h={1920} alt="Earbuds story ad" priority delay />
               <FloatCard className="bottom-0 left-[18%] w-[50%] rotate-2" src="/showcase/shoot-travertine.webp" w={1080} h={1350} alt="Serum photoshoot" />
-              <div className="absolute bottom-24 right-2 z-20 flex items-center gap-2 rounded-2xl border bg-background/90 px-3 py-2 text-xs font-medium shadow-xl backdrop-blur">
+              <div className="absolute bottom-[18%] right-0 z-20 flex items-center gap-2 whitespace-nowrap rounded-2xl border bg-background/90 px-3 py-2 text-xs font-medium shadow-xl backdrop-blur">
                 <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500">
                   <Check className="size-3.5" />
                 </span>
@@ -195,7 +196,7 @@ export default async function Home() {
         </section>
 
         {/* Team */}
-        <section id="team" className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+        <section id="team" className="mx-auto max-w-6xl px-4 py-16 md:py-28">
           <Heading
             eyebrow="Meet your team"
             title={<>Four experts. <span className="text-brand">Zero salaries.</span></>}
@@ -221,7 +222,7 @@ export default async function Home() {
 
         {/* Ads */}
         <section id="work" className="relative border-y bg-muted/30">
-          <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-4 py-16 md:py-28">
             <Heading
               eyebrow="Ads in a minute"
               title="Different products. Genuinely different designs."
@@ -243,11 +244,11 @@ export default async function Home() {
         </section>
 
         {/* Campaigns */}
-        <section id="campaigns" className="relative mx-auto max-w-6xl px-4 py-20 md:py-28">
+        <section id="campaigns" className="relative mx-auto max-w-6xl px-4 py-16 md:py-28">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="flex flex-col gap-5">
               <Pill icon={Megaphone}>Agency campaigns</Pill>
-              <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">
                 The campaign an agency would hand you. <span className="text-brand">In two minutes.</span>
               </h2>
               <p className="text-muted-foreground">
@@ -315,11 +316,11 @@ export default async function Home() {
 
         {/* Photoshoot */}
         <section id="photoshoot" className="relative border-y bg-muted/30">
-          <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-4 py-16 md:py-28">
             <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.15fr]">
               <div className="flex flex-col gap-5">
                 <Pill icon={Camera}>AI photoshoot</Pill>
-                <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+                <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">
                   A studio day, <span className="text-brand">without the studio.</span>
                 </h2>
                 <p className="text-muted-foreground">
@@ -354,7 +355,7 @@ export default async function Home() {
         </section>
 
         {/* Every size */}
-        <section className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+        <section className="mx-auto max-w-6xl px-4 py-16 md:py-28">
           <Heading
             eyebrow="Every placement"
             title="One ad. Four sizes. Zero extra credits."
@@ -377,7 +378,7 @@ export default async function Home() {
 
         {/* Co-design + brand */}
         <section className="border-y bg-muted/30">
-          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-20 md:py-28 lg:grid-cols-2">
+          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-16 md:py-28 lg:grid-cols-2">
             <Feature
               icon={Palette}
               title="You're the boss of every pixel"
@@ -396,7 +397,7 @@ export default async function Home() {
         </section>
 
         {/* Pricing */}
-        <section id="pricing" className="relative mx-auto max-w-6xl px-4 py-20 md:py-28">
+        <section id="pricing" className="relative mx-auto max-w-6xl px-4 py-16 md:py-28">
           <Heading
             eyebrow="Pricing"
             title={<>Pay for results, <span className="text-brand">not seats.</span></>}
@@ -468,7 +469,7 @@ export default async function Home() {
             <div aria-hidden className="absolute -left-20 -top-20 size-72 rounded-full bg-white/15 blur-3xl" />
             <div aria-hidden className="absolute -bottom-24 -right-16 size-80 rounded-full bg-white/10 blur-3xl" />
             <Sparkles className="relative size-8" />
-            <h2 className="relative max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Your best ad is one photo away.</h2>
+            <h2 className="relative max-w-2xl text-3xl font-semibold tracking-tight sm:text-5xl">Your best ad is one photo away.</h2>
             <p className="relative max-w-xl text-white/85">Bring a product. Leave with a campaign you&apos;re proud of. The first ones are on us.</p>
             <Link href="/signup" className="relative inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-black transition hover:scale-[1.03]">
               Get {SIGNUP_CREDITS} free credits <ArrowRight className="size-4" />
@@ -532,7 +533,7 @@ function Heading({ eyebrow, title, body }: { eyebrow: string; title: React.React
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center gap-3 text-center">
       <p className="text-sm font-semibold uppercase tracking-widest text-[var(--brand-2)]">{eyebrow}</p>
-      <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">{title}</h2>
+      <h2 className="text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h2>
       {body && <p className="text-muted-foreground">{body}</p>}
     </div>
   );
@@ -560,7 +561,7 @@ function Feature({
   extraIcon: typeof Camera;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-3xl border bg-card p-8">
+    <div className="relative overflow-hidden rounded-3xl border bg-card p-6 sm:p-8">
       <Extra aria-hidden className="absolute -bottom-6 -right-6 size-40 text-[var(--brand-1)] opacity-[0.07]" />
       <span className="flex size-11 items-center justify-center rounded-2xl bg-brand text-white">
         <Icon className="size-5" />

@@ -130,7 +130,7 @@ export function CreativeEditor({
     // a full 1080px before scaling it down.
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
       <FontFaces />
-      <div className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-6">
+      <div className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-20">
         <DesignCanvasPreview schema={schema} maxHeight={680} />
         {composition && (
           <div className="flex items-center justify-center gap-1">

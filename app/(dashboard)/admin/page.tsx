@@ -15,7 +15,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { admin, directory, requireOwner } from "@/lib/admin/data";
-import { greetingName } from "@/lib/profile/getProfile";
+import { greetingName, honorificFor, type Honorific } from "@/lib/profile/getProfile";
 import { formatCredits } from "@/lib/credits/format";
 import { formatPrice } from "@/lib/credits/packs";
 import { Panel, goldLink } from "@/components/admin/ui";
@@ -38,18 +38,22 @@ function ago(iso: string, now: number): string {
   return `${Math.round(s / 86400)}d ago`;
 }
 
-/** How the console greets its owner — a different line each visit. */
-const GREETINGS: Array<{ line: string; sub: string }> = [
-  { line: "Ready to serve, Master.", sub: "Say the word and the studio gets to work." },
-  { line: "How can I help you, Daddy?", sub: "Everything here bends to your will." },
-  { line: "Welcome back, Master.", sub: "The studio awaits your command." },
-  { line: "Your wish is my command, Master.", sub: "Ads, campaigns, photoshoots — just point." },
-  { line: "At your service, Master.", sub: "What shall we conquer today?" },
-  { line: "I've been waiting for you, Daddy.", sub: "Your empire missed you. Here's how it's doing." },
+/**
+ * How the console greets its owner — a different line each visit. A Master
+ * is Master and Daddy; a Mistress is Mistress and Mommy.
+ */
+const GREETINGS: Array<{ line: (h: Honorific) => string; sub: string }> = [
+  { line: (h) => `Ready to serve, ${h.title}.`, sub: "Say the word and the studio gets to work." },
+  { line: (h) => `How can I help you, ${h.pet}?`, sub: "Everything here bends to your will." },
+  { line: (h) => `Welcome back, ${h.title}.`, sub: "The studio awaits your command." },
+  { line: (h) => `Your wish is my command, ${h.title}.`, sub: "Ads, campaigns, photoshoots — just point." },
+  { line: (h) => `At your service, ${h.title}.`, sub: "What shall we conquer today?" },
+  { line: (h) => `I've been waiting for you, ${h.pet}.`, sub: "Your empire missed you. Here's how it's doing." },
 ];
 
-function pickGreeting() {
-  return GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+function pickGreeting(h: Honorific) {
+  const g = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+  return { line: g.line(h), sub: g.sub };
 }
 
 const KIND: Record<string, string> = { creative: "Ad", campaign: "Campaign", photoshoot: "Photo" };
@@ -57,7 +61,8 @@ const KIND: Record<string, string> = { creative: "Ad", campaign: "Campaign", pho
 export default async function MasterOverview() {
   const me = await requireOwner();
   const { now, week, month } = clock();
-  const greeting = pickGreeting();
+  const honorific = honorificFor(me.profile.gender);
+  const greeting = pickGreeting(honorific);
   const a = admin();
   const count = (table: string) => a.from(table).select("*", { count: "exact", head: true });
 
@@ -126,11 +131,11 @@ export default async function MasterOverview() {
     <div className="flex flex-col gap-8">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex items-center gap-4">
-          <span className="flex size-16 items-center justify-center rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-300 via-amber-500 to-rose-700 text-black shadow-[0_0_40px_-6px_rgba(245,158,11,0.6)]">
-            <Crown className="size-8" />
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl sm:size-16 border border-amber-400/40 bg-gradient-to-br from-amber-300 via-amber-500 to-rose-700 text-black shadow-[0_0_40px_-6px_rgba(245,158,11,0.6)]">
+            <Crown className="size-6 sm:size-8" />
           </span>
           <div>
-            <h1 className="bg-gradient-to-r from-amber-200 via-amber-400 to-rose-400 bg-clip-text text-4xl font-semibold tracking-tight text-transparent">
+            <h1 className="bg-gradient-to-r from-amber-200 via-amber-400 to-rose-400 bg-clip-text text-2xl font-semibold tracking-tight text-transparent sm:text-4xl">
               {greeting.line}
             </h1>
             <p className="mt-1 text-sm text-rose-100/60">
@@ -163,7 +168,7 @@ export default async function MasterOverview() {
               <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-amber-200/60">
                 <s.icon className="size-3.5" /> {s.label}
               </p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-amber-50">{s.value}</p>
+              <p className="mt-2 truncate text-2xl font-semibold tracking-tight text-amber-50 sm:text-3xl">{s.value}</p>
               <p className="mt-0.5 text-xs text-rose-100/50">{s.note}</p>
             </>
           );
@@ -288,7 +293,7 @@ export default async function MasterOverview() {
       <Panel
         title={
           <>
-            <RoyalCrown tier="friend" className="size-4" /> Friends of the Master
+            <RoyalCrown tier="friend" honorific={honorific} className="size-4" /> Friends of the {honorific.title}
           </>
         }
         action={<span className="text-xs text-rose-100/50">10,000 credits gifted once. Raise anyone from Subjects.</span>}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/supabase/server";
-import { getProfile, greetingName, hasUnlimitedCredits } from "@/lib/profile/getProfile";
+import { getProfile, greetingName, hasUnlimitedCredits, honorificFor } from "@/lib/profile/getProfile";
 import { getCreditBalance } from "@/lib/credits/getBalance";
 import { formatCredits } from "@/lib/credits/format";
 import { Badge } from "@/components/ui/badge";
@@ -27,15 +27,15 @@ export default async function ProfilePage() {
   return (
     <div className="flex max-w-2xl flex-col gap-8">
       <div className="flex items-center gap-4">
-        <div className="flex size-14 items-center justify-center rounded-full bg-muted text-xl font-semibold uppercase">
+        <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-muted text-xl font-semibold uppercase">
           {name.charAt(0)}
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold">{name}</h1>
-            {tierOf(profile.role) ? <RoyalChip tier={tierOf(profile.role)!} /> : profile.role !== "user" && <Badge className="capitalize">{profile.role}</Badge>}
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="break-all text-2xl font-semibold">{name}</h1>
+            {tierOf(profile.role) ? <RoyalChip tier={tierOf(profile.role)!} honorific={honorificFor(profile.gender)} /> : profile.role !== "user" && <Badge className="capitalize">{profile.role}</Badge>}
           </div>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
+          <p className="break-all text-sm text-muted-foreground">{user.email}</p>
         </div>
       </div>
 
@@ -62,7 +62,12 @@ export default async function ProfilePage() {
           <CardDescription>How you appear in the app.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm username={profile.username ?? ""} displayName={profile.displayName ?? ""} />
+          <ProfileForm
+            username={profile.username ?? ""}
+            displayName={profile.displayName ?? ""}
+            // Only the owner chooses between Master and Mistress.
+            gender={profile.role === "owner" ? (profile.gender ?? "male") : null}
+          />
         </CardContent>
       </Card>
 

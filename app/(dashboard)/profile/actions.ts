@@ -25,10 +25,15 @@ export async function updateProfile(
     return { error: "Username must be 3–20 characters: letters, numbers or underscores." };
   }
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ username: username || null, display_name: displayName })
-    .eq("id", user.id);
+  const update: { username: string | null; display_name: string | null; gender?: "male" | "female" } = {
+    username: username || null,
+    display_name: displayName,
+  };
+  // Master or Mistress — only the owner's form sends it.
+  const gender = formData.get("gender");
+  if (gender === "male" || gender === "female") update.gender = gender;
+
+  const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
 
   if (error) {
     // 23505 = unique violation on the lower(username) index.

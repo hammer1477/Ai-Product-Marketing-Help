@@ -12,7 +12,7 @@ export default async function ProductsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Products</h1>
         <Button render={<Link href="/products/new" />} nativeButton={false}>
           New product
@@ -31,7 +31,7 @@ export default async function ProductsPage() {
             <Link key={product.id} href={`/products/${product.id}`}>
               <Card className="h-full transition-colors hover:bg-muted/50">
                 <CardContent className="flex flex-col gap-1 py-5">
-                  <span className="font-medium">{product.name || "Untitled product"}</span>
+                  <span className="break-words font-medium">{product.name || "Untitled product"}</span>
                   <span className="text-sm text-muted-foreground">{product.category || "Uncategorized"}</span>
                   {!product.category_confirmed && (
                     <span className="mt-2 w-fit rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">

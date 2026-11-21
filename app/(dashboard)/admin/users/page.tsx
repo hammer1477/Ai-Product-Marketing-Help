@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FolderOpen, Users } from "lucide-react";
 import { admin, directory, requireOwner } from "@/lib/admin/data";
-import { hasUnlimitedCredits } from "@/lib/profile/getProfile";
+import { hasUnlimitedCredits, honorificFor } from "@/lib/profile/getProfile";
 import { formatCredits } from "@/lib/credits/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ export default async function MasterSubjects({ searchParams }: { searchParams: P
         icon={Users}
         action={
           <form className="flex gap-2" action="/admin/users">
-            <Input name="q" defaultValue={q} placeholder="Find a subject…" className="w-56 border-amber-500/20 bg-black/40" />
+            <Input name="q" defaultValue={q} placeholder="Find a subject…" className="w-full border-amber-500/20 bg-black/40 sm:w-56" />
             <Button type="submit" variant="outline" className="border-amber-500/30 text-amber-200 hover:bg-amber-500/10">
               Summon
             </Button>
@@ -91,7 +91,7 @@ export default async function MasterSubjects({ searchParams }: { searchParams: P
                       <Link href={`/admin/users/${p.id}`} className="flex items-center gap-2 font-medium text-amber-50 hover:underline">
                         {tierOf(p.role) && <RoyalCrown tier={tierOf(p.role)!} className="size-3.5" />}
                         {p.name}
-                        {p.id === me.id && <Badge className="bg-amber-500/20 text-amber-200">You, Master</Badge>}
+                        {p.id === me.id && <Badge className="bg-amber-500/20 text-amber-200">You, {honorificFor(me.profile.gender).title}</Badge>}
                       </Link>
                       <div className="text-rose-100/50">{p.email}</div>
                       <div className="text-xs text-rose-100/40">Joined {shortDate(p.createdAt)}</div>
