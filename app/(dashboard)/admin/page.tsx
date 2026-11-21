@@ -206,27 +206,15 @@ export default async function MasterOverview() {
           );
         })}
       </section>
-      {/* The centrepiece pair, between the posters right under the stats. */}
-      {/* Flex, not grid, so a lone picture (the other not added yet) stays centred. */}
-      <div className="mx-auto flex w-full max-w-3xl flex-col items-center justify-center gap-8 sm:flex-row">
-        <HangingPoster
-          src="/api/admin/poster/fourth"
-          variant="feature"
-          caption={`Ready to serve, ${honorific.pet}`}
-          emoji={["😈", "❤️"]}
-          className="w-full max-w-sm sm:w-3/5 sm:max-w-none"
-          imgClassName="h-auto"
-        />
-        <HangingPoster
-          src="/api/admin/poster/fifth"
-          variant="feature"
-          caption="Always yours"
-          emoji={["🖤", "🥀"]}
-          glow="violet"
-          className="w-full max-w-xs sm:w-2/5 sm:max-w-none"
-          imgClassName="h-auto"
-        />
-      </div>
+      {/* The centrepiece, filling the middle right under the stats. */}
+      <HangingPoster
+        src="/api/admin/poster/fourth"
+        variant="feature"
+        caption={`Ready to serve, ${honorific.pet}`}
+        emoji={["😈", "❤️"]}
+        className="mx-auto w-full max-w-3xl"
+        imgClassName="h-auto"
+      />
       </div>
       {/* Left wall: the polaroid with a second one leaning the other way beneath it. */}
       <div className="flex w-full max-w-72 flex-col gap-10 justify-self-end xl:order-1 xl:justify-self-auto">
@@ -240,11 +228,19 @@ export default async function MasterOverview() {
           imgClassName="h-auto"
         />
       </div>
-      <HangingPoster
-        src="/api/admin/poster/big"
-        className="w-full max-w-72 justify-self-start xl:order-3 xl:justify-self-auto"
-        imgClassName="h-auto"
-      />
+      {/* Right wall: the big hanging poster with "Always yours" beneath it. */}
+      <div className="flex w-full max-w-72 flex-col gap-10 justify-self-start xl:order-3 xl:justify-self-auto">
+        <HangingPoster src="/api/admin/poster/big" className="w-full" imgClassName="h-auto" />
+        <HangingPoster
+          src="/api/admin/poster/fifth"
+          variant="feature"
+          caption="Always yours"
+          emoji={["🖤", "🥀"]}
+          glow="violet"
+          className="w-full"
+          imgClassName="h-auto"
+        />
+      </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
