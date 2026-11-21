@@ -73,6 +73,22 @@ function pickGreeting(gender: Gender | null, h: Honorific) {
   return { line: g.line(h), sub: g.sub };
 }
 
+/** The chapel arch's caption — a different surprise each visit. */
+const ARCH_CAPTIONS = [
+  "devotion",
+  "nocturne",
+  "memento mori",
+  "sanctum",
+  "sin & silk",
+  "unholy grace",
+  "candlelit",
+  "eternal night",
+  "velvet ruin",
+  "midnight mass",
+  "hallowed",
+  "dark divine",
+];
+
 const KIND: Record<string, string> = { creative: "Ad", campaign: "Campaign", photoshoot: "Photo" };
 
 export default async function MasterOverview() {
@@ -80,6 +96,7 @@ export default async function MasterOverview() {
   const { now, week, month } = clock();
   const honorific = honorificFor(me.profile.gender);
   const greeting = pickGreeting(me.profile.gender, honorific);
+  const archCaption = ARCH_CAPTIONS[Math.floor(Math.random() * ARCH_CAPTIONS.length)];
   const a = admin();
   const count = (table: string) => a.from(table).select("*", { count: "exact", head: true });
 
@@ -223,7 +240,7 @@ export default async function MasterOverview() {
       {/* Right wall: the big hanging poster with a gilded chapel arch beneath it. */}
       <div className="flex w-full max-w-72 flex-col gap-10 justify-self-start xl:order-3 xl:justify-self-auto">
         <HangingPoster src="/api/admin/poster/big" className="w-full" imgClassName="h-auto" />
-        <HangingPoster src="/api/admin/poster/fourth" variant="arch" caption="devotion" className="w-full" imgClassName="h-auto" />
+        <HangingPoster src="/api/admin/poster/fourth" variant="arch" caption={archCaption} className="w-full" imgClassName="h-auto" />
       </div>
       </div>
 
