@@ -20,6 +20,7 @@ import { formatCredits } from "@/lib/credits/format";
 import { formatPrice } from "@/lib/credits/packs";
 import { Panel, goldLink } from "@/components/admin/ui";
 import { RoyalCrown } from "@/components/royal/Royal";
+import { GothSticker } from "@/components/admin/GothSticker";
 import { cn } from "@/lib/utils";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -159,6 +160,7 @@ export default async function MasterOverview() {
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-5">
         <div className="flex flex-wrap gap-2">
           {machinery.map((m) => (
             <span
@@ -173,6 +175,8 @@ export default async function MasterOverview() {
               {m.name}
             </span>
           ))}
+        </div>
+        <GothSticker className="hidden w-24 sm:block lg:w-28" />
         </div>
       </header>
 
