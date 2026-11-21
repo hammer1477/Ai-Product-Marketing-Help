@@ -212,12 +212,12 @@ export default async function MasterOverview() {
         src="/api/admin/poster/small"
         variant="polaroid"
         className="w-full max-w-72 justify-self-end xl:order-1 xl:justify-self-auto"
-        imgClassName="aspect-[4/5] object-[50%_75%]"
+        imgClassName="h-auto"
       />
       <HangingPoster
         src="/api/admin/poster/big"
         className="w-full max-w-72 justify-self-start xl:order-3 xl:justify-self-auto"
-        imgClassName="aspect-[9/16]"
+        imgClassName="h-auto"
       />
       </div>
 
