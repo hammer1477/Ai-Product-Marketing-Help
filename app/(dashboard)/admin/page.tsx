@@ -148,7 +148,7 @@ export default async function MasterOverview() {
     <div className="flex flex-col gap-8">
       {/* Top of the console: greeting and stats between the two hanging posters
           on wide screens; below that width the posters hang side by side under them. */}
-      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 xl:grid-cols-[15rem_minmax(0,1fr)_18rem]">
+      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 xl:grid-cols-[18rem_minmax(0,1fr)_18rem]">
       <div className="col-span-2 flex min-w-0 flex-col gap-8 xl:order-2 xl:col-span-1">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex items-center gap-4">
@@ -181,7 +181,8 @@ export default async function MasterOverview() {
         </div>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Between two posters on xl the middle column is narrow, so stats go 2-up there. */}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
         {stats.map((s) => {
           const body = (
             <>
@@ -209,7 +210,9 @@ export default async function MasterOverview() {
       </div>
       <HangingPoster
         src="/api/admin/poster/small"
-        className="w-full max-w-60 justify-self-end xl:order-1 xl:justify-self-auto"
+        variant="polaroid"
+        className="w-full max-w-72 justify-self-end xl:order-1 xl:justify-self-auto"
+        imgClassName="aspect-[4/5] object-[50%_75%]"
       />
       <HangingPoster
         src="/api/admin/poster/big"
