@@ -8,6 +8,7 @@ import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { BrandMark } from "@/components/theme/BrandMark";
 import { Backdrop } from "@/components/dashboard/Backdrop";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { PoweredByCovenX } from "@/components/theme/PoweredByCovenX";
 import { Toaster } from "@/components/ui/sonner";
 import { getMasterHonorific, getProfile, greetingName, hasUnlimitedCredits, honorificFor } from "@/lib/profile/getProfile";
 import { RoyalChip, RoyalCrown, tierOf } from "@/components/royal/Royal";
@@ -126,6 +127,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
       <main className="relative mx-auto max-w-6xl px-4 py-8">{children}</main>
+      <footer className="relative border-t">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row">
+          <p>© {new Date().getFullYear()} CovenX Solutions. All rights reserved.</p>
+          <PoweredByCovenX />
+        </div>
+      </footer>
       <Toaster richColors position="top-right" />
     </div>
   );

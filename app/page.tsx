@@ -26,6 +26,7 @@ import { CREDIT_PACKS, formatPrice, generationsIn } from "@/lib/credits/packs";
 import { CAMPAIGN_AD_CREDITS, CAMPAIGN_STRATEGY_CREDITS, GENERATION_COST_CREDITS, PHOTOSHOOT_COST_CREDITS } from "@/lib/credits/pricing";
 import { BrandMark } from "@/components/theme/BrandMark";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { PoweredByCovenX } from "@/components/theme/PoweredByCovenX";
 import { cn } from "@/lib/utils";
 import { TEMPLATES } from "@/lib/orchestration/templates/registry";
 
@@ -481,8 +482,9 @@ export default async function Home() {
       <footer className="border-t">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row">
           <p className="flex items-center gap-2">
-            <ShieldCheck className="size-4" /> © {new Date().getFullYear()} AI Advertising Studio · made with joy
+            <ShieldCheck className="size-4" /> © {new Date().getFullYear()} CovenX Solutions. All rights reserved.
           </p>
+          <PoweredByCovenX />
           <div className="flex gap-4">
             <Link href="/login" className="hover:text-foreground">Log in</Link>
             <Link href="/signup" className="hover:text-foreground">Sign up</Link>

@@ -1,3 +1,5 @@
+import { PoweredByCovenX } from "@/components/theme/PoweredByCovenX";
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
@@ -35,13 +37,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             scroll-stopping creative — no designer, no studio, no agency retainer.
           </p>
         </div>
-        <p className="relative text-xs text-white/40">
-          Built for brands, sellers, and agencies who want their ads to look expensive.
-        </p>
+        <div className="relative flex flex-wrap items-center justify-between gap-3 text-xs text-white/40">
+          <p>Built for brands, sellers, and agencies who want their ads to look expensive.</p>
+          <PoweredByCovenX className="text-white/60" />
+        </div>
       </div>
 
-      <div className="flex w-full items-center justify-center bg-muted/30 px-4 py-12 lg:w-1/2">
+      <div className="flex w-full flex-col items-center justify-center gap-10 bg-muted/30 px-4 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">{children}</div>
+        {/* Phones don't get the left panel, so the credit goes under the form. */}
+        <PoweredByCovenX className="text-muted-foreground lg:hidden" />
       </div>
     </div>
   );
