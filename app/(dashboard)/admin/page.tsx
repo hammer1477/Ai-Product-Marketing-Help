@@ -243,7 +243,7 @@ export default async function MasterOverview() {
         <HangingPoster
           src="/api/admin/poster/fifth"
           variant="feature"
-          caption="Always yours"
+          caption="Take me now"
           emoji={["🖤", "🥀"]}
           glow="violet"
           className="w-full"
