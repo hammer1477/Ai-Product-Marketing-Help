@@ -223,14 +223,16 @@ export default async function MasterOverview() {
       </div>
       {/* Left wall: the polaroid with a second one leaning the other way beneath it. */}
       <div className="flex w-full max-w-72 flex-col gap-10 justify-self-end xl:order-1 xl:justify-self-auto">
-        <HangingPoster src="/api/admin/poster/small" variant="polaroid" className="w-full" imgClassName="h-auto" />
+        {/* Same shape as "big" opposite it, so both walls match. */}
+        <HangingPoster src="/api/admin/poster/small" variant="polaroid" className="w-full" imgClassName="aspect-[1920/3446]" />
         <HangingPoster
           src="/api/admin/poster/third"
           variant="polaroid"
           tilt="left"
           caption="all yours"
           className="w-full"
-          imgClassName="h-auto"
+          // Same shape as "fifth" opposite it.
+          imgClassName="aspect-[900/1344]"
         />
       </div>
       {/* Right wall: the big hanging poster with "Always yours" beneath it. */}
