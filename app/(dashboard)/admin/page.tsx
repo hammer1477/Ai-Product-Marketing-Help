@@ -150,9 +150,10 @@ export default async function MasterOverview() {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* On xl the poster wall widens past the page (up to 88rem) so the whole centre poster can be big. */}
       {/* Top of the console: greeting and stats between the two hanging posters
           on wide screens; below that width the posters hang side by side under them. */}
-      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 xl:grid-cols-[14rem_minmax(0,1fr)_14rem] xl:gap-x-4">
+      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 xl:mx-[calc(50%_-_min(44rem,50vw_-_1.5rem))] xl:grid-cols-[18rem_minmax(0,1fr)_18rem]">
       <div className="col-span-2 flex min-w-0 flex-col gap-8 xl:order-2 xl:col-span-1">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex items-center gap-4">
