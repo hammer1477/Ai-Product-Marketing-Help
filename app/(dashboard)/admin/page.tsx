@@ -218,7 +218,8 @@ export default async function MasterOverview() {
         caption={`Ready to serve, ${honorific.pet}`}
         emoji={["😈", "❤️"]}
         className="mx-auto w-full max-w-3xl"
-        imgClassName="h-auto"
+        // A touch taller than the photo's own 16:9.
+        imgClassName="aspect-[16/11]"
       />
       </div>
       {/* Left wall: the polaroid with a second one leaning the other way beneath it. */}
