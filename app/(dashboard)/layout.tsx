@@ -91,8 +91,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <BrandMark />
                 <span className="hidden whitespace-nowrap sm:inline">AI Advertising Studio</span>
               </Link>
-              {/* Wide screens: the nav sits inline. */}
-              <nav className="hidden items-center gap-1 lg:flex">{navLinks}</nav>
             </div>
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
               <Link href="/credits" aria-label="Credits">
@@ -123,8 +121,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <SignOutButton />
             </div>
           </div>
-          {/* Narrower screens: the nav gets its own scrollable row. */}
-          <nav className="no-scrollbar -mx-4 flex items-center gap-1 overflow-x-auto px-4 pb-2.5 lg:hidden">{navLinks}</nav>
+          {/* The nav gets its own scrollable row at every width, so it can never run into the controls on the right. */}
+          <nav className="no-scrollbar -mx-4 flex items-center gap-1 overflow-x-auto px-4 pb-2.5">{navLinks}</nav>
         </div>
       </header>
       <main className="relative mx-auto max-w-6xl px-4 py-8">{children}</main>
