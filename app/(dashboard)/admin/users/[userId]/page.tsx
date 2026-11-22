@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Camera, Coins, Crown, Image as ImageIcon, Megaphone, Package, ReceiptText } from "lucide-react";
-import { adTiles, admin, directory, generatedUrl, productPhotos, requireOwner } from "@/lib/admin/data";
+import { adTiles, admin, directory, generatedUrl, getMasterId, productPhotos, requireOwner } from "@/lib/admin/data";
+import { MasterSeal } from "@/components/admin/MasterSeal";
 import { hasUnlimitedCredits } from "@/lib/profile/getProfile";
 import { formatCredits } from "@/lib/credits/format";
 import type { CampaignPlan } from "@/lib/campaign/plan";
@@ -19,7 +20,7 @@ export default async function SubjectFile({ params }: { params: Promise<{ userId
   const me = await requireOwner();
   const { userId } = await params;
   const a = admin();
-  const people = await directory();
+  const [people, master] = await Promise.all([directory(), getMasterId()]);
   const person = people.get(userId);
   if (!person) notFound();
 
@@ -60,6 +61,7 @@ export default async function SubjectFile({ params }: { params: Promise<{ userId
             <>
               {person.role === "owner" && <Crown className="mr-2 inline size-7 -translate-y-1 text-amber-400" />}
               {person.name}
+              {userId === master && <MasterSeal className="ml-3 align-middle" />}
             </>
           }
           sub={`${person.email} · joined ${shortDate(person.createdAt)}${person.lastSignIn ? ` · last seen ${shortDate(person.lastSignIn)}` : ""}`}
@@ -71,11 +73,11 @@ export default async function SubjectFile({ params }: { params: Promise<{ userId
           <p className="text-4xl font-semibold tracking-tight text-amber-50">{unlimited ? "∞" : formatCredits(spendable)}</p>
           <div className="flex flex-col gap-1.5">
             <span className="text-xs uppercase tracking-wider text-amber-200/50">Grant / revoke credits</span>
-            <CreditsForm userId={userId} />
+            <CreditsForm userId={userId} locked={userId === master && me.id !== master} />
           </div>
           <div className="flex flex-col gap-1.5">
             <span className="text-xs uppercase tracking-wider text-amber-200/50">Rank</span>
-            <RoleForm userId={userId} role={person.role} isSelf={userId === me.id} />
+            <RoleForm userId={userId} role={person.role} isSelf={userId === me.id} targetIsMaster={userId === master} viewerIsMaster={me.id === master} />
           </div>
         </Panel>
 

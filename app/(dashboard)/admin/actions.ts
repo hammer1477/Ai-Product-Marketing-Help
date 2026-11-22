@@ -19,16 +19,25 @@ async function requireOwner(): Promise<{ id: string } | null> {
   return profile.role === "owner" ? { id: user.id } : null;
 }
 
+/** The one permanent Master (migration 0023). */
+async function masterId(): Promise<string | null> {
+  const { data } = await createServiceRoleClient().from("app_master").select("id").maybeSingle();
+  return data?.id ?? null;
+}
+
 const MAX_ADJUST = 1_000_000_000_000; // 1T per adjustment — well inside JS safe integers.
 
 export async function adjustCredits(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
-  if (!(await requireOwner())) return { error: "Only the owner can do this." };
+  const owner = await requireOwner();
+  if (!owner) return { error: "Only the owner can do this." };
 
   const userId = String(formData.get("userId") ?? "");
   const amount = Number(String(formData.get("amount") ?? "").replace(/[,\s]/g, ""));
   const mode = formData.get("mode") === "remove" ? -1 : 1;
 
   if (!userId) return { error: "Missing user." };
+  const master = await masterId();
+  if (userId === master && owner.id !== master) return { error: "The Master's vault is not yours to touch." };
   if (!Number.isInteger(amount) || amount <= 0) return { error: "Enter a whole number above 0." };
   if (amount > MAX_ADJUST) return { error: "Max 1,000,000,000,000 per adjustment." };
 
@@ -55,6 +64,14 @@ export async function setRole(_prev: AdminActionState, formData: FormData): Prom
   }
 
   const admin = createServiceRoleClient();
+  const master = await masterId();
+  if (userId === master) return { error: "The Master is owner forever — no one can change that." };
+  if (owner.id !== master) {
+    // Only the Master makes or unmakes owners.
+    const { data: target } = await admin.from("profiles").select("role").eq("id", userId).maybeSingle();
+    if (role === "owner" || target?.role === "owner") return { error: "Only the Master can grant or remove the owner rank." };
+  }
+
   const { error } = await admin.from("profiles").update({ role }).eq("id", userId);
   if (error) return { error: error.message };
 

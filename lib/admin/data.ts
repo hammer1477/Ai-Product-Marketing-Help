@@ -25,6 +25,15 @@ export function admin() {
   return createServiceRoleClient();
 }
 
+/**
+ * The one permanent Master account (table app_master, migration 0023). The
+ * database itself keeps the Master's rank and account from ever changing.
+ */
+export const getMasterId = cache(async (): Promise<string | null> => {
+  const { data } = await admin().from("app_master").select("id").maybeSingle();
+  return data?.id ?? null;
+});
+
 export type Person = {
   id: string;
   email: string;

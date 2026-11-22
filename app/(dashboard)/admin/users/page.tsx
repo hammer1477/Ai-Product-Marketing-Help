@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FolderOpen, Users } from "lucide-react";
-import { admin, directory, requireOwner } from "@/lib/admin/data";
+import { admin, directory, getMasterId, requireOwner } from "@/lib/admin/data";
+import { MasterSeal } from "@/components/admin/MasterSeal";
 import { hasUnlimitedCredits, honorificFor } from "@/lib/profile/getProfile";
 import { formatCredits } from "@/lib/credits/format";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +23,8 @@ export default async function MasterSubjects({ searchParams }: { searchParams: P
   const query = q.trim().toLowerCase();
   const a = admin();
 
-  const [people, { data: balances }, { data: products }, { data: projects }, { data: shots }] = await Promise.all([
+  const [master, people, { data: balances }, { data: products }, { data: projects }, { data: shots }] = await Promise.all([
+    getMasterId(),
     directory(),
     a.from("credit_balances").select("user_id, balance, reserved"),
     a.from("products").select("user_id"),
@@ -91,6 +93,7 @@ export default async function MasterSubjects({ searchParams }: { searchParams: P
                       <Link href={`/admin/users/${p.id}`} className="flex items-center gap-2 font-medium text-amber-50 hover:underline">
                         {tierOf(p.role) && <RoyalCrown tier={tierOf(p.role)!} className="size-3.5" />}
                         {p.name}
+                        {p.id === master && <MasterSeal />}
                         {p.id === me.id && <Badge className="bg-amber-500/20 text-amber-200">You, {honorificFor(me.profile.gender).title}</Badge>}
                       </Link>
                       <div className="text-rose-100/50">{p.email}</div>
@@ -105,10 +108,10 @@ export default async function MasterSubjects({ searchParams }: { searchParams: P
                       {hasUnlimitedCredits(p.role) ? "∞" : formatCredits(balanceById.get(p.id) ?? 0)}
                     </td>
                     <td className="py-3 pr-4">
-                      <CreditsForm userId={p.id} />
+                      <CreditsForm userId={p.id} locked={p.id === master && me.id !== master} />
                     </td>
                     <td className="py-3 pr-4">
-                      <RoleForm userId={p.id} role={p.role} isSelf={p.id === me.id} />
+                      <RoleForm userId={p.id} role={p.role} isSelf={p.id === me.id} targetIsMaster={p.id === master} viewerIsMaster={me.id === master} />
                     </td>
                     <td className="py-3">
                       <Button

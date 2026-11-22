@@ -6,6 +6,7 @@ import { adjustCredits, setRole, type AdminActionState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Role } from "@/lib/profile/getProfile";
+import { LockedNote } from "@/components/admin/MasterSeal";
 
 const initial: AdminActionState = {};
 
@@ -24,8 +25,22 @@ function Status({ state }: { state: AdminActionState }) {
   return null;
 }
 
-export function RoleForm({ userId, role, isSelf }: { userId: string; role: Role; isSelf: boolean }) {
+export function RoleForm({
+  userId,
+  role,
+  isSelf,
+  targetIsMaster = false,
+  viewerIsMaster = false,
+}: {
+  userId: string;
+  role: Role;
+  isSelf: boolean;
+  targetIsMaster?: boolean;
+  viewerIsMaster?: boolean;
+}) {
   const [state, action] = useActionState(setRole, initial);
+  if (targetIsMaster) return <LockedNote>Owner forever — the Master&apos;s rank can&apos;t be changed.</LockedNote>;
+  if (role === "owner" && !viewerIsMaster) return <LockedNote>Only the Master can change an owner&apos;s rank.</LockedNote>;
   return (
     <form action={action} className="flex flex-col gap-1">
       <input type="hidden" name="userId" value={userId} />
@@ -39,7 +54,9 @@ export function RoleForm({ userId, role, isSelf }: { userId: string; role: Role;
           <option value="user">Client</option>
           <option value="friend">Friend (10,000 free credits)</option>
           <option value="family">Family (unlimited)</option>
-          <option value="owner">Owner (unlimited + admin)</option>
+          <option value="owner" disabled={!viewerIsMaster}>
+            Owner (unlimited + admin){viewerIsMaster ? "" : " — Master only"}
+          </option>
         </select>
         {!isSelf && <Submit variant="outline">Save</Submit>}
       </div>
@@ -48,8 +65,9 @@ export function RoleForm({ userId, role, isSelf }: { userId: string; role: Role;
   );
 }
 
-export function CreditsForm({ userId }: { userId: string }) {
+export function CreditsForm({ userId, locked = false }: { userId: string; locked?: boolean }) {
   const [state, action] = useActionState(adjustCredits, initial);
+  if (locked) return <LockedNote>The Master&apos;s vault is not yours to touch.</LockedNote>;
   return (
     <form action={action} className="flex flex-col gap-1">
       <input type="hidden" name="userId" value={userId} />
