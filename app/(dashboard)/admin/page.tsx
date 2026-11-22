@@ -152,7 +152,7 @@ export default async function MasterOverview() {
     <div className="flex flex-col gap-8">
       {/* Top of the console: greeting and stats between the two hanging posters
           on wide screens; below that width the posters hang side by side under them. */}
-      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 xl:grid-cols-[18rem_minmax(0,1fr)_18rem]">
+      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 xl:grid-cols-[14rem_minmax(0,1fr)_14rem] xl:gap-x-4">
       <div className="col-span-2 flex min-w-0 flex-col gap-8 xl:order-2 xl:col-span-1">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex items-center gap-4">
@@ -217,9 +217,9 @@ export default async function MasterOverview() {
         variant="feature"
         caption={`Ready to serve, ${honorific.pet}`}
         emoji={["😈", "❤️"]}
-        className="mx-auto w-full max-w-3xl"
-        // A touch taller than the photo's own 16:9.
-        imgClassName="aspect-[16/11]"
+        className="mx-auto w-full max-w-4xl"
+        // The whole photo, uncropped; it gets its height from the wider centre column.
+        imgClassName="h-auto"
       />
       </div>
       {/* Left wall: the polaroid with a second one leaning the other way beneath it. */}
