@@ -17,6 +17,7 @@ const NAV = [
   { href: "/dashboard", label: "Home" },
   { href: "/products", label: "Products" },
   { href: "/photoshoot", label: "Photoshoot" },
+  { href: "/background-remover", label: "Background Remover" },
   { href: "/brand", label: "Brand" },
   { href: "/credits", label: "Credits" },
 ];

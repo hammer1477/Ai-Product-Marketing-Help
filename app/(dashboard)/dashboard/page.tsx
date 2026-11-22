@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/db/supabase/server";
 import { getMasterHonorific, getProfile, greetingName, honorificFor } from "@/lib/profile/getProfile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoyalWelcome, tierOf } from "@/components/royal/Royal";
+import { CutoutIcon } from "@/components/background-remover/CutoutIcon";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -35,6 +37,22 @@ export default async function DashboardPage() {
           New product
         </Button>
       </div>
+
+      <Link
+        href="/background-remover"
+        className="group flex items-center gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition hover:-translate-y-0.5 hover:ring-brand"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-white">
+          <CutoutIcon className="size-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Product Background Remover</span>
+          <span className="block text-sm text-muted-foreground">
+            Extract any product from its background and prepare it for professional advertising designs.
+          </span>
+        </span>
+        <ArrowRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
+      </Link>
 
       <Card>
         <CardHeader>
