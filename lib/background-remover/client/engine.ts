@@ -14,6 +14,13 @@ type Op = { kind: "stroke"; mode: BrushMode; radius: number; points: Point[] } |
 /** Brush edge softness: inner fraction of the radius that is fully opaque. */
 const HARDNESS = 0.65;
 
+/**
+ * Opacity (of 255) from which the model's mask counts as product: after
+ * isolation real background is near zero, while areas a lighter model is
+ * "unsure" about (big plain surfaces) sit around 35–60%.
+ */
+const SOLID_ALPHA = 64;
+
 function makeCanvas(width: number, height: number): HTMLCanvasElement {
   const c = document.createElement("canvas");
   c.width = width;
@@ -70,7 +77,7 @@ export function isolateMainProduct(alpha: Uint8Array, w: number, h: number): Uin
   const sizes: number[] = [0];
   const stack: number[] = [];
   for (let start = 0; start < n; start++) {
-    if (labels[start] || alpha[start] < 128) continue;
+    if (labels[start] || alpha[start] < SOLID_ALPHA) continue;
     const label = sizes.length;
     let size = 0;
     labels[start] = label;
@@ -87,7 +94,7 @@ export function isolateMainProduct(alpha: Uint8Array, w: number, h: number): Uin
           const nx = x + dx;
           if (nx < 0 || nx >= w) continue;
           const q = ny * w + nx;
-          if (!labels[q] && alpha[q] >= 128) {
+          if (!labels[q] && alpha[q] >= SOLID_ALPHA) {
             labels[q] = label;
             stack.push(q);
           }
@@ -113,12 +120,91 @@ export function isolateMainProduct(alpha: Uint8Array, w: number, h: number): Uin
   return out;
 }
 
+/** Marks every 0-pixel reachable from the image border (4-connected flood fill). */
+function reachableFromBorder(bin: Uint8Array, w: number, h: number): Uint8Array {
+  const seen = new Uint8Array(w * h);
+  const stack: number[] = [];
+  const push = (p: number) => {
+    if (!seen[p] && !bin[p]) {
+      seen[p] = 1;
+      stack.push(p);
+    }
+  };
+  for (let x = 0; x < w; x++) {
+    push(x);
+    push((h - 1) * w + x);
+  }
+  for (let y = 0; y < h; y++) {
+    push(y * w);
+    push(y * w + w - 1);
+  }
+  while (stack.length) {
+    const p = stack.pop()!;
+    const x = p % w;
+    if (x > 0) push(p - 1);
+    if (x < w - 1) push(p + 1);
+    if (p >= w) push(p - w);
+    if (p < w * (h - 1)) push(p + w);
+  }
+  return seen;
+}
+
+/**
+ * Makes the product's body solid. Lighter models often go semi-transparent
+ * on large plain areas of a product (a flat chocolate surface, a matte box
+ * side) because they look "background-ish". Inside the product's envelope —
+ * its solid parts with small gaps closed and enclosed holes filled — any
+ * pixel the model was unsure about becomes fully opaque. Pixels the model was
+ * confident are background (alpha < 24, e.g. the hole in a mug handle) stay
+ * transparent, and soft outer edges are untouched.
+ */
+export function solidifyInterior(alpha: Uint8Array, w: number, h: number): Uint8Array {
+  const n = w * h;
+  // ≥ 25% opacity counts as product: after isolation, real background is
+  // near zero, while "unsure" product areas sit around 35–60%.
+  const solid = new Uint8Array(n);
+  let any = false;
+  for (let i = 0; i < n; i++) {
+    if (alpha[i] >= SOLID_ALPHA) {
+      solid[i] = 1;
+      any = true;
+    }
+  }
+  if (!any) return alpha;
+
+  // Morphological closing: dilate, then erode (= dilate the complement).
+  const r = Math.max(2, Math.round(Math.max(w, h) * 0.035));
+  const grown = dilate(solid, w, h, r);
+  const inverse = new Uint8Array(n);
+  for (let i = 0; i < n; i++) inverse[i] = grown[i] ? 0 : 1;
+  const shrunkInverse = dilate(inverse, w, h, r);
+  const envelope = new Uint8Array(n);
+  for (let i = 0; i < n; i++) envelope[i] = shrunkInverse[i] ? solid[i] : 1;
+
+  // Fill holes fully enclosed by the envelope.
+  const outside = reachableFromBorder(envelope, w, h);
+  for (let i = 0; i < n; i++) if (!outside[i]) envelope[i] = 1;
+
+  // Core = envelope minus a thin rim; the rim keeps a soft (boosted) edge.
+  const rim = Math.max(1, Math.round(Math.max(w, h) * 0.002));
+  const notEnvelope = new Uint8Array(n);
+  for (let i = 0; i < n; i++) notEnvelope[i] = envelope[i] ? 0 : 1;
+  const nearOutside = dilate(notEnvelope, w, h, rim);
+
+  const out = new Uint8Array(alpha);
+  for (let i = 0; i < n; i++) {
+    if (!envelope[i] || alpha[i] < 24) continue;
+    out[i] = nearOutside[i] ? Math.min(255, alpha[i] * 2) : 255;
+  }
+  return out;
+}
+
 /** Builds the full-resolution base mask from the model's (smaller) mask. */
 export function buildBaseMask(raw: RawMask, width: number, height: number): { mask: HTMLCanvasElement; coverage: number } {
   const small = makeCanvas(raw.width, raw.height);
   const sctx = small.getContext("2d")!;
   const img = sctx.createImageData(raw.width, raw.height);
-  const isolated = isolateMainProduct(raw.data, raw.width, raw.height);
+  const isolated = solidifyInterior(isolateMainProduct(raw.data, raw.width, raw.height), raw.width, raw.height);
   let opaque = 0;
   for (let i = 0; i < isolated.length; i++) {
     const a = refineAlpha(isolated[i]);
