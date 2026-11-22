@@ -20,7 +20,9 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  SquareDashed,
   Undo2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +31,8 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/db/supabase/client";
 import type { CutoutEngine } from "@/lib/background-remover/client/engine";
 import { downloadBlob, exportCutout, slugify, type ExportOptions } from "@/lib/background-remover/client/export";
+import { segmentArea, type Rect } from "@/lib/background-remover/client/region";
+import type { SegmentProgress } from "@/lib/background-remover/client/segment";
 import { saveCutout } from "@/app/(dashboard)/background-remover/actions";
 
 type Tool = "move" | "erase" | "restore";
@@ -124,11 +128,13 @@ export function CutoutWorkspace({
   originalUrl,
   fileName,
   onReplace,
+  cloudEnabled,
 }: {
   engine: CutoutEngine;
   originalUrl: string;
   fileName: string;
   onReplace: () => void;
+  cloudEnabled: boolean;
 }) {
   const { width: W, height: H } = engine;
   const router = useRouter();
@@ -142,6 +148,8 @@ export function CutoutWorkspace({
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [panning, setPanning] = useState(false);
+  /** "Select product area": drawing a rectangle, then re-running the cutout inside it. */
+  const [area, setArea] = useState<null | { phase: "draw" | "running"; rect: Rect | null; detail?: string }>(null);
   const [, bump] = useReducer((n: number) => n + 1, 0);
 
   const [framing, setFraming] = useState<ExportOptions["framing"]>("canvas");
@@ -154,7 +162,8 @@ export function CutoutWorkspace({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ kind: "brush" | "pan" | "split"; lastX: number; lastY: number } | null>(null);
+  const drag = useRef<{ kind: "brush" | "pan" | "split" | "area"; lastX: number; lastY: number } | null>(null);
+  const areaStart = useRef<{ x: number; y: number } | null>(null);
   const anchor = useRef<{ fx: number; fy: number; cx: number; cy: number } | null>(null);
 
   useEffect(() => {
@@ -255,6 +264,10 @@ export function CutoutWorkspace({
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.closest("input, textarea, select, [contenteditable=true]")) return;
+      if (area) {
+        if (e.key === "Escape" && area.phase === "draw") setArea(null);
+        return;
+      }
       const mod = e.ctrlKey || e.metaKey;
       const k = e.key.toLowerCase();
       if (mod && k === "z") {
@@ -277,19 +290,26 @@ export function CutoutWorkspace({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [undo, redo, zoom, zoomTo]);
+  }, [undo, redo, zoom, zoomTo, area]);
 
   const toImage = (e: React.PointerEvent) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     return { x: ((e.clientX - rect.left) / rect.width) * W, y: ((e.clientY - rect.top) / rect.height) * H };
   };
 
-  const brushing = view === "cutout" && tool !== "move";
+  const brushing = !area && view === "cutout" && tool !== "move";
+
+  const clampPoint = (p: { x: number; y: number }) => ({ x: clamp(p.x, 0, W), y: clamp(p.y, 0, H) });
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    if (view === "compare") {
+    if (area) {
+      if (area.phase !== "draw") return;
+      drag.current = { kind: "area", lastX: e.clientX, lastY: e.clientY };
+      areaStart.current = clampPoint(toImage(e));
+      setArea({ phase: "draw", rect: null });
+    } else if (view === "compare") {
       drag.current = { kind: "split", lastX: e.clientX, lastY: e.clientY };
       const rect = canvasRef.current!.getBoundingClientRect();
       setSplit(clamp(((e.clientX - rect.left) / rect.width) * 100, 0, 100));
@@ -307,7 +327,11 @@ export function CutoutWorkspace({
     setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     const d = drag.current;
     if (!d) return;
-    if (d.kind === "split") {
+    if (d.kind === "area") {
+      const s = areaStart.current!;
+      const p = clampPoint(toImage(e));
+      setArea({ phase: "draw", rect: { x: Math.min(s.x, p.x), y: Math.min(s.y, p.y), width: Math.abs(p.x - s.x), height: Math.abs(p.y - s.y) } });
+    } else if (d.kind === "split") {
       setSplit(clamp(((e.clientX - rect.left) / rect.width) * 100, 0, 100));
     } else if (d.kind === "brush") {
       const events = typeof e.nativeEvent.getCoalescedEvents === "function" ? e.nativeEvent.getCoalescedEvents() : [];
@@ -337,6 +361,49 @@ export function CutoutWorkspace({
   const dispW = Math.round(W * zoom);
   const dispH = Math.round(H * zoom);
   const ghost = view === "cutout" && tool === "restore";
+  const drawingArea = area !== null;
+  const areaReady = area?.rect != null && area.rect.width >= 16 && area.rect.height >= 16;
+
+  const startArea = () => {
+    setView("cutout");
+    setArea({ phase: "draw", rect: null });
+  };
+
+  const runArea = async () => {
+    if (!area?.rect || !areaReady) return;
+    const x = Math.floor(area.rect.x);
+    const y = Math.floor(area.rect.y);
+    const rect: Rect = {
+      x,
+      y,
+      width: Math.min(W - x, Math.ceil(area.rect.width)),
+      height: Math.min(H - y, Math.ceil(area.rect.height)),
+    };
+    setArea({ phase: "running", rect: area.rect });
+    const onProgress = (p: SegmentProgress) => {
+      const detail =
+        p.stage === "detect" && p.download && p.download.total > 0
+          ? `Downloading the model — ${Math.min(100, Math.round((p.download.loaded / p.download.total) * 100))}% (one-time)`
+          : p.device === "wasm"
+            ? "Cutting out the selected area on your CPU — up to a minute."
+            : "Cutting out the selected area…";
+      setArea((a) => (a ? { ...a, detail } : a));
+    };
+    try {
+      const { mask, coverage } = await segmentArea(engine.original, rect, cloudEnabled, onProgress, () =>
+        toast.info("Cloud service unavailable — processing in your browser instead."),
+      );
+      engine.replaceBase(mask);
+      bump();
+      setArea(null);
+      setTool("erase");
+      if (coverage < 0.003) toast.warning("Nothing clear was found in that area — try a slightly larger box.");
+      else toast.success("Cut out the selected area. Brushes still work for touch-ups.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't cut out that area.");
+      setArea({ phase: "draw", rect: area.rect });
+    }
+  };
 
   const exportOptions = (): ExportOptions => ({ framing, padding, maxSide: resolution === "web" ? WEB_MAX_SIDE : null });
   const exportName = () =>
@@ -429,7 +496,7 @@ export function CutoutWorkspace({
                 width: dispW,
                 height: dispH,
                 ...BG_STYLES[bg],
-                cursor: view === "compare" ? "ew-resize" : brushing ? "none" : panning ? "grabbing" : "grab",
+                cursor: drawingArea ? "crosshair" : view === "compare" ? "ew-resize" : brushing ? "none" : panning ? "grabbing" : "grab",
               }}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
@@ -445,7 +512,7 @@ export function CutoutWorkspace({
                 draggable={false}
                 className="pointer-events-none absolute inset-0 size-full select-none"
                 style={{
-                  opacity: view === "compare" ? 1 : ghost ? 0.28 : 0,
+                  opacity: drawingArea || view === "compare" ? 1 : ghost ? 0.28 : 0,
                   clipPath: view === "compare" ? `inset(0 ${100 - split}% 0 0)` : undefined,
                 }}
               />
@@ -455,6 +522,7 @@ export function CutoutWorkspace({
                 style={{
                   clipPath: view === "compare" ? `inset(0 0 0 ${split}%)` : undefined,
                   imageRendering: zoom >= 2 ? "pixelated" : "auto",
+                  opacity: drawingArea ? 0 : 1,
                 }}
               />
               {view === "compare" && (
@@ -471,6 +539,25 @@ export function CutoutWorkspace({
                   </span>
                 </div>
               )}
+              {area &&
+                (area.rect ? (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute border-2 border-dashed border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"
+                    style={{ left: area.rect.x * zoom, top: area.rect.y * zoom, width: area.rect.width * zoom, height: area.rect.height * zoom }}
+                  />
+                ) : (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45">
+                    <span className="rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white">Drag a box around the product</span>
+                  </div>
+                ))}
+              {area?.phase === "running" && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="flex items-center gap-2 rounded-full bg-black/75 px-3.5 py-2 text-xs font-medium text-white shadow-lg">
+                    <Loader2 className="size-3.5 animate-spin" /> {area.detail ?? "Cutting out the selected area…"}
+                  </span>
+                </div>
+              )}
               {brushing && cursor && (
                 <div
                   aria-hidden
@@ -484,6 +571,21 @@ export function CutoutWorkspace({
             </div>
           </div>
         </div>
+        {area ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              Drag a rectangle around just the product you want — everything outside it is removed.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setArea(null)} disabled={area.phase === "running"}>
+                <X /> Cancel
+              </Button>
+              <Button size="sm" onClick={runArea} disabled={!areaReady || area.phase === "running"} className="bg-brand text-white hover:opacity-90">
+                {area.phase === "running" ? <Loader2 className="animate-spin" /> : <SquareDashed />} Cut out this area
+              </Button>
+            </div>
+          </div>
+        ) : (
         <p className="text-xs text-muted-foreground">
           {view === "compare"
             ? "Drag across the image to compare the original with the cutout."
@@ -493,6 +595,7 @@ export function CutoutWorkspace({
                 ? "Paint over anything that should be removed. [ and ] change the brush size."
                 : "Paint to bring back parts of the original product (shown faintly)."}
         </p>
+        )}
       </div>
 
       {/* Sidebar */}
@@ -520,6 +623,14 @@ export function CutoutWorkspace({
             <CardTitle className="text-sm">Refine</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5 rounded-lg border border-dashed p-2.5">
+              <Button variant="outline" size="sm" onClick={startArea} disabled={drawingArea}>
+                <SquareDashed /> Select product area
+              </Button>
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Picked up too much (a box, a table, other items)? Draw a box around just your product.
+              </p>
+            </div>
             <Segmented<Tool>
               value={tool}
               onChange={(t) => {

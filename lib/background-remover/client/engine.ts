@@ -224,7 +224,8 @@ export function buildBaseMask(raw: RawMask, width: number, height: number): { ma
 export class CutoutEngine {
   readonly width: number;
   readonly height: number;
-  private readonly original: ImageBitmap;
+  /** The untouched original photo (never modified). */
+  readonly original: ImageBitmap;
   private readonly base: HTMLCanvasElement;
   private readonly mask: HTMLCanvasElement;
   private readonly maskCtx: CanvasRenderingContext2D;
@@ -288,6 +289,21 @@ export class CutoutEngine {
   redo() {
     if (!this.canRedo) return;
     this.cursor++;
+    this.replay();
+  }
+
+  /**
+   * Swaps in a new starting cutout (e.g. from "Select product area"). It
+   * becomes what Reset returns to; brush history starts fresh.
+   */
+  replaceBase(mask: HTMLCanvasElement) {
+    const ctx = this.base.getContext("2d")!;
+    ctx.globalCompositeOperation = "copy";
+    ctx.drawImage(mask, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+    this.ops = [];
+    this.cursor = 0;
+    this.active = null;
     this.replay();
   }
 

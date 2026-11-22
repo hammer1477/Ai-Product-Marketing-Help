@@ -30,6 +30,21 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  // Product Background Remover only: cross-origin isolation lets the in-browser
+  // model use multi-threaded WebAssembly (~3× faster on a laptop CPU).
+  // "credentialless" keeps cross-origin loads (model CDN, images) working
+  // without them having to send CORP headers. No other route is affected.
+  headers() {
+    return [
+      {
+        source: "/background-remover",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
+    ];
+  },
   turbopack: {
     root: __dirname,
     rules: {

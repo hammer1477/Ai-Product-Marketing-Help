@@ -8,12 +8,16 @@
 //               WebAssembly otherwise). No key, no server load, and the
 //               photo never leaves the browser.
 // Either way the result is just an alpha mask at the original resolution.
+// On a laptop CPU the browser path runs BEN2 (BiRefNet won't fit in memory).
 
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/dist/transformers.min.js";
 /** GPU path: BiRefNet-lite (MIT) — the best open matting quality, too big for WebAssembly memory. */
 const GPU_MODEL = { model: "onnx-community/BiRefNet_lite-ONNX" };
-/** CPU path: ormbg (Apache-2.0, ISNet-based), 8-bit quantised — ~45 MB and about a second per photo. */
-const CPU_MODEL = { model: "onnx-community/ormbg-ONNX", dtype: "q8" };
+/**
+ * CPU path: BEN2 (MIT) — fits in WebAssembly memory (BiRefNet needs ~5.5 GB
+ * and doesn't). ~220 MB once, then roughly 20–40 s per photo on a laptop CPU.
+ */
+const CPU_MODEL = { model: "onnx-community/BEN2-ONNX", dtype: "fp16" };
 
 /** Both browser models work at 1024²; feeding them more pixels adds time, not detail. */
 const BROWSER_INPUT_SIDE = 1024;

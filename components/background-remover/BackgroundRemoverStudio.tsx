@@ -8,13 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { buildBaseMask, CutoutEngine } from "@/lib/background-remover/client/engine";
-import {
-  CloudUnavailableError,
-  segmentInBrowser,
-  segmentInCloud,
-  type RawMask,
-  type SegmentProgress,
-} from "@/lib/background-remover/client/segment";
+import type { RawMask, SegmentProgress } from "@/lib/background-remover/client/segment";
+import { runSegmentation } from "@/lib/background-remover/client/region";
 import { CutoutWorkspace } from "./CutoutWorkspace";
 
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
@@ -34,7 +29,10 @@ type Phase =
 
 type Loaded = { run: number; fileName: string; originalUrl: string; engine: CutoutEngine; downscaled: boolean };
 
-const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 60)));
+const ISOLATION_RELOAD_KEY = "bg-remover:isolation-reload";
+const ISOLATION_UNSUPPORTED_KEY = "bg-remover:isolation-unsupported";
+
+const nextFrame =() => new Promise<void>((r) => requestAnimationFrame(() => setTimeout(r, 60)));
 
 function formatMB(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(0)} MB`;
@@ -53,6 +51,26 @@ export function BackgroundRemoverStudio({ cloudEnabled }: { cloudEnabled: boolea
     const urls = urlsRef.current;
     return () => urls.forEach((u) => URL.revokeObjectURL(u));
   }, []);
+
+  // Multi-threaded processing needs cross-origin isolation, which only takes
+  // effect on a full page load — but the nav arrives here by client-side
+  // navigation. Reload once to pick it up; if a browser can't isolate
+  // (e.g. Safari), remember that and never reload again.
+  useEffect(() => {
+    if (cloudEnabled || self.crossOriginIsolated) return;
+    try {
+      if (localStorage.getItem(ISOLATION_UNSUPPORTED_KEY)) return;
+      const tried = Number(sessionStorage.getItem(ISOLATION_RELOAD_KEY) ?? 0);
+      if (Date.now() - tried < 15_000) {
+        localStorage.setItem(ISOLATION_UNSUPPORTED_KEY, "1");
+        return;
+      }
+      sessionStorage.setItem(ISOLATION_RELOAD_KEY, String(Date.now()));
+    } catch {
+      return; // storage blocked: skip rather than risk a reload loop
+    }
+    window.location.reload();
+  }, [cloudEnabled]);
 
   const process = useCallback(
     async (file: File) => {
@@ -108,23 +126,15 @@ export function BackgroundRemoverStudio({ cloudEnabled }: { cloudEnabled: boolea
             detail: `Downloading the background-removal model to your browser — ${pct}% of ${formatMB(p.download.total)} (one-time)`,
           });
         } else {
-          setPhase({ kind: "processing", step: p.stage === "segment" ? 1 : 0, detail: p.device === "wasm" ? "No compatible GPU found — using the lighter CPU model. Touch up any edges with the refine brushes." : undefined });
+          setPhase({ kind: "processing", step: p.stage === "segment" ? 1 : 0, detail: p.device === "wasm" ? "Processing on your CPU — this can take up to a minute." : undefined });
         }
       };
 
       let raw: RawMask;
       try {
-        if (cloudEnabled) {
-          try {
-            raw = await segmentInCloud(bitmap, bitmap.width, bitmap.height, onProgress);
-          } catch (err) {
-            if ((err as { fatal?: boolean }).fatal) throw err;
-            if (!(err instanceof CloudUnavailableError)) toast.info("Cloud service unavailable — processing in your browser instead.");
-            raw = await segmentInBrowser(bitmap, bitmap.width, bitmap.height, onProgress);
-          }
-        } else {
-          raw = await segmentInBrowser(bitmap, bitmap.width, bitmap.height, onProgress);
-        }
+        raw = await runSegmentation(bitmap, bitmap.width, bitmap.height, cloudEnabled, onProgress, () =>
+          toast.info("Cloud service unavailable — processing in your browser instead."),
+        );
       } catch (err) {
         bitmap.close();
         if (!stale()) setPhase({ kind: "error", message: err instanceof Error ? err.message : "Background removal failed." });
@@ -135,14 +145,9 @@ export function BackgroundRemoverStudio({ cloudEnabled }: { cloudEnabled: boolea
       setPhase({ kind: "processing", step: 2 });
       await nextFrame();
       const { mask, coverage } = buildBaseMask(raw, bitmap.width, bitmap.height);
-      if (coverage < 0.003) {
-        bitmap.close();
-        setPhase({
-          kind: "error",
-          message: "We couldn't find a clear product in this photo. Try one where the product is the main subject.",
-        });
-        return;
-      }
+      // Nothing found automatically: still open the workspace, where
+      // "Select product area" lets the user point at the product.
+      const nothingFound = coverage < 0.003;
 
       setPhase({ kind: "processing", step: 3 });
       await nextFrame();
@@ -155,6 +160,7 @@ export function BackgroundRemoverStudio({ cloudEnabled }: { cloudEnabled: boolea
       setLoaded({ run, fileName: file.name, originalUrl: url, engine, downscaled });
       setPhase({ kind: "ready" });
       if (downscaled) toast.info(`Large photo scaled to ${bitmap.width}×${bitmap.height}px for editing.`);
+      if (nothingFound) toast.warning("No clear product found automatically — use “Select product area” to point at it.");
     },
     [cloudEnabled],
   );
@@ -179,7 +185,14 @@ export function BackgroundRemoverStudio({ cloudEnabled }: { cloudEnabled: boolea
     return (
       <>
         {fileInput}
-        <CutoutWorkspace key={loaded.run} engine={loaded.engine} originalUrl={loaded.originalUrl} fileName={loaded.fileName} onReplace={pick} />
+        <CutoutWorkspace
+          key={loaded.run}
+          engine={loaded.engine}
+          originalUrl={loaded.originalUrl}
+          fileName={loaded.fileName}
+          onReplace={pick}
+          cloudEnabled={cloudEnabled}
+        />
       </>
     );
   }
@@ -303,7 +316,7 @@ export function BackgroundRemoverStudio({ cloudEnabled }: { cloudEnabled: boolea
         <p>
           {cloudEnabled
             ? "Processed securely on our servers."
-            : "Processed privately on your device — the first run downloads the model once (about 45–225 MB, depending on your device)."}
+            : "Processed privately on your device — the first run downloads the model once (about 115–225 MB, depending on your device)."}
         </p>
         <Button variant="outline" size="sm" render={<Link href="/background-remover/library" />} nativeButton={false}>
           <Library /> Asset library
