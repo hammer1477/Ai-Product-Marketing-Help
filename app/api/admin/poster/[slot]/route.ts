@@ -32,7 +32,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slot: s
   for (const [ext, type] of Object.entries(TYPES)) {
     try {
       const file = await fs.readFile(path.join(DIR, `${slot}.${ext}`));      return new Response(new Uint8Array(file), {
-        headers: { "Content-Type": type, "Cache-Control": "private, max-age=300" },
+        headers: { "Content-Type": type, "Cache-Control": "private, max-age=300, stale-while-revalidate=604800" },
       });
     } catch {
       // Not this extension — try the next.

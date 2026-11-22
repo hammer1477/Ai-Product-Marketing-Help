@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { createClient, createServiceRoleClient } from "@/lib/db/supabase/server";
 import { getProfile, isRole, type Profile, type Role } from "@/lib/profile/getProfile";
@@ -7,7 +8,9 @@ import { getProfile, isRole, type Profile, type Role } from "@/lib/profile/getPr
 // client, which bypasses row-level security — so every page calls
 // requireOwner() first, and anyone else gets a 404.
 
-export async function requireOwner(): Promise<{ id: string; email?: string; profile: Profile }> {
+// Memoised per request: the console layout and its page both call this, and
+// they now share one auth + profile lookup instead of doing it twice.
+export const requireOwner = cache(async (): Promise<{ id: string; email?: string; profile: Profile }> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -16,7 +19,7 @@ export async function requireOwner(): Promise<{ id: string; email?: string; prof
   const profile = await getProfile(user.id);
   if (profile.role !== "owner") notFound();
   return { id: user.id, email: user.email, profile };
-}
+});
 
 export function admin() {
   return createServiceRoleClient();

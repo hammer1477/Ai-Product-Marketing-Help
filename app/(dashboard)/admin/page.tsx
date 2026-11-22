@@ -76,13 +76,15 @@ function pickGreeting(gender: Gender | null, h: Honorific) {
 const KIND: Record<string, string> = { creative: "Ad", campaign: "Campaign", photoshoot: "Photo" };
 
 export default async function MasterOverview() {
-  const me = await requireOwner();
   const { now, week, month } = clock();
-  const honorific = honorificFor(me.profile.gender);
-  const greeting = pickGreeting(me.profile.gender, honorific);  const a = admin();
+  const a = admin();
   const count = (table: string) => a.from(table).select("*", { count: "exact", head: true });
 
+  // The owner check and the console's queries run side by side instead of one
+  // after the other; nothing renders unless the check passes (it 404s otherwise).
   const [
+    me,
+    [
     people,
     { data: balances },
     { data: purchases },
@@ -93,7 +95,8 @@ export default async function MasterOverview() {
     { count: productCount },
     { data: weekJobs },
     { data: recentJobs },
-  ] = await Promise.all([
+    ],
+  ] = await Promise.all([requireOwner(), Promise.all([
     directory(),
     a.from("credit_balances").select("user_id, balance, reserved"),
     a.from("credit_purchases").select("amount_cents, currency, created_at"),
@@ -108,7 +111,9 @@ export default async function MasterOverview() {
       .select("id, kind, status, error_message, created_at, user_id, product_id")
       .order("created_at", { ascending: false })
       .limit(15),
-  ]);
+  ])]);
+  const honorific = honorificFor(me.profile.gender);
+  const greeting = pickGreeting(me.profile.gender, honorific);
 
   const everyone = [...people.values()];
   const newThisWeek = everyone.filter((p) => p.createdAt >= week).length;
