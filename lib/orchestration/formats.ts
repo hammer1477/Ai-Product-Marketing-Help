@@ -59,7 +59,11 @@ export function formatForPlatform(platform: string | null | undefined): AdFormat
   }
 }
 
-type Axis = { pos: "x" | "y"; len: "width" | "height"; extra: number };
+/**
+ * `before` is how much of the extra space goes before the design (above or
+ * to the left of it); the rest goes after. Centred by default.
+ */
+type Axis = { pos: "x" | "y"; len: "width" | "height"; extra: number; before: number };
 
 function isStretchable(layer: DesignLayer): boolean {
   if (layer.rotation) return false;
@@ -83,9 +87,8 @@ function isPattern(layer: DesignLayer): boolean {
   );
 }
 
-function reframeAxis(layer: DesignLayer, { pos, len, extra }: Axis): DesignLayer {
+function reframeAxis(layer: DesignLayer, { pos, len, extra, before }: Axis): DesignLayer {
   if (extra <= 0) return layer;
-  const half = Math.round(extra / 2);
   const start = layer[pos];
   const end = start + layer[len];
 
@@ -93,20 +96,19 @@ function reframeAxis(layer: DesignLayer, { pos, len, extra }: Axis): DesignLayer
     const touchesStart = start <= 0;
     const touchesEnd = end >= BASE;
     if (touchesStart && touchesEnd) return { ...layer, [len]: layer[len] + extra };
-    if (touchesStart) return { ...layer, [len]: layer[len] + half };
-    if (touchesEnd) return { ...layer, [pos]: start + half, [len]: layer[len] + half };
+    if (touchesStart) return { ...layer, [len]: layer[len] + before };
+    if (touchesEnd) return { ...layer, [pos]: start + before, [len]: layer[len] + (extra - before) };
   }
-  return { ...layer, [pos]: start + half };
+  return { ...layer, [pos]: start + before };
 }
 
 /** Copies of a full-canvas pattern laid edge to edge along `axis`. */
-function tile(layer: DesignLayer, { pos, len, extra }: Axis): DesignLayer[] {
+function tile(layer: DesignLayer, { pos, len, extra, before }: Axis): DesignLayer[] {
   if (extra <= 0) return [layer];
-  const half = Math.round(extra / 2);
   const step = layer[len];
   const total = BASE + extra;
   const tiles: DesignLayer[] = [];
-  let first = layer[pos] + half;
+  let first = layer[pos] + before;
   while (first > 0) first -= step;
   for (let p = first, i = 0; p < total; p += step, i++) {
     tiles.push({ ...layer, id: i === 0 ? layer.id : `${layer.id}-tile${i}`, [pos]: p });
@@ -114,14 +116,24 @@ function tile(layer: DesignLayer, { pos, len, extra }: Axis): DesignLayer[] {
   return tiles;
 }
 
-/** Grows a 1080-square design to `format`. Square returns the layers as they are. */
-export function reframeLayers(layers: DesignLayer[], format: AdFormat | undefined): DesignLayer[] {
+/**
+ * Grows a 1080-square design to `format`. Square returns the layers as they
+ * are. `offset` places the square inside the larger canvas (how far from
+ * the left and top); by default it's centred.
+ */
+export function reframeLayers(
+  layers: DesignLayer[],
+  format: AdFormat | undefined,
+  offset?: { x?: number; y?: number },
+): DesignLayer[] {
   const def = formatDef(format);
   if (def.width === BASE && def.height === BASE) return layers;
 
+  const extraX = def.width - BASE;
+  const extraY = def.height - BASE;
   const axes: Axis[] = [
-    { pos: "x", len: "width", extra: def.width - BASE },
-    { pos: "y", len: "height", extra: def.height - BASE },
+    { pos: "x", len: "width", extra: extraX, before: offset?.x ?? Math.round(extraX / 2) },
+    { pos: "y", len: "height", extra: extraY, before: offset?.y ?? Math.round(extraY / 2) },
   ];
 
   return layers.flatMap((layer) => {

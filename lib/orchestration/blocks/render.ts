@@ -181,7 +181,11 @@ function renderDescription(content: string, ctx: BlockContext): Built {
     color: ctx.style.textMuted,
     textAlign: ctx.align,
     lineHeight: 1.5,
-    maxLines: 3,
+    // Four lines, tightening a little first: a description cut off
+    // mid-sentence reads as a mistake.
+    maxLines: 4,
+    autoFit: true,
+    minFontSize: px(ctx, 16),
   });
 }
 
