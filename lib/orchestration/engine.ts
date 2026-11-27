@@ -6,6 +6,8 @@ import { getImageProvider, getTextProvider } from "../ai/providers/factory";
 import { composeDesignSchema } from "./composeDesignSchema";
 import { decideConcept } from "./decideConcept";
 import { decideStyle, resolveStyle } from "./styles";
+import { anchorToProduct } from "./productPalette";
+import { measureProductColor } from "../images/productColor";
 import { removeProductBackdrop, trimTransparentEdges } from "../images/cutout";
 import { toDataUri } from "./toDataUri";
 import { getTemplate } from "./templates/registry";
@@ -147,7 +149,12 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   const brand = readBrandKit(kitRow);
   const angle = angleById(project.angle);
 
-  const contentPromise = generateCreative({
+  // The product's colour is measured from its pixels before the creative
+  // call, so the palette is anchored to it rather than left to chance.
+  const productAssets = await productAssetsPromise;
+  const productColor = await measureProductColor(productAssets.cutout, productAssets.cutoutApplied);
+
+  const { data: written } = await generateCreative({
     provider: textProvider,
     brief,
     analysis,
@@ -155,9 +162,8 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
     history,
     brand,
     angle,
+    productColor,
   });
-
-  const [{ data: written }, productAssets] = await Promise.all([contentPromise, productAssetsPromise]);
   // Strip unbackable claims ("viral", "in stock") the prompt didn't stop.
   const scrub = claimScrubber(sellerText(brief));
   const content = {
@@ -174,7 +180,9 @@ export async function runCreativeGeneration(jobId: string): Promise<{ generatedI
   // The art director's palette, drawn from the product photo. It's always
   // recorded; the brand kit's colours cover it only when this ad asked for
   // them (the default when the kit has colours).
-  const artDirected = resolveStyle(preset, content.artDirection);
+  // Held to the product's measured colour family: the model picks the
+  // shade, never a foreign hue.
+  const artDirected = anchorToProduct(resolveStyle(preset, content.artDirection), productColor?.hex);
   const productColors = {
     ink: artDirected.ink,
     accent: artDirected.accent,

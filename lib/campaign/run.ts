@@ -13,6 +13,8 @@ import { normalizeDesignBrief, TEMPLATE_CATALOGUE } from "../orchestration/desig
 import { EXTRACTION_RULES, normalizeFactSheet, type FactSheet } from "../orchestration/factSheet";
 import { formatForPlatform } from "../orchestration/formats";
 import { decideStyle, resolveStyle, type ResolvedStyle } from "../orchestration/styles";
+import { anchorToProduct } from "../orchestration/productPalette";
+import { measureProductColor } from "../images/productColor";
 import { toDataUri } from "../orchestration/toDataUri";
 import type { CreativeBrief, CreativeContent } from "../orchestration/types";
 import { campaignSchema, matchAds, normalizePlan, type RawCampaign } from "./plan";
@@ -99,7 +101,9 @@ export async function runCampaignGeneration(jobId: string): Promise<{ campaignId
   const designBrief = normalizeDesignBrief(raw.designBrief as never);
 
   // ONE look for the whole campaign.
-  const artDirected = resolveStyle(decideStyle(brief.category), raw.artDirection);
+  // Held to the product's measured colour family, as in single ads.
+  const productColor = await measureProductColor(cutout.src, cutout.applied);
+  const artDirected = anchorToProduct(resolveStyle(decideStyle(brief.category), raw.artDirection), productColor?.hex);
   const productColors = { ink: artDirected.ink, accent: artDirected.accent, text: artDirected.textPrimary, muted: artDirected.textMuted };
   const useBrandColors = Boolean(brand?.colors) && campaign.color_source !== "product";
   const style: ResolvedStyle = {

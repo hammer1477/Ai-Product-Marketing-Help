@@ -123,3 +123,21 @@ export function saturation(hex: string): number {
   const rgb = parseHex(hex);
   return rgb ? rgbToHsl(rgb)[1] : 0;
 }
+
+/** Hue in degrees (0–360). */
+export function hueOf(hex: string): number {
+  const rgb = parseHex(hex);
+  return rgb ? rgbToHsl(rgb)[0] : 0;
+}
+
+/** Shortest distance between two hues, in degrees (0–180). */
+export function hueDistance(a: string, b: string): number {
+  const d = Math.abs(hueOf(a) - hueOf(b)) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+/** Lightness (0–1). */
+export function lightnessOf(hex: string): number {
+  const rgb = parseHex(hex);
+  return rgb ? rgbToHsl(rgb)[2] : 0;
+}

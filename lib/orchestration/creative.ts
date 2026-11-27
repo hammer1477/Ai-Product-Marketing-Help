@@ -34,6 +34,8 @@ export function generateCreative(args: {
   brand?: BrandKit | null;
   /** A campaign variant's assigned direction. */
   angle?: CopyAngle;
+  /** The product's dominant colour, measured from its pixels. */
+  productColor?: { hex: string; name: string } | null;
 }) {
   const { provider, brief, analysis, history } = args;
 
@@ -113,6 +115,18 @@ export function generateCreative(args: {
             },
           ]
         : []),
+      ...(args.productColor
+        ? [
+            {
+              role: "user" as const,
+              content:
+                `MEASURED PRODUCT COLOUR: the product's dominant colour, measured from its pixels, is ${args.productColor.hex} (${args.productColor.name}). ` +
+                "Build the palette in THIS colour family. colorAccent must be a shade or tint of this hue — never a different " +
+                "hue — because many designs flood the whole background with the accent. colorInk is a deep, dark version of " +
+                "the same hue or a clean near-black / near-white neutral. Choose the shade and lightness freely; keep the hue.",
+            },
+          ]
+        : []),
       ...(args.angle
         ? [
             {
@@ -134,8 +148,8 @@ export function generateCreative(args: {
                 `Previous copy angles: ${history.angles.join(", ") || "unknown"}. ` +
                 `Previous designs: ${history.templates.join(", ") || "unknown"}. ` +
                 "Extract the same facts as before, but produce a genuinely different ad: a " +
-                "different palette (a different accent hue, not a shade of the same one), a " +
-                "different scene, headline and copy angle, different designs in your ranking, " +
+                "different shade, lightness or neutral pairing — staying in the product's own colour family, " +
+                "never switching to a foreign hue — a different scene, headline and copy angle, different designs in your ranking, " +
                 "and lead with different facts. Do not repeat any of the above.",
             },
           ]
