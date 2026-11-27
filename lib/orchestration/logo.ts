@@ -59,7 +59,10 @@ function hitArea(halo: Box, o: Obstacle): number {
 function obstacles(layers: DesignLayer[], width: number, height: number): Obstacle[] {
   const canvas = width * height;
   return layers.flatMap((layer): Obstacle[] => {
-    if (layer.opacity !== undefined && layer.opacity < 0.2) return [];
+    // Faint background type: still avoided, just less firmly than copy.
+    if (layer.opacity !== undefined && layer.opacity < 0.2) {
+      return layer.type === "text" && layer.opacity > 0.05 ? [{ ...rotatedBounds(layer), weight: 1, tilted: layer.rotation ? layer : undefined }] : [];
+    }
     // The product is the ad: the logo keeps off it unless every other spot is copy.
     if (isProduct(layer)) return layer.id === "product-photo" ? [{ x: layer.x, y: layer.y, width: layer.width, height: layer.height, weight: 3 }] : [];
     const tilted = layer.rotation ? layer : undefined;
