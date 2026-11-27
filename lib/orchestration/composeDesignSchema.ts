@@ -5,7 +5,7 @@ import { composePosterSchema, templateContentScore, type PosterInput } from "./t
 import { normalizeBlocks } from "./blocks/types";
 import { chooseTemplate } from "./templates/registry";
 import type { Fact } from "./factSheet";
-import type { BrandLogo } from "../brand/kit";
+import type { BrandLogo, LogoStyle } from "../brand/kit";
 
 export type ComposeInput = {
   content: CreativeContent;
@@ -21,6 +21,7 @@ export type ComposeInput = {
   displayName?: string;
   facts?: Fact[];
   logo?: BrandLogo;
+  logoStyle?: LogoStyle;
 };
 
 /** Normalised blocks plus the poster input, before a template is chosen. */
@@ -46,6 +47,7 @@ export function posterInputFor(input: ComposeInput): PosterInput {
     productName: input.displayName ?? content.productName,
     facts: input.facts,
     logo: input.logo,
+    logoStyle: input.logoStyle,
   };
 }
 

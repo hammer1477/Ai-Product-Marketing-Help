@@ -4,7 +4,7 @@ import type { ResolvedStyle } from "./styles";
 import type { Block, BlockType } from "./blocks/types";
 import { composePosterSchema } from "./templates/poster";
 import type { Fact } from "./factSheet";
-import type { BrandLogo } from "../brand/kit";
+import type { BrandLogo, LogoStyle } from "../brand/kit";
 import type { AdFormat } from "./formats";
 
 // Lets a saved design be re-laid-out instead of only patched.
@@ -31,6 +31,7 @@ export type PosterComposition = {
   facts?: Fact[];
   logo?: BrandLogo;
   logoHidden?: boolean;
+  logoStyle?: LogoStyle;
 };
 
 /**
@@ -62,6 +63,20 @@ export function readComposition(schema: DesignSchema): PosterComposition | null 
     facts: Array.isArray(candidate.facts) ? candidate.facts : undefined,
     logo: readLogo(candidate.logo),
     logoHidden: candidate.logoHidden === true,
+    logoStyle: readLogoStyle(candidate.logoStyle),
+  };
+}
+
+const POSITIONS = ["auto", "top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"];
+
+function readLogoStyle(raw: unknown): LogoStyle | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const s = raw as Record<string, unknown>;
+  return {
+    position: typeof s.position === "string" && POSITIONS.includes(s.position) ? (s.position as LogoStyle["position"]) : undefined,
+    color: typeof s.color === "string" && (s.color === "original" || /^#[0-9a-f]{6}$/i.test(s.color)) ? s.color : undefined,
+    size: s.size === "s" || s.size === "m" || s.size === "l" ? s.size : undefined,
+    chip: s.chip === "auto" || s.chip === "on" || s.chip === "off" ? s.chip : undefined,
   };
 }
 
@@ -113,6 +128,7 @@ export function recomposePoster(schema: DesignSchema, composition: PosterComposi
     facts: composition.facts,
     logo: composition.logo,
     logoHidden: composition.logoHidden,
+    logoStyle: composition.logoStyle,
   });
 }
 

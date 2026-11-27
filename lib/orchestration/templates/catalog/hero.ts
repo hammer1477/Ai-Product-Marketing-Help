@@ -67,7 +67,7 @@ export const heroStage: TemplateDef = {
   usesScene: false,
   build(ctx) {
     const { p, blocks } = ctx;
-    const top = stack(ctx, region(90, 900, 52, 230, "center", "start"), pick(blocks, ["badge", "headline"]), { key: "t" });
+    const top = stack(ctx, region(90, 900, 52, 330, "center", "start"), pick(blocks, ["badge", "headline", "subheadline", "description"]), { key: "t" });
     const row = priceAndCta(ctx, 930, { left: 64, right: C - 64 });
     return {
       placed: order(blocks, [...top.placed, ...row.placed]),
@@ -133,10 +133,10 @@ export const circleFrame: TemplateDef = {
     const placed: Block[] = [];
     const layers: DesignLayer[] = [
       rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
-      circle("disc-ring", 540, 430, 392, "transparent", { stroke: p.accent, strokeWidth: 2, opacity: 0.4, z: 1 }),
-      circle("disc", 540, 430, 360, disc, { z: 1 }),
-      circle("disc-shine", 430, 300, 140, "#ffffff", { opacity: 0.12, z: 1 }),
-      ...stage(ctx, { cx: 540, cy: 440, w: 860, h: 600 }, { glow: false }),
+      circle("disc-ring", 540, 380, 352, "transparent", { stroke: p.accent, strokeWidth: 2, opacity: 0.4, z: 1 }),
+      circle("disc", 540, 380, 322, disc, { z: 1 }),
+      circle("disc-shine", 440, 270, 120, "#ffffff", { opacity: 0.12, z: 1 }),
+      ...stage(ctx, { cx: 540, cy: 390, w: 820, h: 560 }, { glow: false }),
       sparkle("spark-1", 160, 170, 34, p.accent, 6),
       sparkle("spark-2", 930, 640, 26, p.accent, 6),
     ];
@@ -145,7 +145,7 @@ export const circleFrame: TemplateDef = {
       placed.push(badge);
       layers.push(...label("top-badge", badge.text, 56, 52, 420, { font: body(ctx), size: 14, weight: 700, tracking: 3, uppercase: true, color: p.text, z: 8, role: "badgeLabel" }).layers);
     }
-    const foot = stack(ctx, region(110, 860, 820, C - 40, "center", "start"), pick(blocks, ["headline", "priceBlock", "cta"]), { key: "f" });
+    const foot = stack(ctx, region(110, 860, 712, C - 36, "center", "start"), pick(blocks, ["headline", "subheadline", "description", "priceBlock", "cta"]), { key: "f" });
     placed.push(...foot.placed);
     layers.push(...foot.layers);
     return { layers, placed: order(blocks, placed) };
@@ -216,7 +216,7 @@ export const freshPop: TemplateDef = {
       { x: 60, y: 60, z: 1 },
     );
     const blob2 = svg("blob-2", 300, 240, `<path d="M150 10 C 250 10, 290 90, 280 140 C 270 210, 180 235, 120 225 C 40 210, 10 150, 20 100 C 30 40, 80 10, 150 10 Z" fill="${p.accent2}"/>`, { x: 820, y: 40, z: 1, opacity: 0.35 });
-    const foot = stack(ctx, region(100, 880, 790, C - 40, "center", "start"), pick(blocks, ["headline", "priceBlock", "cta"]), { key: "f" });
+    const foot = stack(ctx, region(100, 880, 740, C - 40, "center", "start"), pick(blocks, ["headline", "subheadline", "description", "priceBlock", "cta"]), { key: "f" });
     const placed = [...foot.placed];
     const layers: DesignLayer[] = [
       rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
@@ -249,16 +249,17 @@ export const posterStack: TemplateDef = {
   build(ctx) {
     const { p, blocks } = ctx;
     const { rest, used } = splitSticker(blocks);
-    const head = stack(ctx, region(56, 968, 52, 360, "left", "start"), pick(rest, ["badge", "headline"]), { key: "h" });
+    const head = stack(ctx, region(56, 968, 52, 440, "left", "start"), pick(rest, ["badge", "headline", "subheadline", "description"]), { key: "h" });
+    const bandY = Math.max(300, Math.min(470, 52 + head.height + 24));
     const foot = stack(ctx, region(56, 520, 930, C - 32, "left", "start"), pick(rest, ["cta"]), { key: "f" });
     return {
       placed: order(blocks, [...head.placed, ...foot.placed, ...used]),
       layers: [
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         bloom("floor-glow", 540, 760, 1200, 700, p.accent, 0.32, 0),
-        rect("band", 0, 380, C, 6, p.accent, { z: 1 }),
-        ...stage(ctx, { cx: 540, cy: 650, w: 960, h: 500 }),
-        ...stickerLayers(ctx, 930, 470, 92, p.accent, onColor(p.accent), 12),
+        rect("band", 0, bandY, C, 6, p.accent, { z: 1 }),
+        ...stage(ctx, { cx: 540, cy: (bandY + 930) / 2 + 10, w: 960, h: 930 - bandY - 20 }),
+        ...stickerLayers(ctx, 930, bandY + 90, 92, p.accent, onColor(p.accent), 12),
         ...head.layers,
         ...foot.layers,
       ],

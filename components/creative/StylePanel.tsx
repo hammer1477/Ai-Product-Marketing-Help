@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import type { LogoPosition, LogoStyle } from "@/lib/brand/kit";
 
 // Everything about the look of a poster that isn't its words: which
 // template, which colours, which typefaces. Every control here only edits
@@ -449,6 +450,13 @@ function BrandSection({
           </Button>
         )}
       </div>
+      {logo && !composition.logoHidden && (
+        <LogoControls
+          value={composition.logoStyle ?? {}}
+          brandColor={kit.colors?.accent}
+          onChange={(logoStyle) => onChange({ ...composition, logoStyle })}
+        />
+      )}
     </section>
   );
 }
@@ -508,6 +516,142 @@ function ColorSourceSwitch({
       {current === "custom" && (
         <p className="text-[11px] text-muted-foreground">Using custom colours from the picker below.</p>
       )}
+    </div>
+  );
+}
+
+const LOGO_SPOTS: Array<{ id: Exclude<LogoPosition, "auto">; label: string }> = [
+  { id: "top-left", label: "Top left" },
+  { id: "top-center", label: "Top centre" },
+  { id: "top-right", label: "Top right" },
+  { id: "bottom-left", label: "Bottom left" },
+  { id: "bottom-center", label: "Bottom centre" },
+  { id: "bottom-right", label: "Bottom right" },
+];
+
+/** Where the logo sits, what colour it's drawn in, how big, and its chip. */
+function LogoControls({
+  value,
+  brandColor,
+  onChange,
+}: {
+  value: LogoStyle;
+  brandColor?: string;
+  onChange: (style: LogoStyle) => void;
+}) {
+  const position = value.position ?? "auto";
+  const color = value.color ?? "original";
+  const swatches: Array<{ id: string; label: string; fill: string }> = [
+    { id: "#ffffff", label: "White", fill: "#ffffff" },
+    { id: "#111111", label: "Black", fill: "#111111" },
+    ...(brandColor && /^#[0-9a-f]{6}$/i.test(brandColor) ? [{ id: brandColor.toLowerCase(), label: "Brand colour", fill: brandColor }] : []),
+  ];
+  const chip = "rounded-md border px-2 py-1 text-[11px] font-medium transition";
+  const on = "border-foreground bg-foreground text-background";
+  const off = "hover:bg-muted";
+
+  return (
+    <div className="flex flex-col gap-3 border-t pt-3">
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Logo position</span>
+        <div className="flex items-start gap-3">
+          <button type="button" onClick={() => onChange({ ...value, position: "auto" })} className={cn(chip, position === "auto" ? on : off)}>
+            Auto
+          </button>
+          {/* A miniature canvas: click the spot the logo should take. */}
+          <div className="relative grid h-16 w-16 grid-cols-3 grid-rows-2 gap-0.5 rounded-md border bg-muted p-1">
+            {LOGO_SPOTS.map((spot) => (
+              <button
+                key={spot.id}
+                type="button"
+                title={spot.label}
+                aria-label={spot.label}
+                aria-pressed={position === spot.id}
+                onClick={() => onChange({ ...value, position: spot.id })}
+                className={cn(
+                  "rounded-sm transition",
+                  spot.id.startsWith("top") ? "self-start" : "self-end",
+                  "h-3",
+                  position === spot.id ? "bg-foreground" : "bg-foreground/15 hover:bg-foreground/40",
+                )}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium">Logo colour</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => onChange({ ...value, color: "original" })} className={cn(chip, color === "original" ? on : off)}>
+            Original
+          </button>
+          {swatches.map((sw) => (
+            <button
+              key={sw.id}
+              type="button"
+              title={sw.label}
+              aria-label={sw.label}
+              aria-pressed={color.toLowerCase() === sw.id}
+              onClick={() => onChange({ ...value, color: sw.id })}
+              className={cn(
+                "size-6 rounded-full border transition",
+                color.toLowerCase() === sw.id ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "hover:scale-110",
+              )}
+              style={{ background: sw.fill }}
+            />
+          ))}
+          <label
+            title="Any colour"
+            className={cn(
+              "relative size-6 cursor-pointer overflow-hidden rounded-full border",
+              color !== "original" && !swatches.some((sw) => sw.id === color.toLowerCase()) && "ring-2 ring-foreground ring-offset-2 ring-offset-background",
+            )}
+            style={{ background: color !== "original" ? color : "conic-gradient(#f43f5e,#f59e0b,#22c55e,#3b82f6,#a855f7,#f43f5e)" }}
+          >
+            <input
+              type="color"
+              aria-label="Custom logo colour"
+              value={color !== "original" ? color : "#ffffff"}
+              onChange={(e) => onChange({ ...value, color: e.target.value })}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-4">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium">Size</span>
+          <div className="flex gap-1">
+            {(["s", "m", "l"] as const).map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => onChange({ ...value, size: value.size === size ? undefined : size })}
+                className={cn(chip, value.size === size ? on : off)}
+              >
+                {size.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium">Background</span>
+          <div className="flex gap-1">
+            {(["auto", "on", "off"] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => onChange({ ...value, chip: c })}
+                className={cn(chip, (value.chip ?? "auto") === c ? on : off)}
+              >
+                {c === "auto" ? "Auto" : c === "on" ? "Chip" : "None"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

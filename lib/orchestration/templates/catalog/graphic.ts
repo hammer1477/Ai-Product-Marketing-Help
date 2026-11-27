@@ -299,7 +299,7 @@ export const minimalLuxe: TemplateDef = {
   usesScene: false,
   build(ctx) {
     const { p, blocks } = ctx;
-    const foot = stack(ctx, region(150, 780, 800, 1000, "center", "start"), pick(blocks, ["headline", "subheadline", "priceBlock", "cta"]), { key: "f" });
+    const foot = stack(ctx, region(150, 780, 740, 1016, "center", "start"), pick(blocks, ["headline", "subheadline", "description", "priceBlock", "cta"]), { key: "f" });
     return {
       placed: foot.placed,
       layers: [
@@ -309,7 +309,7 @@ export const minimalLuxe: TemplateDef = {
         rect("frame-inner", 48, 48, 984, 984, "transparent", { stroke: p.accent, strokeWidth: 1, opacity: 0.3, z: 1 }),
         ...label("crest", ctx.word, 140, 86, 800, { font: "Cormorant Garamond", size: 20, weight: 600, tracking: 8, uppercase: true, align: "center", color: p.accent, z: 8 }).layers,
         rect("crest-rule", 510, 124, 60, 1, p.accent, { z: 8 }),
-        ...stage(ctx, { cx: 540, cy: 465, w: 700, h: 620 }),
+        ...stage(ctx, { cx: 540, cy: 440, w: 700, h: 560 }),
         ...foot.layers,
       ],
     };
@@ -336,7 +336,7 @@ export const saleBurst: TemplateDef = {
         bloom("bg-bloom", 760, 520, 900, 900, "#ffffff", 0.22, 0),
         rect("tape", -120, 880, 1320, 130, p.text, { rotation: -6, z: 1 }),
         ...label("tape-text", repeatWord(ctx.word, 10), -120, 910, 1320, { font: "Bebas Neue", size: 70, color: p.ground, rotation: -6, z: 1 }).layers,
-        ...stage(ctx, { cx: 800, cy: 480, w: 520, h: 700 }, { glow: false }),
+        ...stage(ctx, { cx: 800, cy: 520, w: 560, h: 680 }, { glow: false }),
         ...stickerLayers(ctx, 920, 170, 118, shiftHue(p.ground, 180, { s: 0.85, l: 0.55 }), "#ffffff", 12),
         ...st.layers,
       ],

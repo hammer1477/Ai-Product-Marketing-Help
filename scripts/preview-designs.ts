@@ -184,6 +184,11 @@ async function main() {
       style: { ...brandStyle, templateId: template.id, format: format.id },
       backgroundImageUrl: background,
       logo,
+      // --logo-style=position,color,size  e.g. bottom-left,#ffffff,l
+      logoStyle: (() => {
+        const arg = process.argv.find((a) => a.startsWith("--logo-style="))?.slice(13).split(",");
+        return arg ? { position: arg[0] as never, color: arg[1], size: arg[2] as never } : undefined;
+      })(),
     });
 
     const png = await renderSchemaToPng(schema, { scale: 1 });

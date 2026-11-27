@@ -280,7 +280,7 @@ export const magazineCover: TemplateDef = {
     layers.push(...stage(ctx, { cx: 710, cy: 560, w: 640, h: 640 }, { z: 4 }));
 
     const lines = stack(ctx, region(48, 320, mastBottom + 70, 780, "left", "start"), pick(blocks, ["badge", "featureList", "specGrid", "statRow", "rating"]), { key: "l" });
-    const foot = stack(ctx, region(48, 640, 800, C - 48, "left", "start"), pick(blocks, ["headline", "subheadline", "priceBlock", "cta"]), { key: "f" });
+    const foot = stack(ctx, region(48, 640, 780, C - 40, "left", "start"), pick(blocks, ["headline", "subheadline", "description", "priceBlock", "cta"]), { key: "f" });
     placed.push(...lines.placed, ...foot.placed);
     layers.push(...lines.layers, ...foot.layers, ...watermarkFade(ctx));
     return { layers, placed: order(blocks, placed) };

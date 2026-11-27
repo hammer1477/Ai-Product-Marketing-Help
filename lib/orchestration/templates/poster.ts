@@ -8,7 +8,7 @@ import { templateFor, type TemplateDef } from "./registry";
 import type { Fact } from "../factSheet";
 import { formatDef, reframeLayers } from "../formats";
 import { placeLogo } from "../logo";
-import type { BrandLogo } from "../../brand/kit";
+import type { BrandLogo, LogoStyle } from "../../brand/kit";
 
 export type PosterInput = {
   blocks: Block[];
@@ -28,6 +28,8 @@ export type PosterInput = {
   logo?: BrandLogo;
   /** Keep the logo on the composition but don't draw it. */
   logoHidden?: boolean;
+  /** Seller's logo colour, position, size and chip choices. */
+  logoStyle?: LogoStyle;
 };
 
 /** A short display word for decorative type. */
@@ -91,7 +93,7 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
   const reframed = reframeLayers(built.layers, format.id);
   // The logo picks its spot first; the product is then fitted clear of the
   // logo, the copy and the canvas edge — nothing ever sits on anything.
-  const logo = input.logo && !input.logoHidden ? placeLogo(reframed, format, input.logo, palette) : null;
+  const logo = input.logo && !input.logoHidden ? placeLogo(reframed, format, input.logo, palette, input.logoStyle) : null;
   const fitted = keepProductClear(reframed, built.product, format, logo ? [logo.box] : []);
   const layers = logo ? [...fitted, ...logo.layers] : fitted;
 
@@ -128,6 +130,7 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
         facts: input.facts,
         logo: input.logo,
         logoHidden: input.logoHidden,
+        logoStyle: input.logoStyle,
         sceneUrl: sceneDrawn ? undefined : input.backgroundImageUrl,
       },
     },

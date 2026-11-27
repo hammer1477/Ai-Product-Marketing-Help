@@ -17,6 +17,18 @@ export type BrandLogo = {
   tone: "light" | "dark";
 };
 
+export type LogoPosition = "auto" | "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+
+/** How the seller wants the logo drawn on a design. Every field defaults to automatic. */
+export type LogoStyle = {
+  position?: LogoPosition;
+  /** "original" keeps the artwork's own colours; otherwise a hex the logo is drawn in. */
+  color?: "original" | string;
+  size?: "s" | "m" | "l";
+  /** Contrasting rounded chip behind the logo. */
+  chip?: "auto" | "on" | "off";
+};
+
 export type BrandKit = {
   brandName?: string;
   tagline?: string;
