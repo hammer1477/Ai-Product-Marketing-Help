@@ -88,6 +88,17 @@ const direction: ArtDirection = {
 /** A product photo on a white sweep, so the cutout path is exercised. */
 async function makeProductPhoto(): Promise<string> {
   const sharp = (await import("sharp")).default;
+  // --transparent: a wide product already cut out (as the background
+  // remover delivers it), with padding around it.
+  if (process.argv.includes("--transparent")) {
+    const cake = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1000">
+      <rect x="150" y="380" width="900" height="320" rx="40" fill="#f3e6d0"/>
+      <ellipse cx="600" cy="380" rx="450" ry="90" fill="#d7263d"/>
+      <rect x="150" y="660" width="900" height="60" fill="#c58b4a"/>
+    </svg>`;
+    const png = await sharp(Buffer.from(cake)).png().toBuffer();
+    return `data:image/png;base64,${png.toString("base64")}`;
+  }
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700">
     <rect width="900" height="700" fill="#ffffff"/>
     <ellipse cx="300" cy="400" rx="130" ry="150" fill="#1e3a5f"/>

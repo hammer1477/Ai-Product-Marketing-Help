@@ -97,7 +97,7 @@ export const typeBehind: TemplateDef = {
       rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
       bloom("bg-bloom", 540, 460, 1100, 900, p.accent, 0.16, 0),
       ...giant("giant-word", ctx.word, 24, 230, 1032, { font: "Anton", max: 330, min: 120, uppercase: true, align: "center", color: p.accent, z: 1 }).layers,
-      ...stage(ctx, { cx: 540, cy: 470, w: 600, h: 560 }, { glow: false }),
+      ...stage(ctx, { cx: 540, cy: 480, w: 860, h: 620 }, { glow: false }),
     ];
     const badge = find(blocks, "badge");
     if (badge) {
@@ -140,7 +140,7 @@ export const neoBrutal: TemplateDef = {
         dotGrid("bg-dots", 0, 0, C, C, ink, { gap: 28, r: 1.4, opacity: 0.18, z: 0 }),
         rect("card-shadow", card.x + 12, card.y + 12, card.w, card.h, ink, { z: 1 }),
         rect("card", card.x, card.y, card.w, card.h, "#ffffff", { stroke: ink, strokeWidth: 4, z: 1 }),
-        ...stage(ctx, { cx: card.x + card.w / 2, cy: card.y + card.h / 2, w: 390, h: 520 }, { glow: false }),
+        ...stage(ctx, { cx: card.x + card.w / 2, cy: card.y + card.h / 2, w: 436, h: 576 }, { glow: false }),
         rect("box", box.x, box.y, box.w, box.h, ink, { z: 2 }),
         ...word.layers,
         rect("box-rule", box.x + 28, box.y + 40 + word.height + 18, 120, 6, p.ground, { z: 3 }),
@@ -177,7 +177,7 @@ export const swissGrid: TemplateDef = {
         ...blockWord.layers,
         ...label("index", "01", 48, 34, 300, { font: "Space Grotesk", size: 64, weight: 700, color: p.accent, z: 8 }).layers,
         ...label("index-word", ctx.word, 736, 52, 300, { font: body(ctx), size: 13, weight: 600, tracking: 3, uppercase: true, align: "right", color: p.muted, z: 8 }).layers,
-        ...stage(ctx, { cx: 600, cy: 330, w: 640, h: 520 }, { glow: false }),
+        ...stage(ctx, { cx: 580, cy: 340, w: 720, h: 560 }, { glow: false }),
         ...st.layers,
       ],
     };
@@ -205,7 +205,7 @@ export const auroraGlass: TemplateDef = {
         bloom("mesh-c", 560, 1120, 1000, 640, shiftHue(p.accent, -50), 0.35, 0),
         rect("glass", 56, 140, 520, 800, "#ffffff", { opacity: 0.07, radius: 32, z: 1 }),
         rect("glass-edge", 56, 140, 520, 800, "transparent", { stroke: "#ffffff", strokeWidth: 1, opacity: 0.28, radius: 32, z: 1 }),
-        ...stage(ctx, { cx: 812, cy: 540, w: 420, h: 640 }),
+        ...stage(ctx, { cx: 812, cy: 540, w: 470, h: 760 }),
         sparkle("spark-1", 960, 150, 40, "#ffffff", 6, 0.9),
         sparkle("spark-2", 640, 900, 26, "#ffffff", 6, 0.7),
         sparkle("spark-3", 1010, 860, 18, "#ffffff", 6, 0.6),
@@ -235,7 +235,7 @@ export const retroSunset: TemplateDef = {
     const layers: DesignLayer[] = [
       rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
       ...arcs,
-      ...stage(ctx, seatedSlot(ctx, 540, 930, 520, 500), { glow: false }),
+      ...stage(ctx, seatedSlot(ctx, 540, 940, 700, 580), { glow: false }),
       ...top.layers,
     ];
     const sticker = stickerText(blocks);
@@ -276,7 +276,7 @@ export const y2kOrbit: TemplateDef = {
         bloom("core", 540, 540, 900, 820, p.accent, 0.32, 0),
         dotGrid("stars", 0, 0, C, C, "#ffffff", { gap: 54, r: 1, opacity: 0.25, z: 0 }),
         ...rings,
-        ...stage(ctx, { cx: 540, cy: 545, w: 470, h: 470 }),
+        ...stage(ctx, { cx: 540, cy: 545, w: 700, h: 540 }),
         sparkle("spark-1", 210, 330, 46, "#ffffff", 6),
         sparkle("spark-2", 880, 720, 34, "#ffffff", 6),
         sparkle("spark-3", 830, 300, 20, p.accent, 6),
@@ -309,7 +309,7 @@ export const minimalLuxe: TemplateDef = {
         rect("frame-inner", 48, 48, 984, 984, "transparent", { stroke: p.accent, strokeWidth: 1, opacity: 0.3, z: 1 }),
         ...label("crest", ctx.word, 140, 86, 800, { font: "Cormorant Garamond", size: 20, weight: 600, tracking: 8, uppercase: true, align: "center", color: p.accent, z: 8 }).layers,
         rect("crest-rule", 510, 124, 60, 1, p.accent, { z: 8 }),
-        ...stage(ctx, { cx: 540, cy: 470, w: 500, h: 540 }),
+        ...stage(ctx, { cx: 540, cy: 465, w: 700, h: 620 }),
         ...foot.layers,
       ],
     };
@@ -334,9 +334,9 @@ export const saleBurst: TemplateDef = {
       layers: [
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         bloom("bg-bloom", 760, 520, 900, 900, "#ffffff", 0.22, 0),
-        rect("tape", -120, 790, 1320, 130, p.text, { rotation: -6, z: 1 }),
-        ...label("tape-text", repeatWord(ctx.word, 10), -120, 820, 1320, { font: "Bebas Neue", size: 70, color: p.ground, rotation: -6, z: 1 }).layers,
-        ...stage(ctx, { cx: 770, cy: 540, w: 560, h: 640 }, { glow: false }),
+        rect("tape", -120, 880, 1320, 130, p.text, { rotation: -6, z: 1 }),
+        ...label("tape-text", repeatWord(ctx.word, 10), -120, 910, 1320, { font: "Bebas Neue", size: 70, color: p.ground, rotation: -6, z: 1 }).layers,
+        ...stage(ctx, { cx: 800, cy: 480, w: 520, h: 700 }, { glow: false }),
         ...stickerLayers(ctx, 920, 170, 118, shiftHue(p.ground, 180, { s: 0.85, l: 0.55 }), "#ffffff", 12),
         ...st.layers,
       ],
@@ -440,7 +440,7 @@ export const receipt: TemplateDef = {
       layers: [
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         circle("product-disc", 300, 540, 260, mix(p.accent, p.ground, 0.6), { z: 1 }),
-        ...stage(ctx, { cx: 300, cy: 540, w: 440, h: 640 }, { glow: false }),
+        ...stage(ctx, { cx: 300, cy: 540, w: 500, h: 720 }, { glow: false }),
         rect("receipt-shadow", r.x + 10, r.y + 14, r.w, r.h, "#000000", { opacity: 0.12, z: 2 }),
         rect("receipt", r.x, r.y, r.w, r.h, paper, { z: 2 }),
         zigzag("receipt-edge", r.x, r.y + r.h, r.w, paper, 2),
@@ -480,7 +480,7 @@ export const bento: TemplateDef = {
       rect("tile-a", 40, 700, 400, 340, white, { radius, z: 1 }),
       rect("tile-b", 460, 700, 280, 340, accentCard, { radius, z: 1 }),
       rect("tile-c", 760, 700, 280, 340, white, { radius, z: 1 }),
-      ...stage(ctx, { cx: 350, cy: 370, w: 500, h: 520 }, { glow: false }),
+      ...stage(ctx, { cx: 350, cy: 360, w: 570, h: 590 }, { glow: false }),
     ];
 
     const head = stack(ctx, region(712, 296, 84, 650, "left", "start"), pick(blocks, ["badge", "headline", "subheadline", "description"]), { style: darkStyle, key: "h" });
@@ -531,9 +531,9 @@ export const marqueeDrop: TemplateDef = {
         bloom("bg-bloom", 540, 700, 1000, 760, p.accent, 0.2, 0),
         rect("tape-top", -80, 46, 1240, 78, p.accent, { rotation: -4, z: 1 }),
         ...label("tape-top-text", repeatWord(ctx.word, 12), -80, 58, 1240, { font: "Bebas Neue", size: 54, color: p.onAccent, rotation: -4, z: 1 }).layers,
-        ...stage(ctx, { cx: 540, cy: 690, w: 580, h: 500 }),
-        rect("tape-front", -80, 900, 1240, 78, p.text, { rotation: 3, z: 6 }),
-        ...label("tape-front-text", repeatWord(ctx.word, 12), -80, 912, 1240, { font: "Bebas Neue", size: 54, color: p.ground, rotation: 3, z: 7 }).layers,
+        ...stage(ctx, { cx: 540, cy: 680, w: 820, h: 500 }),
+        rect("tape-front", -80, 975, 1240, 78, p.text, { rotation: 3, z: 6 }),
+        ...label("tape-front-text", repeatWord(ctx.word, 12), -80, 987, 1240, { font: "Bebas Neue", size: 54, color: p.ground, rotation: 3, z: 7 }).layers,
         ...(price ? stickerLayers(ctx, 900, 560, 84, p.accent2, onColor(p.accent2), 10) : []),
         ...st.layers,
       ],
@@ -561,7 +561,7 @@ export const pastelSoft: TemplateDef = {
         circle("blob-2", 1010, 960, 240, p.accent, { opacity: 0.16, z: 1 }),
         circle("disc", 750, 560, 310, "#ffffff", { opacity: 0.72, z: 1 }),
         circle("disc-ring", 750, 560, 340, "transparent", { stroke: p.accent, strokeWidth: 1, opacity: 0.5, z: 1 }),
-        ...stage(ctx, { cx: 750, cy: 560, w: 470, h: 540 }, { glow: false }),
+        ...stage(ctx, { cx: 755, cy: 560, w: 540, h: 640 }, { glow: false }),
         sparkle("spark-1", 520, 180, 30, p.accent, 6),
         sparkle("spark-2", 1000, 420, 22, p.accent, 6),
         ...st.layers,
@@ -588,8 +588,8 @@ export const techHud: TemplateDef = {
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         dotGrid("hud-grid", 0, 0, C, C, p.text, { gap: 32, r: 1.2, opacity: 0.16, z: 0 }),
         bloom("hud-core", 540, 540, 760, 760, p.accent, 0.2, 0),
-        ...brackets("hud-frame", 310, 250, 460, 580, p.accent, { z: 5 }),
-        rect("hud-scan", 310, 540, 460, 1, p.accent, { opacity: 0.35, z: 5 }),
+        ...brackets("hud-frame", 290, 250, 500, 580, p.accent, { z: 5 }),
+        rect("hud-scan", 290, 540, 500, 1, p.accent, { opacity: 0.35, z: 5 }),
         ...result.layers,
       ],
     };
@@ -615,7 +615,7 @@ export const bigNumber: TemplateDef = {
       rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
       bloom("bg-bloom", 800, 540, 900, 1000, p.accent, 0.2, 0),
       rect("rule", 64, 56, 80, 6, p.accent, { z: 8 }),
-      ...stage(ctx, { cx: 800, cy: 560, w: 500, h: 760 }),
+      ...stage(ctx, { cx: 800, cy: 540, w: 500, h: 860 }),
     ];
 
     let cursor = 84;

@@ -42,7 +42,7 @@ export const specSheet: TemplateDef = {
       layers: [
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         bloom("hero-glow", 290, 300, 620, 520, p.accent, 0.16, 0),
-        ...stage(ctx, seatedSlot(ctx, 290, 512, 470, 440)),
+        ...stage(ctx, seatedSlot(ctx, 290, 520, 500, 470)),
         rect("sheet", 32, 556, 1016, 492, p.surface, { radius: 28, z: 1 }),
         rect("sheet-rule", 540, 604, 1, 412, p.line, { z: 2 }),
         ...head.layers,
@@ -64,16 +64,16 @@ export const factBoard: TemplateDef = {
   usesScene: false,
   build(ctx) {
     const { p, blocks } = ctx;
-    const copy = stack(ctx, region(64, 600, 64, C - 64, "left", "center"), blocks, { key: "c" });
+    const copy = stack(ctx, region(64, 540, 64, C - 64, "left", "center"), blocks, { key: "c" });
     return {
       placed: order(blocks, copy.placed),
       layers: [
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         dotGrid("bg-dots", 0, 0, C, C, p.text, { gap: 30, r: 1.1, opacity: 0.09, z: 0 }),
-        rect("product-panel", 700, 0, 380, C, mix(p.ground, p.accent, 0.1), { z: 0 }),
-        bloom("product-glow", 870, 560, 560, 720, p.accent, 0.22, 1),
-        rect("panel-rule", 700, 0, 2, C, p.accent, { opacity: 0.5, z: 1 }),
-        ...stage(ctx, seatedSlot(ctx, 880, 860, 340, 640)),
+        rect("product-panel", 640, 0, 440, C, mix(p.ground, p.accent, 0.1), { z: 0 }),
+        bloom("product-glow", 860, 540, 620, 780, p.accent, 0.22, 1),
+        rect("panel-rule", 640, 0, 2, C, p.accent, { opacity: 0.5, z: 1 }),
+        ...stage(ctx, { cx: 860, cy: 540, w: 400, h: 860 }),
         ...copy.layers,
       ],
     };
@@ -100,7 +100,7 @@ export const catalogPage: TemplateDef = {
       layers: [
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         rect("product-card", 48, 320, 508, 520, p.surface, { radius: 32, z: 1 }),
-        ...stage(ctx, seatedSlot(ctx, 302, 800, 420, 440)),
+        ...stage(ctx, seatedSlot(ctx, 302, 815, 470, 470)),
         rect("foot", 48, 860, 984, 172, mix(p.surface, p.accent, 0.12), { radius: 28, z: 1 }),
         ...head.layers,
         ...side.layers,

@@ -114,6 +114,19 @@ export async function removeProductBackdrop(imageDataUri: string): Promise<Cutou
 
   const { width, height } = info;
 
+  // Already a cut-out — a transparent PNG from the background remover or
+  // any other tool. Its transparent corners read as a black, "dark"
+  // backdrop to the sweep test below, so without this it was treated as an
+  // uncut photo and framed with a dark rectangle behind a product that
+  // already had no background.
+  let transparent = 0;
+  for (let i = 3; i < data.length; i += 4) if (data[i] < 16) transparent++;
+  const transparentRatio = transparent / (width * height);
+  if (transparentRatio >= 0.02 && transparentRatio < 0.98) {
+    const png = await sharp(data, { raw: { width, height, channels: 4 } }).png({ compressionLevel: 6 }).toBuffer();
+    return { dataUri: `data:image/png;base64,${png.toString("base64")}`, cutoutApplied: true, width, height };
+  }
+
   // Decide whether this is a studio sweep at all. Sample a small patch at
   // each corner (single pixels are too noisy — JPEG artefacts alone can
   // shift one by 20).

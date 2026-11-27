@@ -62,7 +62,7 @@ export function headlineAt(
  */
 export function buildCallout(ctx: TemplateCtx, variant: "classic" | "hud", calm: boolean): TemplateResult {
   const { s, p, blocks } = ctx;
-  const product = { cx: 540, cy: 540, w: 400, h: 520 };
+  const product = { cx: 540, cy: 540, w: 460, h: 560 };
   const labelWidth = 220;
   const sideMargin = 48;
   const rowYs = [360, 540, 720];

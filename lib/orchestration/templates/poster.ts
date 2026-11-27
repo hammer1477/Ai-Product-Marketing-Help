@@ -3,6 +3,7 @@ import type { ResolvedStyle } from "../styles";
 import type { Block } from "../blocks/types";
 import { contentScore, type TemplateCtx } from "./kit";
 import { paint } from "./theme";
+import { keepProductClear } from "./productFit";
 import { templateFor, type TemplateDef } from "./registry";
 import type { Fact } from "../factSheet";
 import { formatDef, reframeLayers } from "../formats";
@@ -64,7 +65,8 @@ function build(input: PosterInput, template: TemplateDef) {
     scene: template.usesScene ? input.backgroundImageUrl : undefined,
     word: displayWord(input),
   };
-  return { ...template.build(ctx), palette };
+  const result = template.build(ctx);
+  return { ...result, layers: keepProductClear(result.layers, ctx.product), palette };
 }
 
 /** The colours a style actually paints with under its template — for the editor's pickers. */

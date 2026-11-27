@@ -406,41 +406,20 @@ export function productStage(opts: ProductStageOptions): DesignLayer[] {
         zIndex: zIndex + 1,
       });
     }
-  } else if (!opts.rotation) {
-    const boxX = Math.round(opts.centerX - box.width / 2);
-    const boxY = Math.round(opts.centerY - box.height / 2);
-    const spread = 30;
-    layers.push(
-      {
-        id: "product-dropshadow",
-        type: "shape",
-        shape: "rect",
-        fill: "#000000",
-        opacity: 0.28,
-        borderRadius: photoRadius + 10,
-        x: boxX - 10,
-        y: boxY + 14,
-        width: Math.round(box.width) + 20,
-        height: Math.round(box.height) + 20,
-        zIndex,
-      },
-      {
-        id: "product-dropshadow-soft",
-        type: "gradient",
-        gradient: "radial",
-        stops: [
-          { color: "#000000", offset: 0, opacity: 0.3 },
-          { color: "#000000", offset: 0.6, opacity: 0.12 },
-          { color: "#000000", offset: 1, opacity: 0 },
-        ],
-        x: boxX - spread,
-        y: boxY - spread + 26,
-        width: Math.round(box.width) + spread * 2,
-        height: Math.round(box.height) + spread * 2,
-        zIndex,
-      },
-    );
   }
+  // No box behind an uncut photo: a dark rectangle under the image read as
+  // a cheap shade rather than depth — the rounded photo stands on its own.
+
+  // An uncut photo is drawn at its own footprint so its rounded corners
+  // land on the photo, not on empty slot around it.
+  const frame = opts.cutoutApplied
+    ? { x, y, width: opts.width, height: opts.height }
+    : {
+        x: Math.round(opts.centerX - box.width / 2),
+        y: Math.round(opts.centerY - box.height / 2),
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+      };
 
   layers.push({
     id: "product-photo",
@@ -448,10 +427,7 @@ export function productStage(opts: ProductStageOptions): DesignLayer[] {
     src: opts.src,
     // Always contain: cover would crop the product itself.
     fit: "contain",
-    x,
-    y,
-    width: opts.width,
-    height: opts.height,
+    ...frame,
     // Rounding a cut-out product would slice the corners off the product
     // itself; it's only the rectangular photo that wants soft corners.
     borderRadius: opts.cutoutApplied ? 0 : photoRadius,

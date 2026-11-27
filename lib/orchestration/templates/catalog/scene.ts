@@ -44,7 +44,7 @@ export const midnightSplit: TemplateDef = {
       layers: [
         ...sceneBackdrop(ctx),
         linear("copy-scrim", 0, 0, 700, C, 90, [[ctx.p.ground, 0, 0.9], [ctx.p.ground, 1, 0]]),
-        ...stage(ctx, { cx: 806, cy: 520, w: 540, h: 820 }),
+        ...stage(ctx, { cx: 800, cy: 520, w: 500, h: 880 }),
         ...st.layers,
         ...watermarkFade(ctx),
       ],
@@ -68,7 +68,7 @@ export const spotlight: TemplateDef = {
       placed: st.placed,
       layers: [
         ...sceneBackdrop(ctx),
-        ...stage(ctx, { cx: C / 2, cy: 300, w: 820, h: 540 }),
+        ...stage(ctx, { cx: C / 2, cy: 320, w: 900, h: 540 }),
         linear("band-scrim", 0, bandTop - 150, C, 190, 180, [[ctx.p.ground, 0, 0], [ctx.p.ground, 1, 0.92]]),
         rect("band-solid", 0, bandTop + 40, C, C - bandTop - 40, ctx.p.ground, { opacity: 0.92 }),
         ...st.layers,
@@ -106,7 +106,7 @@ export const editorialCorner: TemplateDef = {
           z: 8,
         }).layers,
         rect("corner-rule", 76, 70, 64, 2, ctx.p.accent, { z: 8 }),
-        ...stage(ctx, { cx: 810, cy: 690, w: 540, h: 660 }),
+        ...stage(ctx, { cx: 800, cy: 640, w: 500, h: 780 }),
         ...st.layers,
         ...watermarkFade(ctx),
       ],
@@ -167,7 +167,7 @@ export const galleryArch: TemplateDef = {
           color: p.muted,
           z: 8,
         }).layers,
-        ...stage(ctx, seatedSlot(ctx, arch.x + arch.w / 2, 900, 400, 540), { glow: false }),
+        ...stage(ctx, seatedSlot(ctx, arch.x + arch.w / 2, 910, 440, 620), { glow: false }),
         ...st.layers,
       ],
     };
@@ -200,7 +200,7 @@ export const podium: TemplateDef = {
       bloom("podium-light", C / 2, podTop - 260, 760, 620, p.accent, 0.22, 1),
     );
 
-    layers.push(...stage(ctx, seatedSlot(ctx, C / 2, podTop + 6, 440, 520)));
+    layers.push(...stage(ctx, seatedSlot(ctx, C / 2, podTop + 6, 480, 500)));
 
     const top = stack(ctx, region(100, 880, 56, 300, "center", "start"), pick(blocks, ["badge", "headline", "subheadline", "description"]), { key: "t" });
     placed.push(...top.placed);
@@ -277,7 +277,7 @@ export const magazineCover: TemplateDef = {
     );
 
     // The product breaks over the masthead's lower edge, as cover models do.
-    layers.push(...stage(ctx, { cx: 690, cy: 580, w: 600, h: 620 }, { z: 4 }));
+    layers.push(...stage(ctx, { cx: 710, cy: 560, w: 640, h: 640 }, { z: 4 }));
 
     const lines = stack(ctx, region(48, 320, mastBottom + 70, 780, "left", "start"), pick(blocks, ["badge", "featureList", "specGrid", "statRow", "rating"]), { key: "l" });
     const foot = stack(ctx, region(48, 640, 800, C - 48, "left", "start"), pick(blocks, ["headline", "subheadline", "priceBlock", "cta"]), { key: "f" });
@@ -303,7 +303,7 @@ export const duotone: TemplateDef = {
       ? [...sceneBackdrop(ctx, 0), rect("wash", 0, 0, C, C, p.accent, { opacity: 0.55, z: 0 })]
       : [rect("bg", 0, 0, C, C, p.accent, { z: 0 }), bloom("bg-bloom", 540, 380, 1000, 900, "#ffffff", 0.25, 0)];
     layers.push(linear("ink-rise", 0, 480, C, 600, 180, [[p.ground, 0, 0], [p.ground, 0.55, 0.85], [p.ground, 1, 1]], 1));
-    layers.push(...stage(ctx, { cx: 540, cy: 400, w: 640, h: 600 }, { glow: false }));
+    layers.push(...stage(ctx, { cx: 540, cy: 400, w: 820, h: 590 }, { glow: false }));
 
     const body = s.bodyFont ?? "Space Grotesk";
     const badge = find(blocks, "badge");
@@ -342,7 +342,7 @@ export const windowCard: TemplateDef = {
       layers: [
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         ...sceneWindow(ctx, 40, 40, 1000, 600, { radius: 36, fallback: mix(p.accent, p.ground, 0.5), fadeTo: p.text }),
-        ...stage(ctx, seatedSlot(ctx, 540, 676, 560, 600), { glow: false }),
+        ...stage(ctx, seatedSlot(ctx, 540, 676, 700, 620), { glow: false }),
         rect("column-rule", 560, 722, 1, 300, p.line, { z: 1 }),
         ...left.layers,
         ...right.layers,
