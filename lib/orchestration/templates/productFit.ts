@@ -13,9 +13,9 @@ import type { ProductAsset } from "./kit";
 // every obstacle and refits the product there, as big as that region holds.
 
 /** Gap kept between the product and anything it must not touch. */
-const CLEARANCE = 18;
+const CLEARANCE = 10;
 /** Distance from the canvas edge the product stays inside. */
-const EDGE = 28;
+const EDGE = 16;
 
 type Box = { l: number; t: number; r: number; b: number };
 
@@ -60,14 +60,16 @@ function textBounds(layer: TextLayer): Box {
 }
 
 /** Copy, buttons and tapes: everything the product must stay clear of. */
-function isObstacle(layer: DesignLayer): boolean {
+function isObstacle(layer: DesignLayer, productZ: number): boolean {
   const id = layer.id;
   if (id.startsWith("product-") || id.startsWith("brand-logo")) return false;
   // Stickers deliberately overlap a corner of the product.
   if (id.startsWith("sticker")) return false;
   // Callout markers are pinned to the product's edge on purpose.
   if (id.startsWith("callout-number")) return false;
-  if (id.startsWith("tape")) return true;
+  // A tape behind the product is a backdrop it may overlap — that's the
+  // tight, layered look. Only a tape drawn in front of it is in the way.
+  if (id.startsWith("tape")) return (layer.zIndex ?? 0) > productZ;
   const z = layer.zIndex ?? 0;
   if (layer.type === "text") return z >= 5 && (layer.opacity ?? 1) > 0.3;
   return layer.type === "shape" && z >= COPY_Z;
@@ -140,7 +142,7 @@ export function keepProductClear(
   };
 
   const obstacles = layers
-    .filter((l) => l !== photo && isObstacle(l))
+    .filter((l) => l !== photo && isObstacle(l, photo.zIndex ?? 4))
     .map((l) => (l.type === "text" ? textBounds(l) : bounds(l.x, l.y, l.width, l.height, l.rotation)))
     .concat(reserved.map((r) => ({ l: r.x, t: r.y, r: r.x + r.width, b: r.y + r.height })))
     .filter((b) => area(b) > 0)

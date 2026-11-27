@@ -334,9 +334,9 @@ export const saleBurst: TemplateDef = {
       layers: [
         rect("bg", 0, 0, C, C, p.ground, { z: 0 }),
         bloom("bg-bloom", 760, 520, 900, 900, "#ffffff", 0.22, 0),
-        rect("tape", -120, 880, 1320, 130, p.text, { rotation: -6, z: 1 }),
-        ...label("tape-text", repeatWord(ctx.word, 10), -120, 910, 1320, { font: "Bebas Neue", size: 70, color: p.ground, rotation: -6, z: 1 }).layers,
-        ...stage(ctx, { cx: 800, cy: 520, w: 560, h: 680 }, { glow: false }),
+        rect("tape", -120, 800, 1320, 130, p.text, { rotation: -6, z: 1 }),
+        ...label("tape-text", repeatWord(ctx.word, 10), -120, 830, 1320, { font: "Bebas Neue", size: 70, color: p.ground, rotation: -6, z: 1 }).layers,
+        ...stage(ctx, { cx: 780, cy: 560, w: 600, h: 660 }, { glow: false }),
         ...stickerLayers(ctx, 920, 170, 118, shiftHue(p.ground, 180, { s: 0.85, l: 0.55 }), "#ffffff", 12),
         ...st.layers,
       ],
