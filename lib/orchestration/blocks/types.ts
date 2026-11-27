@@ -281,10 +281,13 @@ export const BLOCKS_SCHEMA = {
   description:
     "The poster's content, composed from blocks and rendered top to bottom in this order. " +
     "Build it from the FACT SHEET you were given: choose the blocks that suit THIS product and fill " +
-    "them with its strongest facts. Use 6 to 10 blocks, and between them show at least eight separate " +
-    "facts when the fact sheet has them. Always include exactly one headline, exactly one cta, and — " +
-    "unless the product has no stated benefits at all — one featureList. Use a specGrid whenever the " +
-    "fact sheet has two or more measurable specs, a statRow for the two or three most impressive " +
+    "them with its strongest facts. Use 7 to 10 blocks, and between them show at least eight separate " +
+    "facts. ALWAYS include: exactly one headline; one description (two short, specific, sensory " +
+    "sentences a buyer would want to read — what it is, what it's like, why it's worth it — never a " +
+    "restatement of the headline); one featureList of 4 to 6 reasons to buy; one specGrid of 2 to 4 " +
+    "label/value pairs (measurable specs when the sheet has them, otherwise concrete attributes like " +
+    "'Base: Golden biscuit crumb', 'Finish: Brushed steel'); and exactly one cta. A poster missing the " +
+    "description, features or specs is incomplete. Use a statRow for the two or three most impressive " +
     "figures, a priceBlock whenever a price is known, and a trustStrip for stated guarantees, " +
     "shipping or what's included. Never state a fact the fact sheet does not support. " +
     "CRITICAL: a specification is not a selling point. '51 mm lens width' is a measurement; " +

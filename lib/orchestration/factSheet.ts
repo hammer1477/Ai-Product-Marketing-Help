@@ -26,7 +26,13 @@ export type FactKind =
   | "offer"
   | "other";
 
-export type FactSource = "description" | "attributes" | "photo";
+/**
+ * Where a fact comes from. "expertise" is the professional's category
+ * knowledge — qualitative things inherently true of this exact product as
+ * shown ("Soft sponge layers" on a layered cream cake), never a number or
+ * a claim the seller would have to back.
+ */
+export type FactSource = "description" | "attributes" | "photo" | "expertise";
 
 export type Fact = {
   /** Short name, poster-ready: "Battery", "Lens", "Finish". */
@@ -87,7 +93,7 @@ export const FACT_SHEET_SCHEMA = {
     facts: {
       type: "array",
       description:
-        "EVERY concrete fact found, one per entry — aim for 12 to 24 when the input supports it. " +
+        "EVERY concrete fact, one per entry — at least 10, aim for 12 to 24. " +
         "Split compound sentences into separate facts.",
       items: {
         type: "object",
@@ -95,7 +101,7 @@ export const FACT_SHEET_SCHEMA = {
           label: { type: "string", description: "Max 3 words, e.g. 'Battery life'." },
           value: { type: "string", description: "Max 6 words, e.g. 'Up to 57 hours'." },
           kind: { type: "string", enum: FACT_KINDS },
-          source: { type: "string", enum: ["description", "attributes", "photo"] },
+          source: { type: "string", enum: ["description", "attributes", "photo", "expertise"] },
           strength: { type: "number", description: "1-5: how persuasive this fact is on a poster." },
         },
         propertyOrdering: ["label", "value", "kind", "source", "strength"],
@@ -128,9 +134,17 @@ export const EXTRACTION_RULES =
   "is four facts. Text printed on the product or packaging counts as a fact with source 'photo'. " +
   "A benefit is admissible only when it follows directly from a stated fact ('UV400 lenses' -> " +
   "'Blocks 100% of UV rays'). " +
-  "Never invent: no unstated prices, ratings, review counts, awards, percentages or measurements. " +
-  "If the input is thin, return fewer facts rather than padding. Write labels and values short " +
-  "enough to print on a poster.";
+  "When the seller wrote little, do the work a professional product copywriter would: (a) read the " +
+  "photo closely and record everything visible — construction, layers, toppings, fillings, finish, " +
+  "texture, shape, colourway, materials, parts, what comes with it — as source 'photo'; (b) add " +
+  "qualitative facts that are inherently true of this exact product type as shown, the things any " +
+  "expert in the category would say ('Soft sponge layers' for a layered cream cake, 'Card slots' for a " +
+  "bifold wallet, 'Breathable cotton' for a cotton tee) as source 'expertise'. Expertise facts are " +
+  "NEVER numbers, sizes, weights, durations, quantities, servings, percentages, prices, origins, " +
+  "certifications, awards, ratings, reviews, guarantees, health claims, or how/where it is made or what " +
+  "it is free of (handmade, homemade, hand-finished, artisan, organic, natural, all-natural, fresh-baked daily, locally made, imported, eco-friendly, vegan, gluten-free, sugar-free, healthy) — those come only from the " +
+  "seller or legible packaging. Never contradict the seller or the photo. Never return fewer than 10 " +
+  "facts for a product you can see. Write labels and values short enough to print on a poster.";
 
 const clean = (value: unknown, max: number): string | null => {
   if (typeof value !== "string") return null;
@@ -154,7 +168,7 @@ export function normalizeFactSheet(raw: Partial<FactSheet> | null | undefined, b
       label,
       value,
       kind: FACT_KINDS.includes(item.kind as FactKind) ? (item.kind as FactKind) : "other",
-      source: item.source === "photo" || item.source === "attributes" ? item.source : "description",
+      source: item.source === "photo" || item.source === "attributes" || item.source === "expertise" ? item.source : "description",
       strength: Math.max(1, Math.min(5, Math.round(Number(item.strength) || 3))),
     });
   }

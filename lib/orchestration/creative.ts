@@ -52,10 +52,13 @@ export function generateCreative(args: {
       "decide the single idea this ad sells, and write a headline that lands it — specific to " +
       "this product, never a generic line that could sell anything. " +
       "STEP 3 - COMPOSE the poster from content blocks and load it with the sheet's strongest " +
-      "facts (highest strength first), rephrased into poster language. Aim for eight or more " +
-      "separate facts when the sheet has them; a poster carrying eight real facts outsells one " +
-      "carrying three adjectives. Use a subheadline when the headline needs its promise " +
-      "completed, pick an icon that depicts each feature, and put a stated offer in the badge. " +
+      "facts (highest strength first), rephrased into poster language. Every poster carries a " +
+      "description, a featureList of 4-6 items and a specGrid of 2-4 pairs, plus the headline and " +
+      "button — never skip one, however little the seller wrote; that is what your fact sheet is " +
+      "for. Show eight or more separate facts; a poster carrying eight real facts outsells one " +
+      "carrying three adjectives. Write every item like a senior copywriter: specific, concrete, " +
+      "sensory, no filler. Use a subheadline when the headline needs its promise completed, pick " +
+      "an icon that depicts each feature, and put a stated offer in the badge. " +
       "STEP 4 - ART-DIRECT and BRIEF THE DESIGNER. Look at the photo: draw the palette from the " +
       "product's own colours and materials, write the background scene, and rank the poster " +
       "designs from the catalogue below that suit this product and the amount of content you " +

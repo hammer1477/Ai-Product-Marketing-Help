@@ -14,7 +14,8 @@ const SPEC_KINDS = new Set<Fact["kind"]>(["spec", "dimension", "material", "ingr
 const SOURCE_LABEL: Record<Fact["source"], string> = {
   description: "your description",
   attributes: "your product fields",
-  photo: "printed on the product",
+  photo: "seen in your photo",
+  expertise: "our copywriter's suggestion",
 };
 
 function blockText(blocks: Block[]): string {

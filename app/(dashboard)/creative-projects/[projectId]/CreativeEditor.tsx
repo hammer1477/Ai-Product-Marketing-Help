@@ -171,6 +171,7 @@ export function CreativeEditor({
                   onChange={(blocks) => setComposition({ ...composition, blocks })}
                 />
                 <BlockEditPanel
+                  projectId={projectId}
                   blocks={composition.blocks}
                   hiddenTypes={hiddenTypes}
                   placedCounts={readComposition(schema)?.placedCounts}

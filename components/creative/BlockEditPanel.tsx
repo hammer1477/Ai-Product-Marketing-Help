@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Sparkles } from "lucide-react";
+import type { Suggestions, SuggestType } from "@/lib/copy/suggestBlock";
 import type { Block, SpecItem } from "@/lib/orchestration/blocks/types";
 import { ICON_KEYS, type IconName } from "@/lib/design-schema/iconKeys";
 import { Input } from "@/components/ui/input";
@@ -52,7 +54,10 @@ export function BlockEditPanel({
   onChange,
   productPrice,
   placedCounts = {},
+  projectId,
 }: {
+  /** Enables the AI "Suggest" buttons. */
+  projectId?: string;
   blocks: Block[];
   /** Block types the current template had no room for. */
   hiddenTypes?: Block["type"][];
@@ -85,6 +90,7 @@ export function BlockEditPanel({
     onChange([...blocks.slice(0, at), make(), ...blocks.slice(at)]);
   }
 
+  const [suggestFor, setSuggestFor] = useState<number | null>(null);
   const present = new Set(blocks.map((b) => b.type));
   const addable = ADDABLE.filter((a) => a.type === "divider" || !present.has(a.type));
 
@@ -123,6 +129,12 @@ export function BlockEditPanel({
               >
                 <ArrowDown className="size-3.5" />
               </Button>
+              {projectId && SUGGESTABLE.includes(block.type as SuggestType) && (
+                <SuggestButton
+                  open={suggestFor === index}
+                  onClick={() => setSuggestFor(suggestFor === index ? null : index)}
+                />
+              )}
               {/* The headline and button are structural — a poster without
                   either isn't a smaller poster, it's a broken one. */}
               {block.type !== "headline" && block.type !== "cta" && (
@@ -139,6 +151,15 @@ export function BlockEditPanel({
           </header>
 
           <BlockFields block={block} index={index} onChange={(next) => updateBlock(index, next)} />
+          {projectId && suggestFor === index && (
+            <SuggestionTray
+              key={block.type}
+              projectId={projectId}
+              block={block}
+              blocks={blocks}
+              onApply={(next) => updateBlock(index, next)}
+            />
+          )}
           <TrimNotice block={block} shown={placedCounts[block.type]} hidden={hiddenTypes.includes(block.type)} />
         </section>
       ))}
@@ -162,6 +183,143 @@ export function BlockEditPanel({
             ))}
           </div>
         </section>
+      )}
+    </div>
+  );
+}
+
+const SUGGESTABLE: SuggestType[] = ["headline", "subheadline", "description", "featureList", "specGrid"];
+
+function SuggestButton({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <Button
+      variant={open ? "secondary" : "ghost"}
+      size="sm"
+      onClick={onClick}
+      className="h-7 gap-1 px-2 text-xs"
+      title="Ideas from our copywriter, written for this product"
+    >
+      <Sparkles className="size-3.5" /> Suggest
+    </Button>
+  );
+}
+
+type TrayState = { loading: boolean; error: string | null; data: Suggestions | null; used: string[] };
+
+/**
+ * The AI's options for one section. Text sections swap in the option you
+ * click; lists take each option you click as a new item.
+ */
+function SuggestionTray({
+  projectId,
+  block,
+  blocks,
+  onApply,
+}: {
+  projectId: string;
+  block: Block;
+  blocks: Block[];
+  onApply: (next: Block) => void;
+}) {
+  const [state, setState] = useState<TrayState>({ loading: true, error: null, data: null, used: [] });
+
+  async function load() {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    await fetchOptions();
+  }
+
+  async function fetchOptions() {
+    try {
+      const res = await fetch(`/api/creative-projects/${projectId}/suggest-copy`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type: block.type, blocks }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? "Couldn't write suggestions right now.");
+      setState({ loading: false, error: null, data: body as Suggestions, used: [] });
+    } catch (err) {
+      setState((s) => ({ ...s, loading: false, error: (err as Error).message }));
+    }
+  }
+
+  // Fetch once when the tray opens (state starts as loading).
+  useEffect(() => {
+    void fetchOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const limit = LIST_LIMITS[block.type] ?? Infinity;
+  const full = "items" in block && block.items.length >= limit;
+  const isList = "items" in block;
+
+  function apply(option: string | { label: string; value: string }) {
+    const key = typeof option === "string" ? option : `${option.label}|${option.value}`;
+    if (block.type === "featureList" && typeof option === "string") {
+      if (full) return;
+      const items = [...block.items.filter((i) => i.trim()), option];
+      const icons = block.icons ? [...block.icons.slice(0, items.length - 1), "check" as IconName] : undefined;
+      onApply({ ...block, items, ...(icons ? { icons } : {}) });
+    } else if (block.type === "specGrid" && typeof option !== "string") {
+      if (full) return;
+      onApply({ ...block, items: [...block.items.filter((i) => i.label.trim() || i.value.trim()), option] });
+    } else if ("text" in block && typeof option === "string") {
+      onApply({ ...block, text: option } as Block);
+    }
+    setState((s) => ({ ...s, used: [...s.used, key] }));
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-dashed bg-muted/40 p-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-muted-foreground">
+          {isList ? (full ? "This list is full. Remove one to add another." : "Click to add") : "Click to use"}
+        </span>
+        <Button variant="ghost" size="sm" onClick={load} disabled={state.loading} className="h-6 gap-1 px-1.5 text-[11px]">
+          {state.loading ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+          {state.loading ? "Writing" : "More ideas"}
+        </Button>
+      </div>
+      {state.error && <p className="text-xs text-destructive">{state.error}</p>}
+      {state.loading && !state.data && (
+        <p className="text-xs text-muted-foreground">Studying your product and writing options...</p>
+      )}
+      {state.data && (
+        <div className="flex flex-col gap-1.5">
+          {state.data.type === "specGrid"
+            ? state.data.options.map((o) => {
+                const key = `${o.label}|${o.value}`;
+                const used = state.used.includes(key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={used || full}
+                    onClick={() => apply(o)}
+                    className="flex items-baseline gap-2 rounded border bg-background px-2 py-1.5 text-left text-xs transition hover:border-foreground/50 disabled:opacity-40"
+                  >
+                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{o.label}</span>
+                    <span className="font-medium">{o.value}</span>
+                    {used && <span className="ml-auto text-[10px] text-muted-foreground">Added</span>}
+                  </button>
+                );
+              })
+            : state.data.options.map((o) => {
+                const used = state.used.includes(o);
+                return (
+                  <button
+                    key={o}
+                    type="button"
+                    disabled={isList && (used || full)}
+                    onClick={() => apply(o)}
+                    className="rounded border bg-background px-2 py-1.5 text-left text-xs transition hover:border-foreground/50 disabled:opacity-40"
+                  >
+                    {o}
+                    {used && isList && <span className="ml-2 text-[10px] text-muted-foreground">Added</span>}
+                  </button>
+                );
+              })}
+        </div>
       )}
     </div>
   );

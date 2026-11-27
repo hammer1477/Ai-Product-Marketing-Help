@@ -3,6 +3,7 @@ import type { ConceptDecision, CreativeContent } from "./types";
 import type { ResolvedStyle } from "./styles";
 import { composePosterSchema, templateContentScore, type PosterInput } from "./templates/poster";
 import { normalizeBlocks } from "./blocks/types";
+import { enrichBlocks } from "./enrich";
 import { chooseTemplate } from "./templates/registry";
 import type { Fact } from "./factSheet";
 import type { BrandLogo, LogoStyle } from "../brand/kit";
@@ -30,11 +31,17 @@ export function posterInputFor(input: ComposeInput): PosterInput {
   // normalizeBlocks is the gate that turns the model's loose output into
   // something renderable, synthesizing a headline and a button from the
   // flat copy fields if either is missing.
-  const blocks = normalizeBlocks(content.blocks, {
-    headline: content.headline,
-    ctaLabel: content.ctaLabel,
-    sellingPoints: content.sellingPoints ?? [],
-  });
+  // …then enrichBlocks guarantees the detail: a description, features and
+  // specs, filled from the fact sheet wherever the model skimped.
+  const blocks = enrichBlocks(
+    normalizeBlocks(content.blocks, {
+      headline: content.headline,
+      ctaLabel: content.ctaLabel,
+      sellingPoints: content.sellingPoints ?? [],
+    }),
+    input.facts,
+    content.description,
+  );
 
   return {
     blocks,
