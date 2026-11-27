@@ -52,13 +52,13 @@ function stickerText(blocks: Block[]): { text: string; type: BlockType } | null 
 }
 
 /** Takes the sticker's block out of the stack so it isn't drawn twice. */
-function splitSticker(blocks: Block[]): { rest: Block[]; used: Block[] } {
+export function splitSticker(blocks: Block[]): { rest: Block[]; used: Block[] } {
   const sticker = stickerText(blocks);
   if (!sticker) return { rest: blocks, used: [] };
   return { rest: omit(blocks, [sticker.type]), used: pick(blocks, [sticker.type]) };
 }
 
-function stickerLayers(ctx: TemplateCtx, cx: number, cy: number, r: number, fill: string, ink: string, rotation: number): DesignLayer[] {
+export function stickerLayers(ctx: TemplateCtx, cx: number, cy: number, r: number, fill: string, ink: string, rotation: number): DesignLayer[] {
   const sticker = stickerText(ctx.blocks);
   if (!sticker) return [];
   const textW = r * 1.3;

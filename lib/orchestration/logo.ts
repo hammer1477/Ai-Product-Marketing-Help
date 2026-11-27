@@ -46,8 +46,8 @@ function obstacles(layers: DesignLayer[], width: number, height: number): Array<
     if (layer.id.startsWith("tape")) return [{ ...rotatedBounds(layer), weight: 4 }];
     if (layer.type === "text" || layer.type === "icon") return [{ ...rotatedBounds(layer), weight: 4 }];
     const area = layer.width * layer.height;
-    if (layer.type === "image") return area < canvas * 0.6 ? [{ ...layer, weight: 2 }] : [];
-    if (layer.type === "shape") return area < canvas * 0.08 ? [{ ...layer, weight: 3 }] : [];
+    if (layer.type === "image") return area < canvas * 0.6 ? [{ ...rotatedBounds(layer), weight: 2 }] : [];
+    if (layer.type === "shape") return area < canvas * 0.1 ? [{ ...rotatedBounds(layer), weight: 3 }] : [];
     return [];
   });
 }
@@ -58,7 +58,7 @@ function obstacles(layers: DesignLayer[], width: number, height: number): Array<
  */
 function backdropAt(layers: DesignLayer[], cx: number, cy: number, ground: string): string | null {
   const covering = layers
-    .filter((l) => !l.rotation && !isProduct(l) && l.x <= cx && l.y <= cy && l.x + l.width >= cx && l.y + l.height >= cy)
+    .filter((l) => !isProduct(l) && contains(l, cx, cy))
     .filter((l) => l.type !== "text" && l.type !== "icon")
     .filter((l) => (l.opacity ?? 1) >= 0.5)
     // Soft glows are tints, not a backdrop.
@@ -103,6 +103,22 @@ function rotatedBounds(l: DesignLayer): Box {
   const w = l.width * Math.abs(Math.cos(a)) + l.height * Math.abs(Math.sin(a));
   const h = l.width * Math.abs(Math.sin(a)) + l.height * Math.abs(Math.cos(a));
   return { x: l.x + l.width / 2 - w / 2, y: l.y + l.height / 2 - h / 2, width: w, height: h };
+}
+
+/** Whether (px, py) lies inside a layer, rotated about its centre. */
+function contains(l: DesignLayer, px: number, py: number): boolean {
+  let x = px;
+  let y = py;
+  if (l.rotation) {
+    const a = (-l.rotation * Math.PI) / 180;
+    const cx = l.x + l.width / 2;
+    const cy = l.y + l.height / 2;
+    const dx = px - cx;
+    const dy = py - cy;
+    x = cx + dx * Math.cos(a) - dy * Math.sin(a);
+    y = cy + dx * Math.sin(a) + dy * Math.cos(a);
+  }
+  return l.x <= x && l.y <= y && l.x + l.width >= x && l.y + l.height >= y;
 }
 
 export type PlacedLogo = { layers: DesignLayer[]; box: Box };

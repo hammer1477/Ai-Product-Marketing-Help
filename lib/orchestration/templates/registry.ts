@@ -30,11 +30,20 @@ import {
   y2kOrbit,
 } from "./catalog/graphic";
 import { catalogPage, factBoard, specSheet } from "./catalog/dense";
+import { circleFrame, diagonalSplit, freshPop, glowRing, heroStage, posterStack, priceTag } from "./catalog/hero";
 
 export type { TemplateDef, TemplateTag };
 
 /** Every poster design, in the order the picker shows them. */
 export const TEMPLATES: TemplateDef[] = [
+  // Product-first designs: the product is the biggest thing on the canvas.
+  heroStage,
+  diagonalSplit,
+  circleFrame,
+  priceTag,
+  freshPop,
+  posterStack,
+  glowRing,
   midnightSplit,
   galleryArch,
   neoBrutal,
