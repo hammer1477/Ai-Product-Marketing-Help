@@ -1,7 +1,7 @@
 import type { DesignLayer, GradientLayer, ImageLayer, TextLayer } from "../../design-schema/types";
 import { measureTextBlock } from "../../design-schema/measureText";
 import { COPY_Z, containedBox, productStage } from "./layoutKit";
-import { C, type ProductAsset } from "./kit";
+import type { ProductAsset } from "./kit";
 
 // The product is the ad. It must never run under the copy, under a tape or
 // off the canvas — and it should be as large as the design allows.
@@ -62,7 +62,7 @@ function textBounds(layer: TextLayer): Box {
 /** Copy, buttons and tapes: everything the product must stay clear of. */
 function isObstacle(layer: DesignLayer): boolean {
   const id = layer.id;
-  if (id.startsWith("product-")) return false;
+  if (id.startsWith("product-") || id.startsWith("brand-logo")) return false;
   // Stickers deliberately overlap a corner of the product.
   if (id.startsWith("sticker")) return false;
   // Callout markers are pinned to the product's edge on purpose.
@@ -118,7 +118,15 @@ function gradientColor(layer: DesignLayer | undefined): string | undefined {
   return layer?.type === "gradient" ? (layer as GradientLayer).stops[0]?.color : undefined;
 }
 
-export function keepProductClear(layers: DesignLayer[], product: ProductAsset): DesignLayer[] {
+export function keepProductClear(
+  layers: DesignLayer[],
+  product: ProductAsset,
+  canvas: { width: number; height: number } = { width: 1080, height: 1080 },
+  /** Extra areas to keep clear — the brand logo. */
+  reserved: Array<{ x: number; y: number; width: number; height: number }> = [],
+): DesignLayer[] {
+  const W = canvas.width;
+  const H = canvas.height;
   const photo = layers.find((l): l is ImageLayer => l.id === "product-photo" && l.type === "image");
   // A tilted product sits in a designed frame (a polaroid); leave it be.
   if (!photo || photo.rotation) return layers;
@@ -127,13 +135,14 @@ export function keepProductClear(layers: DesignLayer[], product: ProductAsset): 
   const slot: Box = {
     l: Math.max(EDGE, photo.x),
     t: Math.max(EDGE, photo.y),
-    r: Math.min(C - EDGE, photo.x + photo.width),
-    b: Math.min(C - EDGE, photo.y + photo.height),
+    r: Math.min(W - EDGE, photo.x + photo.width),
+    b: Math.min(H - EDGE, photo.y + photo.height),
   };
 
   const obstacles = layers
     .filter((l) => l !== photo && isObstacle(l))
     .map((l) => (l.type === "text" ? textBounds(l) : bounds(l.x, l.y, l.width, l.height, l.rotation)))
+    .concat(reserved.map((r) => ({ l: r.x, t: r.y, r: r.x + r.width, b: r.y + r.height })))
     .filter((b) => area(b) > 0)
     .map((b) => ({ l: b.l - CLEARANCE, t: b.t - CLEARANCE, r: b.r + CLEARANCE, b: b.b + CLEARANCE }));
 
@@ -141,7 +150,7 @@ export function keepProductClear(layers: DesignLayer[], product: ProductAsset): 
   const origCx = photo.x + photo.width / 2;
   const origCy = photo.y + photo.height / 2;
   const origBox: Box = { l: origCx - origFit.width / 2, t: origCy - origFit.height / 2, r: origCx + origFit.width / 2, b: origCy + origFit.height / 2 };
-  const insideCanvas = origBox.l >= EDGE - 1 && origBox.t >= EDGE - 1 && origBox.r <= C - EDGE + 1 && origBox.b <= C - EDGE + 1;
+  const insideCanvas = origBox.l >= EDGE - 1 && origBox.t >= EDGE - 1 && origBox.r <= W - EDGE + 1 && origBox.b <= H - EDGE + 1;
   if (insideCanvas && !obstacles.some((o) => overlaps(origBox, o))) return layers;
 
   const free = carve(slot, obstacles, aspect);

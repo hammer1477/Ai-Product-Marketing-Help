@@ -65,8 +65,7 @@ function build(input: PosterInput, template: TemplateDef) {
     scene: template.usesScene ? input.backgroundImageUrl : undefined,
     word: displayWord(input),
   };
-  const result = template.build(ctx);
-  return { ...result, layers: keepProductClear(result.layers, ctx.product), palette };
+  return { ...template.build(ctx), product: ctx.product, palette };
 }
 
 /** The colours a style actually paints with under its template — for the editor's pickers. */
@@ -90,10 +89,11 @@ export function composePosterSchema(input: PosterInput): DesignSchema {
   const { placed, palette } = built;
   const format = formatDef(input.style.format);
   const reframed = reframeLayers(built.layers, format.id);
-  const layers =
-    input.logo && !input.logoHidden
-      ? [...reframed, ...placeLogo(reframed, format, input.logo, palette)]
-      : reframed;
+  // The logo picks its spot first; the product is then fitted clear of the
+  // logo, the copy and the canvas edge — nothing ever sits on anything.
+  const logo = input.logo && !input.logoHidden ? placeLogo(reframed, format, input.logo, palette) : null;
+  const fitted = keepProductClear(reframed, built.product, format, logo ? [logo.box] : []);
+  const layers = logo ? [...fitted, ...logo.layers] : fitted;
 
   // A template that doesn't draw the scene still has to carry it, or
   // switching to a template that does would find nothing to draw.
