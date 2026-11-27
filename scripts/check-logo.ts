@@ -1,5 +1,6 @@
-// Verifies the brand logo is never covered, never overlaps copy, the product,
-// tapes or stickers, and never leaves the canvas — every template, every format.
+// Verifies the brand logo is never covered, never overlaps copy, the product
+// or stickers, and never leaves the canvas — every template, every format.
+// Riding on top of a tape is allowed (the logo is drawn above it).
 //   npx tsx scripts/check-logo.ts
 
 import sharp from "sharp";
@@ -64,8 +65,8 @@ async function main() {
       const above = schema.layers.filter((l) => l.zIndex > L.zIndex);
       const box = { x: L.x, y: L.y, width: L.width, height: L.height };
       const hits = schema.layers
-        .filter((l) => !l.id.startsWith("brand-logo"))
-        .filter((l) => l.type === "text" || l.id.startsWith("product-photo") || l.id.startsWith("tape") || l.id.startsWith("sticker") || (l.type === "shape" && l.zIndex >= 8))
+        .filter((l) => !l.id.startsWith("brand-logo") && !l.id.startsWith("tape"))
+        .filter((l) => l.type === "text" || l.id.startsWith("product-photo") || l.id.startsWith("sticker") || (l.type === "shape" && l.zIndex >= 8))
         .map((l) => [l.id, coverage(box, l)] as const)
         .filter(([, c]) => c > 0);
       const offCanvas = L.x < 0 || L.y < 0 || L.x + L.width > schema.canvas.width || L.y + L.height > schema.canvas.height;

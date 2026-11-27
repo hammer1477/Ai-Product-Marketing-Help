@@ -66,7 +66,9 @@ function obstacles(layers: DesignLayer[], width: number, height: number): Obstac
     // The product is the ad: the logo keeps off it unless every other spot is copy.
     if (isProduct(layer)) return layer.id === "product-photo" ? [{ x: layer.x, y: layer.y, width: layer.width, height: layer.height, weight: 3 }] : [];
     const tilted = layer.rotation ? layer : undefined;
-    if (layer.id.startsWith("tape")) return [{ ...rotatedBounds(layer), weight: 4, tilted }];
+    // Tapes are decoration the logo may ride on top of (it's always drawn
+    // above them) — mildly avoided, never a reason to crowd the product.
+    if (layer.id.startsWith("tape")) return [{ ...rotatedBounds(layer), weight: 0.5, tilted }];
     if (layer.type === "text" || layer.type === "icon") return [{ ...rotatedBounds(layer), weight: 4, tilted }];
     const area = layer.width * layer.height;
     if (layer.type === "image") return area < canvas * 0.6 ? [{ ...rotatedBounds(layer), weight: 2, tilted }] : [];
