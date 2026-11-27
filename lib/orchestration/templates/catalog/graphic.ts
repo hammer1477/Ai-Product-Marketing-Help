@@ -328,7 +328,10 @@ export const saleBurst: TemplateDef = {
   build(ctx) {
     const { p } = ctx;
     const { rest, used } = splitSticker(ctx.blocks);
-    const st = stack(ctx, region(60, 480, 64, 740, "left", "start"), rest);
+    // The copy column runs down to the tape; the product sits low beside the
+    // short feature/spec lines, resting over the tape, so bigger text sizes
+    // grow the column downward instead of squeezing the product.
+    const st = stack(ctx, region(60, 440, 56, 830, "left", "start"), rest);
     return {
       placed: order(ctx.blocks, [...st.placed, ...used]),
       layers: [
@@ -336,7 +339,7 @@ export const saleBurst: TemplateDef = {
         bloom("bg-bloom", 760, 520, 900, 900, "#ffffff", 0.22, 0),
         rect("tape", -120, 800, 1320, 130, p.text, { rotation: -6, z: 1 }),
         ...label("tape-text", repeatWord(ctx.word, 10), -120, 830, 1320, { font: "Bebas Neue", size: 70, color: p.ground, rotation: -6, z: 1 }).layers,
-        ...stage(ctx, { cx: 780, cy: 560, w: 600, h: 660 }, { glow: false }),
+        ...stage(ctx, { cx: 790, cy: 560, w: 560, h: 600 }, { glow: false }),
         ...stickerLayers(ctx, 920, 170, 118, shiftHue(p.ground, 180, { s: 0.85, l: 0.55 }), "#ffffff", 12),
         ...st.layers,
       ],

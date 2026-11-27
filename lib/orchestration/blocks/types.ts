@@ -84,8 +84,9 @@ export const DROP_ORDER: BlockType[] = [
   "badge",
   "subheadline",
   "specGrid",
-  "description",
+  // The seller's own words about the product outlast a bulleted list.
   "featureList",
+  "description",
   "priceBlock",
 ];
 
