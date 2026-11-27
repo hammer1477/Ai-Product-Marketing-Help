@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, RefreshCw, Sparkles } from "lucide-react";
@@ -14,6 +14,26 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 const MAX_SHOTS = 8;
+
+type Framing = "hero" | "closeup" | "thirds" | "variety";
+
+const FRAMINGS: Array<{ id: Framing; label: string; hint: string; preview: ReactNode }> = [
+  { id: "hero", label: "Hero", hint: "Centred, big", preview: <span className="absolute bottom-2 left-1/2 h-7 w-7 -translate-x-1/2 rounded-md bg-current" /> },
+  { id: "closeup", label: "Close-up", hint: "Fills the frame", preview: <span className="absolute bottom-1 left-1/2 h-10 w-11 -translate-x-1/2 rounded-md bg-current" /> },
+  { id: "thirds", label: "Off-centre", hint: "Room beside it", preview: <span className="absolute bottom-2 left-[22%] h-7 w-6 rounded-md bg-current" /> },
+  {
+    id: "variety",
+    label: "Variety",
+    hint: "Mix all three",
+    preview: (
+      <>
+        <span className="absolute bottom-2 left-[12%] h-4 w-3 rounded-sm bg-current" />
+        <span className="absolute bottom-2 left-1/2 h-7 w-5 -translate-x-1/2 rounded-sm bg-current" />
+        <span className="absolute bottom-2 right-[12%] h-5 w-4 rounded-sm bg-current" />
+      </>
+    ),
+  },
+];
 
 export function PhotoshootStudio({
   productId,
@@ -32,6 +52,7 @@ export function PhotoshootStudio({
   const [scenes, setScenes] = useState<string[]>(initialIdeas.length ? [] : ["marble", "studio", "wood"]);
   const [custom, setCustom] = useState("");
   const [format, setFormat] = useState<AdFormat>(defaultFormat);
+  const [framing, setFraming] = useState<Framing>("hero");
   const [busy, setBusy] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +95,7 @@ export function PhotoshootStudio({
         scenes,
         custom,
         format,
+        framing,
         ideas: ideas.filter((i) => pickedIdeas.includes(i.title)).map((i) => ({ title: i.title, prompt: i.prompt })),
       }),
     });
@@ -206,6 +228,33 @@ export function PhotoshootStudio({
           maxLength={300}
           placeholder="e.g. on a café table in Paris, croissant blurred behind, morning light"
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium">Framing</span>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {FRAMINGS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={framing === f.id}
+              onClick={() => setFraming(f.id)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg border p-2 text-left transition",
+                framing === f.id ? "border-foreground ring-2 ring-foreground" : "hover:border-foreground/40",
+              )}
+            >
+              <span className="relative h-12 w-14 shrink-0 overflow-hidden rounded-md bg-muted text-foreground/70">
+                <span className="absolute inset-x-0 bottom-0 h-3 bg-foreground/10" />
+                {f.preview}
+              </span>
+              <span className="flex flex-col">
+                <span className="text-xs font-semibold">{f.label}</span>
+                <span className="text-[11px] text-muted-foreground">{f.hint}</span>
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">

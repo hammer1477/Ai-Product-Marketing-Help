@@ -5,7 +5,7 @@ import { removeProductBackdrop, trimTransparentEdges } from "../images/cutout";
 import { toDataUri } from "../orchestration/toDataUri";
 import { formatDef } from "../orchestration/formats";
 import { compositeShot } from "./composite";
-import { sceneById, scenePrompt } from "./scenes";
+import { looksGlossy, sceneById, scenePrompt, type FramingChoice } from "./scenes";
 
 export type PhotoshootParams = {
   /** Preset id, or "custom" with `prompt`. */
@@ -14,7 +14,11 @@ export type PhotoshootParams = {
   /** Display name for a custom or AI-suggested scene. */
   label?: string;
   format?: string;
+  /** Where the product sits: centred hero, close-up or off-centre. */
+  framing?: FramingChoice;
 };
+
+const FRAMINGS: FramingChoice[] = ["hero", "closeup", "thirds"];
 
 /** Longest side the scene is generated at; it's then fitted to the output. */
 const GENERATE_MAX = 1536;
@@ -36,6 +40,8 @@ export async function runPhotoshootShot(jobId: string): Promise<{ imageId: strin
   if (!sceneText) throw new Error("Photoshoot shot has no scene");
   const label = preset?.label ?? (params.label?.trim() || params.prompt || "Custom").slice(0, 80);
   const format = formatDef(params.format);
+  const framing: FramingChoice = FRAMINGS.includes(params.framing as FramingChoice) ? (params.framing as FramingChoice) : "hero";
+  const glossy = preset?.glossy ?? looksGlossy(sceneText);
 
   const { data: primary } = await supabase
     .from("product_images")
@@ -52,7 +58,7 @@ export async function runPhotoshootShot(jobId: string): Promise<{ imageId: strin
   const scale = GENERATE_MAX / Math.max(format.width, format.height);
   const [sceneResult, product] = await Promise.all([
     getImageProvider().generate({
-      prompt: scenePrompt(sceneText),
+      prompt: scenePrompt(sceneText, framing),
       mode: "text-to-image",
       width: Math.round(format.width * scale),
       height: Math.round(format.height * scale),
@@ -74,6 +80,8 @@ export async function runPhotoshootShot(jobId: string): Promise<{ imageId: strin
     cutout: product.cutout,
     width: format.width,
     height: format.height,
+    framing,
+    glossy,
   });
 
   const storagePath = `${job.user_id}/photoshoots/${job.id}.jpg`;

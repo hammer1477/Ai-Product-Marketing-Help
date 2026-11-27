@@ -13,7 +13,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await request.json().catch(() => ({}))) as { scenes?: unknown; custom?: unknown; format?: unknown; ideas?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { scenes?: unknown; custom?: unknown; format?: unknown; ideas?: unknown; framing?: unknown };
   const format = AD_FORMATS.some((f) => f.id === body.format) ? (body.format as string) : "square";
   const presets = Array.isArray(body.scenes)
     ? [...new Set(body.scenes.filter((s): s is string => typeof s === "string" && Boolean(sceneById(s))))]
@@ -26,11 +26,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
         .map((i) => ({ scene: "custom", prompt: i.prompt.trim().slice(0, 700), label: i.title.trim().slice(0, 60), format }))
     : [];
 
-  const shots = [
+  const base = [
     ...ideas,
     ...presets.map((scene) => ({ scene, format })),
     ...(custom ? [{ scene: "custom", prompt: custom, format }] : []),
   ];
+  // "variety" cycles the framings so one shoot gives a hero, a close-up
+  // and an off-centre shot rather than the same composition each time.
+  const FRAMINGS = ["hero", "closeup", "thirds"] as const;
+  const choice = typeof body.framing === "string" ? body.framing : "hero";
+  const shots = base.map((shot, i) => ({
+    ...shot,
+    framing: choice === "variety" ? FRAMINGS[i % FRAMINGS.length] : (FRAMINGS as readonly string[]).includes(choice) ? choice : "hero",
+  }));
   if (shots.length === 0) return NextResponse.json({ error: "Pick at least one scene." }, { status: 400 });
   if (shots.length > 8) return NextResponse.json({ error: "Up to 8 shots at a time." }, { status: 400 });
 
