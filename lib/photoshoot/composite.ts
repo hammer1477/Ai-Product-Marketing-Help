@@ -74,6 +74,37 @@ async function silhouette(alpha: Buffer, w: number, h: number, opacity: number):
   return sharp(rgba, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
 }
 
+export type ShotResult = {
+  jpeg: Buffer;
+  /** Where the real product landed — so a later pass can restore its exact pixels. */
+  placement: { png: Buffer; left: number; top: number; width: number; height: number };
+};
+
+/**
+ * The back edge of the surface the set was generated with — a table edge,
+ * a horizon, the line where a ledge meets the wall. Found as the strongest
+ * horizontal edge across the middle of the lower frame. Null when nothing
+ * stands out (a seamless sweep), in which case the layout default holds.
+ */
+async function surfaceLine(scene: Buffer, W: number, H: number): Promise<number | null> {
+  const { data } = await sharp(scene).greyscale().resize(W, H).blur(1.2).raw().toBuffer({ resolveWithObject: true });
+  const x0 = Math.round(W * 0.2);
+  const x1 = Math.round(W * 0.8);
+  const from = Math.round(H * 0.42);
+  const to = Math.round(H * 0.86);
+  const strength: number[] = [];
+  for (let y = from; y < to; y++) {
+    let sum = 0;
+    for (let x = x0; x < x1; x++) sum += Math.abs(data[(y + 2) * W + x] - data[(y - 2) * W + x]);
+    strength.push(sum / (x1 - x0));
+  }
+  const sorted = [...strength].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)] || 1;
+  let best = 0;
+  for (let i = 1; i < strength.length; i++) if (strength[i] > strength[best]) best = i;
+  return strength[best] > Math.max(6, median * 3) ? from + best : null;
+}
+
 export async function compositeShot(args: {
   scene: string;
   product: string;
@@ -84,7 +115,7 @@ export async function compositeShot(args: {
   framing?: Framing;
   /** The set has a reflective surface. */
   glossy?: boolean;
-}): Promise<Buffer> {
+}): Promise<ShotResult> {
   const { width: W, height: H } = args;
   const framing = args.framing ?? "hero";
 
@@ -111,7 +142,12 @@ export async function compositeShot(args: {
   // thing in frame.
   const background = await sharp(rawScene).blur(0.9).toBuffer();
 
-  const { maxW, maxH, baseY, cx } = layout(W, H, framing, lightFromLeft);
+  const planned = layout(W, H, framing, lightFromLeft);
+  const { maxW, maxH, cx } = planned;
+  // Stand the product *on* the surface: its base goes a little in front of
+  // the surface's back edge, never behind it (which reads as floating).
+  const edge = await surfaceLine(rawScene, W, H);
+  const baseY = edge === null ? planned.baseY : clamp(Math.max(planned.baseY, edge + Math.round(H * 0.1)), planned.baseY, Math.round(H * 0.96));
 
   // ---- The product ------------------------------------------------------
   let productPng: Buffer;
@@ -160,7 +196,7 @@ export async function compositeShot(args: {
       }
     }
 
-    productPng = await sharp(px, { raw: { width: w, height: h, channels: 4 } }).sharpen({ sigma: 0.6 }).png().toBuffer();
+    productPng = await sharp(px, { raw: { width: w, height: h, channels: 4 } }).blur(0.4).png().toBuffer();
   } else {
     // Not a cutout: present the photo as a print propped on the set.
     const photo = await sharp(buffer(args.product))
@@ -211,9 +247,9 @@ export async function compositeShot(args: {
   // Contact shadow: a squashed silhouette right at the base, plus a soft
   // ambient pool — what keeps the product from floating.
   const contactH = Math.max(8, Math.round(ph * 0.06));
-  const contact = await sharp(await silhouette(productAlpha, pw, ph, 0.75))
+  const contact = await sharp(await silhouette(productAlpha, pw, ph, 0.55))
     .resize(Math.round(pw * 0.98), contactH, { fit: "fill" })
-    .blur(Math.max(2, contactH * 0.35))
+    .blur(Math.max(3, contactH * 0.6))
     .png()
     .toBuffer();
   const pool = Buffer.from(
@@ -256,10 +292,18 @@ export async function compositeShot(args: {
   );
   layers.push({ input: vignette, left: 0, top: 0 });
 
+  // One grain over everything: a generated set and a product photo have
+  // different noise, and a shared grain is what makes them one exposure.
+  const grain = await sharp({ create: { width: W, height: H, channels: 3, background: "#808080", noise: { type: "gaussian", mean: 128, sigma: 9 } } })
+    .png()
+    .toBuffer();
+  layers.push({ input: grain, left: 0, top: 0, blend: "overlay" });
+
   const composed = await sharp(background).composite(layers).toBuffer();
-  return sharp(composed)
+  const jpeg = await sharp(composed)
     .modulate({ saturation: 1.04 })
     .linear(1.03, -3)
     .jpeg({ quality: 92, mozjpeg: true })
     .toBuffer();
+  return { jpeg, placement: { png: productPng, left, top, width: pw, height: ph } };
 }

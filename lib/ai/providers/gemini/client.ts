@@ -29,12 +29,12 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function callGemini(model: string, body: unknown): Promise<any> {
+export async function callGemini(model: string, body: unknown, opts: { retries?: number } = {}): Promise<any> {
   const fallback = FALLBACK_MODEL[model];
   try {
     // With somewhere to fall back to, don't spend long waiting out an
     // overloaded model: one retry, then switch.
-    return await callModel(model, body, fallback ? 1 : MAX_RETRIES);
+    return await callModel(model, body, opts.retries ?? (fallback ? 1 : MAX_RETRIES));
   } catch (err) {
     if (fallback && err instanceof Error && /\((429|500|503)\)/.test(err.message)) {
       console.warn(`Gemini ${model} unavailable, falling back to ${fallback}`);
@@ -62,7 +62,8 @@ async function callModel(model: string, body: unknown, retries = MAX_RETRIES): P
 
       if (!res.ok) {
         const text = await res.text();
-        if (RETRYABLE_STATUS.has(res.status) && attempt < retries) {
+        const quota = res.status === 429 && /RESOURCE_EXHAUSTED|quota/i.test(text);
+        if (RETRYABLE_STATUS.has(res.status) && attempt < retries && !quota) {
           lastError = new Error(`Gemini API error (${res.status}) for model ${model}: ${text}`);
           await sleep(BACKOFF_MS[attempt] + Math.random() * 1000);
           continue;

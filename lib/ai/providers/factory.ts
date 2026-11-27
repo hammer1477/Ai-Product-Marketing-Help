@@ -39,9 +39,36 @@ export function getImageProvider(): ImageGenerationProvider {
   if (!imageProvider) {
     const id = process.env.AI_IMAGE_PROVIDER ?? "mock";
     if (id === "mock") imageProvider = new MockImageGenerationProvider();
-    else if (id === "gemini") imageProvider = new GeminiImageGenerationProvider();
+    // Gemini ("Nano Banana") first; on a refusal or failure — quota, outage —
+    // the free Flux model makes the scene so a generation never fails on it.
+    else if (id === "gemini") imageProvider = new FallbackImageProvider(new GeminiImageGenerationProvider(), new PollinationsImageGenerationProvider());
     else if (id === "pollinations") imageProvider = new PollinationsImageGenerationProvider();
     else throw new Error(`Unknown or not-yet-implemented AI_IMAGE_PROVIDER: "${id}"`);
   }
   return imageProvider;
+}
+
+class FallbackImageProvider implements ImageGenerationProvider {
+  readonly id: string;
+  /** After a refusal, go straight to the fallback for a while. */
+  private pausedUntil = 0;
+  constructor(
+    private primary: ImageGenerationProvider,
+    private fallback: ImageGenerationProvider,
+  ) {
+    this.id = primary.id;
+  }
+  async generate(args: Parameters<ImageGenerationProvider["generate"]>[0]) {
+    // The fallback only does text-to-image; anything else must use the primary.
+    const canFallBack = args.mode === "text-to-image" && !args.referenceImageUrl;
+    if (canFallBack && Date.now() < this.pausedUntil) return this.fallback.generate(args);
+    try {
+      return await this.primary.generate(args);
+    } catch (err) {
+      if (!canFallBack) throw err;
+      if (/(429)/.test((err as Error).message)) this.pausedUntil = Date.now() + 15 * 60 * 1000;
+      console.warn(`Image provider ${this.primary.id} failed, using ${this.fallback.id}:`, (err as Error).message.slice(0, 200));
+      return this.fallback.generate(args);
+    }
+  }
 }

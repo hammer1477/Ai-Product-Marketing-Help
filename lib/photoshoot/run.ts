@@ -5,6 +5,7 @@ import { removeProductBackdrop, trimTransparentEdges } from "../images/cutout";
 import { toDataUri } from "../orchestration/toDataUri";
 import { formatDef } from "../orchestration/formats";
 import { compositeShot } from "./composite";
+import { harmonizeShot } from "./harmonize";
 import { looksGlossy, sceneById, scenePrompt, type FramingChoice } from "./scenes";
 
 export type PhotoshootParams = {
@@ -74,7 +75,7 @@ export async function runPhotoshootShot(jobId: string): Promise<{ imageId: strin
     })(),
   ]);
 
-  const jpeg = await compositeShot({
+  const shot = await compositeShot({
     scene: await toDataUri(sceneResult.imageUrl),
     product: product.src,
     cutout: product.cutout,
@@ -83,6 +84,9 @@ export async function runPhotoshootShot(jobId: string): Promise<{ imageId: strin
     framing,
     glossy,
   });
+  // The realism pass makes it one photograph; the composite stands if it
+  // can't (off, failed, or it tried to move the product).
+  const jpeg = (await harmonizeShot(shot, format.width, format.height)) ?? shot.jpeg;
 
   const storagePath = `${job.user_id}/photoshoots/${job.id}.jpg`;
   const { error: uploadError } = await supabase.storage

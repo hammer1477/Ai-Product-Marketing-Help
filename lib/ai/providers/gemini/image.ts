@@ -7,6 +7,13 @@ import { GEMINI_IMAGE_PRICE_PER_IMAGE } from "./pricing";
 // identity rather than inventing a new one.
 const MODEL = process.env.GEMINI_IMAGE_MODEL ?? "gemini-3.1-flash-image";
 
+/** The nearest aspect ratio Gemini supports. */
+function aspectRatio(width: number, height: number): string {
+  const options: Array<[string, number]> = [["1:1", 1], ["4:5", 0.8], ["3:4", 0.75], ["9:16", 9 / 16], ["16:9", 16 / 9], ["4:3", 4 / 3], ["3:2", 1.5], ["2:3", 2 / 3]];
+  const r = width / Math.max(1, height);
+  return options.reduce((best, o) => (Math.abs(Math.log(o[1] / r)) < Math.abs(Math.log(best[1] / r)) ? o : best))[0];
+}
+
 export class GeminiImageGenerationProvider implements ImageGenerationProvider {
   readonly id = "gemini";
 
@@ -24,7 +31,11 @@ export class GeminiImageGenerationProvider implements ImageGenerationProvider {
       parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
     }
 
-    const result = await callGemini(MODEL, { contents: [{ role: "user", parts }] });
+    // Ask for the shape we need; Gemini otherwise answers square.
+    const result = await callGemini(MODEL, {
+      contents: [{ role: "user", parts }],
+      generationConfig: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio: aspectRatio(args.width, args.height) } },
+    });
 
     const responseParts = result.candidates?.[0]?.content?.parts ?? [];
     const imagePart = responseParts.find((p: any) => p.inlineData?.data);
